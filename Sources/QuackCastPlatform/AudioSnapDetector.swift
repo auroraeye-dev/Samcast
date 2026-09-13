@@ -23,7 +23,10 @@ public final class AudioSnapDetector {
     /// table tap / knock is a *dull* thud (mostly low frequency). We require the
     /// high-frequency energy ratio to exceed this to accept a transient as a
     /// snap. Raise it to be stricter (fewer false snaps), lower to be laxer.
-    public var minBrightness: Float = 0.9
+    /// Kept permissive on purpose: the app pairs this with a *visual* snap
+    /// detection, so vision provides the specificity and the mic only needs to
+    /// confirm a sharpish click happened.
+    public var minBrightness: Float = 0.4
 
     private let engine = AVAudioEngine()
     private var background: Float = 0.02
