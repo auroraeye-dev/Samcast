@@ -46,8 +46,11 @@ final class AppModel: ObservableObject {
         do { try handTracker.start() } catch { statusLine = "Camera error: \(error)" }
 
         screenSource.onFrame = { [weak self] frame, _ in
-            guard let self, let pixelBuffer = frame as? CVPixelBuffer else { return }
-            self.forwardFrame(pixelBuffer)
+            guard let self else { return }
+            // `frame` is an opaque CVPixelBuffer (a CoreFoundation type, so a
+            // plain `as?` always "succeeds" — check the CF type id instead).
+            guard CFGetTypeID(frame as CFTypeRef) == CVPixelBufferGetTypeID() else { return }
+            self.forwardFrame(frame as! CVPixelBuffer)
         }
 
         updateStatus()
