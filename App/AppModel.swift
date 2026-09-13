@@ -23,6 +23,9 @@ final class AppModel: ObservableObject {
     private let screenSource = ScreenCaptureKitSource()
     private let ciContext = CIContext()
 
+    /// Tracks macOS privacy permissions so the UI can guide setup.
+    let permissions = Permissions()
+
     // Where captured frames are currently being streamed (if casting).
     private var streamingTarget: Peer?
     // Ignore open/close gestures until this time, right after a snap, so the
@@ -68,7 +71,10 @@ final class AppModel: ObservableObject {
 
 
         screenSource.onCaptureError = { [weak self] message in
-            self?.statusLine = message
+            guard let self else { return }
+            self.statusLine = message
+            self.permissions.screenRecordingFailed = true
+            self.permissions.refresh()
         }
 
         screenSource.onFrame = { [weak self] frame, _ in
@@ -185,6 +191,7 @@ final class AppModel: ObservableObject {
                 do {
                     let url = try await self.screenSource.captureStill()
                     self.lastScreenshot = url
+                    self.permissions.screenRecordingFailed = false
                     self.statusLine = "📸 Screenshot saved to Pictures: \(url.lastPathComponent)"
                 } catch {
                     // Show the real underlying error so failures are diagnosable

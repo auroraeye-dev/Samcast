@@ -44,6 +44,9 @@ struct ContentView: View {
                 Image(nsImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+            } else if !model.permissions.allGranted {
+                // Guide setup instead of silently doing nothing.
+                PermissionsView(permissions: model.permissions)
             } else {
                 // No live camera preview — it feels awkward and isn't needed.
                 // The camera still runs in the background for gesture detection.
