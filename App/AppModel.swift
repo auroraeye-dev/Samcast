@@ -29,6 +29,9 @@ final class AppModel: ObservableObject {
     // Ignore open/close gestures until this time, right after a snap, so the
     // fist that naturally forms as you finish snapping doesn't arm a cast.
     private var snapSuppressUntil = Date.distantPast
+    // A snap only counts if a hand was seen within this window of the sound.
+    private var lastHandSeen = Date.distantPast
+    private let handVisibleWindow: TimeInterval = 0.6
 
     // MARK: Published UI state
     @Published private(set) var state: SessionState = .idle
@@ -45,7 +48,8 @@ final class AppModel: ObservableObject {
         handTracker.onHand = { [weak self] hand, time in
             guard let self else { return }
             let raw = hand.map { self.classifier.classify($0) } ?? .none
-            Task { @MainActor in self.handleGesture(raw, at: time) }
+            let handVisible = (hand != nil)
+            Task { @MainActor in self.handleGesture(raw, handVisible: handVisible, at: time) }
         }
         do { try handTracker.start() } catch { statusLine = "Camera error: \(error)" }
 
@@ -67,7 +71,11 @@ final class AppModel: ObservableObject {
 
     // MARK: Gesture pipeline
 
-    private func handleGesture(_ raw: HandGesture, at time: TimeInterval) {
+    private func handleGesture(_ raw: HandGesture, handVisible: Bool, at time: TimeInterval) {
+        // Remember when a hand was last actually seen, so a snap requires the
+        // hand to be in view (audio + vision), not just any sound in the room.
+        if handVisible { lastHandSeen = Date() }
+
         // Briefly after a snap, ignore open/close so the fist that forms as you
         // finish snapping doesn't arm a cast.
         if Date() < snapSuppressUntil {
@@ -81,6 +89,12 @@ final class AppModel: ObservableObject {
     }
 
     private func handleSnap() {
+        // Sensor fusion: only treat the sound as a snap if a hand is visible in
+        // the camera right now — this rejects claps, knocks, typing, and talking.
+        guard Date().timeIntervalSince(lastHandSeen) < handVisibleWindow else {
+            statusLine = "Snap heard — hold your hand up to the camera and snap to take a screenshot."
+            return
+        }
         snapSuppressUntil = Date().addingTimeInterval(0.7)
         debouncer.reset()
         currentGesture = .snap
