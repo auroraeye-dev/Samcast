@@ -60,9 +60,14 @@ final class AppModel: ObservableObject {
     // MARK: Gesture pipeline
 
     private func handleFrame(hand: HandLandmarks?, raw: HandGesture, at time: TimeInterval) {
-        // Snap (thumb–middle quick release) fires a screenshot independently of
-        // the open/close casting gesture.
-        if snapDetector.update(hand, at: time) {
+        // The cast gesture (fist) and a snap overlap on camera: closing a fist
+        // moves thumb+middle together then apart, which looks like a snap. So
+        // only hunt for a snap when the hand is NOT a committed open/closed
+        // pose — a real snap reads as a partial pose (index out, others curled),
+        // while a fist reads as fully closed and is excluded here.
+        if raw == .openHand || raw == .closedHand {
+            snapDetector.reset()
+        } else if snapDetector.update(hand, at: time) {
             currentGesture = .snap
             apply(coordinator.reduce(.localGesture(.snap)))
             return
