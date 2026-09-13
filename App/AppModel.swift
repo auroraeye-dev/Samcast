@@ -45,6 +45,9 @@ final class AppModel: ObservableObject {
     /// Live: is the camera seeing a real hand right now? Shown in the UI so the
     /// gating is visible rather than a black box.
     @Published private(set) var handDetected: Bool = false
+    /// Diagnostic for the last sharp sound heard: its measured tone and whether
+    /// it was bright enough to count as a snap. Lets the threshold be tuned.
+    @Published private(set) var lastSoundInfo: String = ""
     @Published private(set) var receivedImage: NSImage?
     @Published private(set) var lastScreenshot: URL?
     @Published private(set) var statusLine: String = "Starting…"
@@ -63,6 +66,10 @@ final class AppModel: ObservableObject {
         // Snap is detected by sound (a sharp transient), which is robust and
         // never confused with the fist cast gesture.
         audioSnap.onSnap = { [weak self] in self?.handleAudioSnap() }
+        audioSnap.onSound = { [weak self] accepted, tone in
+            guard let self else { return }
+            self.lastSoundInfo = String(format: accepted ? "sound tone %.1f → snap" : "sound tone %.1f → too dull, ignored", tone)
+        }
         try? audioSnap.start()
 
         screenSource.onFrame = { [weak self] frame, _ in

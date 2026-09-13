@@ -115,6 +115,11 @@ struct ContentView: View {
                     .padding(.horizontal, 8).padding(.vertical, 4)
                     .background(Capsule().fill(Color.secondary.opacity(0.15)))
             }
+            if !model.lastSoundInfo.isEmpty {
+                Text(model.lastSoundInfo)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
             if let shot = model.lastScreenshot {
                 Label(shot.lastPathComponent, systemImage: "camera")

@@ -1,32 +1,40 @@
 import Foundation
 import AVFoundation
 
-/// Detects a finger snap from the microphone. A snap is a sharp, short
-/// broadband transient, so we look for a sudden spike in the audio peak level
-/// that far exceeds the recent background level (an onset detector). This is
-/// independent of hand shape, which is why it avoids the fist/snap confusion
-/// that pure vision suffers from.
+/// Detects a finger snap from the microphone.
 ///
-/// It is deliberately simple and will also react to other sharp transients
-/// (claps, knocks). Tune `triggerFactor` / `minPeak` to taste.
+/// Detecting "a loud sharp sound" is easy but useless — a table tap, a knock
+/// and a snap are all sharp. What separates them is **tone**:
+///
+/// * a finger snap is a *bright* click: most of its energy sits well above
+///   ~1 kHz and it decays almost instantly;
+/// * a table tap / knock is a *dull* thud: most of its energy is low frequency
+///   because the surface resonates.
+///
+/// So on every sharp onset we split the signal into low and high bands with a
+/// one-pole filter and require the high band to dominate. (A one-pole split is
+/// used instead of an FFT because it is cheap, allocation-free and plenty to
+/// separate "bright click" from "low thud".)
 public final class AudioSnapDetector {
-    /// Called on the main queue when a snap-like transient is detected.
+    /// Called on the main queue when a snap is accepted.
     public var onSnap: (() -> Void)?
+
+    /// Diagnostics for *every* sharp sound heard: (accepted, tone ratio).
+    /// A higher tone ratio means a brighter sound. Surfaced in the UI so the
+    /// threshold can be tuned against real snaps rather than guessed.
+    public var onSound: ((Bool, Float) -> Void)?
 
     /// Peak must exceed background * this factor to count as an onset.
     public var triggerFactor: Float = 6.0
     /// Absolute floor so quiet-room noise can't trigger via the ratio alone.
-    public var minPeak: Float = 0.10
+    public var minPeak: Float = 0.08
     /// Minimum time between reported snaps.
     public var cooldown: TimeInterval = 0.4
-    /// A finger snap is a *bright* click (lots of high-frequency energy); a
-    /// table tap / knock is a *dull* thud (mostly low frequency). We require the
-    /// high-frequency energy ratio to exceed this to accept a transient as a
-    /// snap. Raise it to be stricter (fewer false snaps), lower to be laxer.
-    /// Kept permissive on purpose: the app pairs this with a *visual* snap
-    /// detection, so vision provides the specificity and the mic only needs to
-    /// confirm a sharpish click happened.
-    public var minBrightness: Float = 0.4
+    /// High-band / low-band energy ratio required to call a sound a snap.
+    /// Raise → stricter (rejects more taps). Lower → laxer.
+    public var minToneRatio: Float = 1.0
+    /// Split point between "low thud" and "bright click" energy, in Hz.
+    public var crossoverHz: Float = 1200
 
     private let engine = AVAudioEngine()
     private var background: Float = 0.02
@@ -58,35 +66,46 @@ public final class AudioSnapDetector {
         guard let channel = buffer.floatChannelData?[0] else { return }
         let count = Int(buffer.frameLength)
         guard count > 0 else { return }
+        let sampleRate = Float(buffer.format.sampleRate)
+        guard sampleRate > 0 else { return }
 
-        // Single pass: peak amplitude, total energy, and high-frequency energy.
-        // The first difference (x[i]-x[i-1]) is a cheap high-pass filter, so the
-        // ratio of its energy to total energy is a "brightness" measure that
-        // separates a snap's bright click from a dull table/knock thud.
+        // Peak for onset detection, plus a low/high band split for tone.
+        // One-pole low-pass coefficient for the chosen crossover frequency.
+        let dt: Float = 1.0 / sampleRate
+        let rc: Float = 1.0 / (2.0 * .pi * crossoverHz)
+        let alpha: Float = dt / (rc + dt)
+
         var peak: Float = 0
-        var energy: Float = 0
+        var lowEnergy: Float = 0
         var highEnergy: Float = 0
-        var prev: Float = channel[0]
+        var lowPass: Float = channel[0]
+
         for i in 0..<count {
             let x = channel[i]
             let a = abs(x)
             if a > peak { peak = a }
-            energy += x * x
-            let hp = x - prev
-            highEnergy += hp * hp
-            prev = x
+            lowPass += alpha * (x - lowPass)   // low band
+            let high = x - lowPass             // whatever is left is high band
+            lowEnergy += lowPass * lowPass
+            highEnergy += high * high
         }
-        let brightness: Float = energy > 1e-9 ? highEnergy / energy : 0
+
+        let toneRatio: Float = lowEnergy > 1e-9 ? highEnergy / lowEnergy : (highEnergy > 0 ? 99 : 0)
 
         let now = Date()
-        let isOnset = peak > minPeak
+        let isSharp = peak > minPeak
             && peak > background * triggerFactor
-            && brightness > minBrightness
             && now.timeIntervalSince(lastSnap) > cooldown
-        if isOnset {
-            lastSnap = now
-            let handler = onSnap
-            DispatchQueue.main.async { handler?() }
+
+        if isSharp {
+            let isBright = toneRatio >= minToneRatio
+            if isBright {
+                lastSnap = now
+                let handler = onSnap
+                DispatchQueue.main.async { handler?() }
+            }
+            let diag = onSound
+            DispatchQueue.main.async { diag?(isBright, toneRatio) }
         }
 
         // Slowly track the background level from every frame.
