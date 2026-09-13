@@ -181,11 +181,11 @@ final class AppModel: ObservableObject {
                 do {
                     let url = try await self.screenSource.captureStill()
                     self.lastScreenshot = url
-                    self.statusLine = "📸 Screenshot saved to Desktop: \(url.lastPathComponent)"
+                    self.statusLine = "📸 Screenshot saved to Pictures: \(url.lastPathComponent)"
                 } catch {
                     // Show the real underlying error so failures are diagnosable
                     // rather than always blamed on permissions.
-                    self.statusLine = "Snap heard — screenshot failed: \(error.localizedDescription)"
+                    self.statusLine = "✌️ Peace sign seen — screenshot failed: \(error.localizedDescription)"
                 }
             }
         }
