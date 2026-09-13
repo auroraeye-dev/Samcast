@@ -5,6 +5,7 @@ options:
   bundleIdPrefix: com.quackcast
   deploymentTarget:
     macOS: "13.0"
+    iOS: "16.0"
   createIntermediateGroups: true
 
 # The local Swift package (this repo) providing the portable core + adapters.
@@ -38,3 +39,25 @@ targets:
         LD_RUNPATH_SEARCH_PATHS:
           - "$(inherited)"
           - "@executable_path/../Frameworks"
+
+  QuackCastiOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: App-iOS
+    dependencies:
+      - package: QuackCast
+        product: QuackCastCore
+      - package: QuackCast
+        product: QuackCastPlatform
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.quackcast.ios
+        PRODUCT_NAME: QuackCast
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: App-iOS/Resources/Info.plist
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Automatic
+        SWIFT_VERSION: "5.9"

@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import ScreenCaptureKit
 import CoreMedia
@@ -135,3 +136,4 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
 
     public enum CaptureError: Error { case stillFailed, permissionRequired }
 }
+#endif

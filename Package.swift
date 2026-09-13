@@ -8,7 +8,7 @@ import PackageDescription
 // reimplements only the platform adapters defined by the protocols here).
 let package = Package(
     name: "QuackCastCore",
-    platforms: [.macOS(.v13)],
+    platforms: [.macOS(.v13), .iOS(.v16)],
     products: [
         .library(name: "QuackCastCore", targets: ["QuackCastCore"]),
         // Apple-framework adapters (Vision / AVFoundation / ScreenCaptureKit /
