@@ -16,6 +16,7 @@ final class AppModel: ObservableObject {
     private var coordinator = SessionCoordinator()
     private let classifier = GestureClassifier()
     private var debouncer = GestureDebouncer(holdDuration: 0.3)
+    private var snapDetector = SnapDetector()
 
     // Platform adapters.
     let handTracker = VisionHandTracker()
@@ -41,7 +42,7 @@ final class AppModel: ObservableObject {
         handTracker.onHand = { [weak self] hand, time in
             guard let self else { return }
             let raw = hand.map { self.classifier.classify($0) } ?? .none
-            Task { @MainActor in self.handleRawGesture(raw, at: time) }
+            Task { @MainActor in self.handleFrame(hand: hand, raw: raw, at: time) }
         }
         do { try handTracker.start() } catch { statusLine = "Camera error: \(error)" }
 
@@ -58,7 +59,14 @@ final class AppModel: ObservableObject {
 
     // MARK: Gesture pipeline
 
-    private func handleRawGesture(_ raw: HandGesture, at time: TimeInterval) {
+    private func handleFrame(hand: HandLandmarks?, raw: HandGesture, at time: TimeInterval) {
+        // Snap (thumb–middle quick release) fires a screenshot independently of
+        // the open/close casting gesture.
+        if snapDetector.update(hand, at: time) {
+            currentGesture = .snap
+            apply(coordinator.reduce(.localGesture(.snap)))
+            return
+        }
         if let confirmed = debouncer.update(raw, at: time) {
             currentGesture = confirmed
             apply(coordinator.reduce(.localGesture(confirmed)))
