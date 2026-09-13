@@ -48,7 +48,9 @@ final class AppModel: ObservableObject {
         handTracker.onHand = { [weak self] hand, time in
             guard let self else { return }
             let raw = hand.map { self.classifier.classify($0) } ?? .none
-            let handVisible = (hand != nil)
+            // Count the hand as "visible" only when the detection is confident,
+            // so a low-confidence phantom hand can't let a plain sound through.
+            let handVisible = (hand?.confidence ?? 0) >= 0.6
             Task { @MainActor in self.handleGesture(raw, handVisible: handVisible, at: time) }
         }
         do { try handTracker.start() } catch { statusLine = "Camera error: \(error)" }
