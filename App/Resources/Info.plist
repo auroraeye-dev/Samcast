@@ -6,6 +6,8 @@
     <string>QuackCast</string>
     <key>CFBundleDisplayName</key>
     <string>QuackCast</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
     <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleShortVersionString</key>
