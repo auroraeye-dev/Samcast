@@ -15,8 +15,15 @@ import QuackCastCore
 public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutput, SCStreamDelegate {
     public var onFrame: ((Any, TimeInterval) -> Void)?
 
-    /// Target capture frame rate.
-    public var framesPerSecond: Int = 30
+    /// Target capture frame rate. 15 is plenty for sharing a screen and halves
+    /// the bytes compared with 30.
+    public var framesPerSecond: Int = 15
+
+    /// Capture is downscaled to at most this width before encoding. A Retina
+    /// display is far too large to push over a peer-to-peer link frame by
+    /// frame; scaling here (rather than after capture) also saves the encode
+    /// and copy cost of the full-size image.
+    public var maxCaptureWidth: Int = 1280
 
     private var stream: SCStream?
     private var isRunning = false
@@ -44,11 +51,15 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
             let filter = SCContentFilter(display: display, excludingWindows: [])
 
             let config = SCStreamConfiguration()
-            config.width = display.width
-            config.height = display.height
+            // Downscale, preserving aspect ratio, to keep frames small enough
+            // to actually stream. Dimensions are kept even for the encoder.
+            let scale = min(1.0, Double(self.maxCaptureWidth) / Double(display.width))
+            config.width = (Int(Double(display.width) * scale) / 2) * 2
+            config.height = (Int(Double(display.height) * scale) / 2) * 2
             config.pixelFormat = kCVPixelFormatType_32BGRA
             config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(self.framesPerSecond))
-            config.queueDepth = 5
+            // Shallow queue: for live sharing a fresh frame beats a backlog.
+            config.queueDepth = 3
 
             let stream = SCStream(filter: filter, configuration: config, delegate: self)
             do {
