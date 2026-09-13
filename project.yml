@@ -1,0 +1,40 @@
+# XcodeGen spec — the human-readable source of truth for the Xcode project.
+# Regenerate the .xcodeproj any time with:  xcodegen generate
+name: GestureCast
+options:
+  bundleIdPrefix: com.gesturecast
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+
+# The local Swift package (this repo) providing the portable core + adapters.
+packages:
+  GestureCast:
+    path: .
+
+targets:
+  GestureCast:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+    dependencies:
+      - package: GestureCast
+        product: GestureCastCore
+      - package: GestureCast
+        product: GestureCastPlatform
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gesturecast.app
+        PRODUCT_NAME: GestureCast
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: App/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/Resources/GestureCast.entitlements
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_HARDENED_RUNTIME: YES
+        SWIFT_VERSION: "5.9"
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/../Frameworks"

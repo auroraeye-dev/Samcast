@@ -11,6 +11,10 @@ let package = Package(
     platforms: [.macOS(.v13)],
     products: [
         .library(name: "GestureCastCore", targets: ["GestureCastCore"]),
+        // Apple-framework adapters (Vision / AVFoundation / ScreenCaptureKit /
+        // MultipeerConnectivity) implementing the core's Ports. Kept free of
+        // SwiftUI so it type-checks with `swift build` even without full Xcode.
+        .library(name: "GestureCastPlatform", targets: ["GestureCastPlatform"]),
         // A dependency-free smoke test runnable with `swift run CoreCheck`,
         // even on a machine with only Command Line Tools (no full Xcode / no
         // XCTest). The XCTest suite below is the richer suite used in Xcode/CI.
@@ -18,6 +22,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "GestureCastCore"),
+        .target(name: "GestureCastPlatform", dependencies: ["GestureCastCore"]),
         .executableTarget(name: "CoreCheck", dependencies: ["GestureCastCore"]),
         .testTarget(
             name: "GestureCastCoreTests",
