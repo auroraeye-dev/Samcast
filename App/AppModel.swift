@@ -21,7 +21,6 @@ final class AppModel: ObservableObject {
     let handTracker = VisionHandTracker()
     private let transport = MultipeerTransport(kind: .mac)
     private let screenSource = ScreenCaptureKitSource()
-    private let audioSnap = AudioSnapDetector()
     private let ciContext = CIContext()
 
     // Where captured frames are currently being streamed (if casting).
@@ -33,6 +32,7 @@ final class AppModel: ObservableObject {
     // MARK: Snap gating
     // Simple rule: a hand must be VISIBLE in the camera when the click is
     // heard. No motion analysis — just "is a real hand on screen right now".
+    private var tPose = TPoseDetector()
     private var lastHandSeen = Date.distantPast
     private var lastSnapFired = Date.distantPast
     private let handVisibleWindow: TimeInterval = 0.5
@@ -45,9 +45,6 @@ final class AppModel: ObservableObject {
     /// Live: is the camera seeing a real hand right now? Shown in the UI so the
     /// gating is visible rather than a black box.
     @Published private(set) var handDetected: Bool = false
-    /// Diagnostic for the last sharp sound heard: its measured tone and whether
-    /// it was bright enough to count as a snap. Lets the threshold be tuned.
-    @Published private(set) var lastSoundInfo: String = ""
     @Published private(set) var receivedImage: NSImage?
     @Published private(set) var lastScreenshot: URL?
     @Published private(set) var statusLine: String = "Starting…"
@@ -56,21 +53,13 @@ final class AppModel: ObservableObject {
         transport.delegate = self
         transport.start()
 
-        handTracker.onHand = { [weak self] hand, time in
+        handTracker.onHands = { [weak self] hands, time in
             guard let self else { return }
-            let raw = hand.map { self.classifier.classify($0) } ?? .none
-            Task { @MainActor in self.handleFrame(hand, raw: raw, at: time) }
+            let raw = hands.first.map { self.classifier.classify($0) } ?? .none
+            Task { @MainActor in self.handleFrame(hands, raw: raw, at: time) }
         }
         do { try handTracker.start() } catch { statusLine = "Camera error: \(error)" }
 
-        // Snap is detected by sound (a sharp transient), which is robust and
-        // never confused with the fist cast gesture.
-        audioSnap.onSnap = { [weak self] in self?.handleAudioSnap() }
-        audioSnap.onSound = { [weak self] accepted, tone in
-            guard let self else { return }
-            self.lastSoundInfo = String(format: accepted ? "sound tone %.1f → snap" : "sound tone %.1f → too dull, ignored", tone)
-        }
-        try? audioSnap.start()
 
         screenSource.onFrame = { [weak self] frame, _ in
             guard let self else { return }
@@ -96,9 +85,15 @@ final class AppModel: ObservableObject {
         return true
     }
 
-    private func handleFrame(_ hand: HandLandmarks?, raw: HandGesture, at time: TimeInterval) {
+    private func handleFrame(_ hands: [HandLandmarks], raw: HandGesture, at time: TimeInterval) {
+        // Two hands forming a T take a screenshot.
+        if tPose.update(hands, at: time) {
+            fireScreenshot()
+            return
+        }
+
         // Is a real hand on camera right now?
-        let visible = isRealHand(hand)
+        let visible = isRealHand(hands.first)
         if visible { lastHandSeen = Date() }
         if handDetected != visible { handDetected = visible }
 
@@ -114,22 +109,16 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// A click was heard. Take the screenshot only if a hand is on camera.
-    private func handleAudioSnap() {
+    /// The T-pose was held: take a screenshot.
+    private func fireScreenshot() {
         let now = Date()
         guard now.timeIntervalSince(lastSnapFired) > snapCooldown else { return }
-        guard now.timeIntervalSince(lastHandSeen) < handVisibleWindow else {
-            statusLine = "Heard a click — but no hand in view, so it was ignored."
-            return
-        }
-
         lastSnapFired = now
-        // After a screenshot, ignore open/close gestures for 2s so the fist the
-        // hand lands in as the snap finishes can't arm a cast.
+        // Ignore open/close for 2s so hands returning to rest can't arm a cast.
         snapSuppressUntil = now.addingTimeInterval(2.0)
         debouncer.reset()
-        currentGesture = .snap
-        apply(coordinator.reduce(.localGesture(.snap)))
+        currentGesture = .tPose
+        apply(coordinator.reduce(.localGesture(.tPose)))
         NSSound(named: "Tink")?.play() // audible confirmation
     }
 

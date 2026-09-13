@@ -10,7 +10,7 @@ public enum HandGesture: String, Equatable, Sendable {
     /// Fingers curled into a fist — the "duck-mouth close" that *arms /
     /// captures* the current screen on the source device.
     case closedHand
-    /// A finger snap, detected by sound (see AudioSnapDetector), used to take a
-    /// screenshot.
-    case snap
+    /// A two-handed "T" (time-out signal), used to take a screenshot. Purely
+    /// visual, so no microphone is involved and no sound can trigger it.
+    case tPose
 }

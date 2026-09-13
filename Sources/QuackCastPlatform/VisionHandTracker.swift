@@ -7,10 +7,10 @@ import QuackCastCore
 /// Vision's hand-pose request on every frame, translating Vision's joint names
 /// into the core's neutral `HandLandmarks`.
 ///
-/// The `onHand` callback is invoked on a background queue; hop to the main
+/// The `onHands` callback is invoked on a background queue; hop to the main
 /// queue before touching UI.
 public final class VisionHandTracker: NSObject, HandTracker, AVCaptureVideoDataOutputSampleBufferDelegate {
-    public var onHand: ((HandLandmarks?, TimeInterval) -> Void)?
+    public var onHands: (([HandLandmarks], TimeInterval) -> Void)?
 
     /// Vision points below this confidence are dropped from the landmark set.
     public var minPointConfidence: Float = 0.3
@@ -19,7 +19,7 @@ public final class VisionHandTracker: NSObject, HandTracker, AVCaptureVideoDataO
     private let videoQueue = DispatchQueue(label: "com.quackcast.vision.video")
     private let handRequest: VNDetectHumanHandPoseRequest = {
         let r = VNDetectHumanHandPoseRequest()
-        r.maximumHandCount = 1
+        r.maximumHandCount = 2 // two hands are needed for the T-pose gesture
         return r
     }()
 
@@ -76,15 +76,13 @@ public final class VisionHandTracker: NSObject, HandTracker, AVCaptureVideoDataO
         do {
             try handler.perform([handRequest])
         } catch {
-            onHand?(nil, timestamp)
+            onHands?([], timestamp)
             return
         }
 
-        guard let observation = handRequest.results?.first else {
-            onHand?(nil, timestamp)
-            return
-        }
-        onHand?(landmarks(from: observation), timestamp)
+        let observations = handRequest.results ?? []
+        let hands = observations.compactMap { landmarks(from: $0) }
+        onHands?(hands, timestamp)
     }
 
     private func landmarks(from observation: VNHumanHandPoseObservation) -> HandLandmarks? {

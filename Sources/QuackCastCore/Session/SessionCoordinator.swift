@@ -94,7 +94,7 @@ public struct SessionCoordinator: Sendable {
 
     private mutating func handleLocalGesture(_ gesture: HandGesture) -> [SessionEffect] {
         // Snap always takes a screenshot and never changes session state.
-        if gesture == .snap {
+        if gesture == .tPose {
             return [.takeScreenshot]
         }
 

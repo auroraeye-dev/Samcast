@@ -28,9 +28,9 @@ final class ReceiverModel: ObservableObject {
         transport.delegate = self
         transport.start()
 
-        handTracker.onHand = { [weak self] hand, time in
+        handTracker.onHands = { [weak self] hands, time in
             guard let self else { return }
-            let raw = hand.map { self.classifier.classify($0) } ?? .none
+            let raw = hands.first.map { self.classifier.classify($0) } ?? .none
             Task { @MainActor in self.handleGesture(raw, at: time) }
         }
         try? handTracker.start()

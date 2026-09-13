@@ -85,7 +85,7 @@ final class SessionCoordinatorTests: XCTestCase {
     func testSnapTakesScreenshotWithoutChangingState() {
         var c = SessionCoordinator()
         _ = c.reduce(.localGesture(.closedHand)) // armedSource
-        let effects = c.reduce(.localGesture(.snap))
+        let effects = c.reduce(.localGesture(.tPose))
         XCTAssertEqual(c.state, .armedSource)
         XCTAssertEqual(effects, [.takeScreenshot])
     }

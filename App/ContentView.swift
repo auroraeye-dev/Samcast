@@ -65,7 +65,7 @@ struct ContentView: View {
             VStack(spacing: 6) {
                 gestureHint("✊", "Close your hand", "share this screen")
                 gestureHint("🖐️", "Open your hand", "cast to a device in front of you")
-                gestureHint("🫰", "Snap", "screenshot to your Desktop")
+                gestureHint("🙌", "Make a T with both hands", "screenshot to your Desktop")
             }
             .font(.callout)
             .foregroundStyle(.secondary)
@@ -92,7 +92,7 @@ struct ContentView: View {
         switch model.currentGesture {
         case .openHand: return "🖐️"
         case .closedHand: return "✊"
-        case .snap: return "🫰"
+        case .tPose: return "🇹"
         case .none: return "🦆"
         }
     }
@@ -115,11 +115,6 @@ struct ContentView: View {
                     .padding(.horizontal, 8).padding(.vertical, 4)
                     .background(Capsule().fill(Color.secondary.opacity(0.15)))
             }
-            if !model.lastSoundInfo.isEmpty {
-                Text(model.lastSoundInfo)
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(.secondary)
-            }
             Spacer()
             if let shot = model.lastScreenshot {
                 Label(shot.lastPathComponent, systemImage: "camera")
@@ -135,7 +130,7 @@ struct ContentView: View {
         case .none: return "—"
         case .openHand: return "🖐️ open"
         case .closedHand: return "✊ closed"
-        case .snap: return "🫰 snap"
+        case .tPose: return "🇹 T-pose"
         }
     }
 

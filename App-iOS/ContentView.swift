@@ -53,7 +53,7 @@ struct ContentView: View {
         switch model.currentGesture {
         case .openHand: return "🖐️"
         case .closedHand: return "✊"
-        case .snap: return "🫰"
+        case .tPose: return "🇹"
         case .none: return "🦆"
         }
     }

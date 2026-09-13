@@ -10,8 +10,9 @@ import Foundation
 /// Produces neutral `HandLandmarks` from the camera. The adapter owns the
 /// camera session and any ML model; it hands the core only normalized points.
 public protocol HandTracker: AnyObject {
-    /// Called for every processed frame with the best hand found (or nil).
-    var onHand: ((HandLandmarks?, TimeInterval) -> Void)? { get set }
+    /// Called for every processed frame with all hands found (empty if none).
+    /// Two hands are needed for the T-pose screenshot gesture.
+    var onHands: (([HandLandmarks], TimeInterval) -> Void)? { get set }
     func start() throws
     func stop()
 }
