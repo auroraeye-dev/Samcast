@@ -2,38 +2,30 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleName</key>
-    <string>QuackCast</string>
-    <key>CFBundleDisplayName</key>
-    <string>QuackCast</string>
-    <key>CFBundleExecutable</key>
-    <string>$(EXECUTABLE_NAME)</string>
-    <key>CFBundleIdentifier</key>
-    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-    <key>CFBundleShortVersionString</key>
-    <string>$(MARKETING_VERSION)</string>
-    <key>CFBundleVersion</key>
-    <string>$(CURRENT_PROJECT_VERSION)</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>$(MACOSX_DEPLOYMENT_TARGET)</string>
-
-    <!-- Why the app needs the camera: gesture detection. -->
-    <key>NSCameraUsageDescription</key>
-    <string>QuackCast watches your hand gestures to control screen sharing.</string>
-
-    <!-- Why the app needs the mic: detecting a finger snap to take a screenshot. -->
-    <key>NSMicrophoneUsageDescription</key>
-    <string>QuackCast listens for a finger snap to take a screenshot.</string>
-
-    <!-- Required for MultipeerConnectivity discovery on the local network. -->
-    <key>NSLocalNetworkUsageDescription</key>
-    <string>QuackCast discovers your nearby devices that also run the app.</string>
-    <key>NSBonjourServices</key>
-    <array>
-        <string>_quackcast._tcp</string>
-        <string>_quackcast._udp</string>
-    </array>
+	<key>CFBundleDisplayName</key>
+	<string>QuackCast</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleName</key>
+	<string>QuackCast</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_quackcast._tcp</string>
+		<string>_quackcast._udp</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>QuackCast watches your hand gestures to control screen sharing.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>QuackCast discovers your nearby devices that also run the app.</string>
 </dict>
 </plist>
