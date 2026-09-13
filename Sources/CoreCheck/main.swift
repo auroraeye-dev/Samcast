@@ -49,7 +49,6 @@ do {
     let c = GestureClassifier()
     expectEqual(c.classify(makeHand(curl: 0.0)), .openHand, "open hand")
     expectEqual(c.classify(makeHand(curl: 1.0)), .closedHand, "fist")
-    expectEqual(c.classify(makeHand(curl: 0.0, thumbIndexGap: 0.05)), .pinch, "pinch priority")
     expectEqual(c.classify(makeHand(curl: 0.0, confidence: 0.2)), HandGesture.none, "low confidence -> none")
 }
 

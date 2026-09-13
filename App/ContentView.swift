@@ -70,7 +70,6 @@ struct ContentView: View {
         case .none: return "—"
         case .openHand: return "🖐️ open"
         case .closedHand: return "✊ closed"
-        case .pinch: return "🤏 pinch"
         case .snap: return "🫰 snap"
         }
     }

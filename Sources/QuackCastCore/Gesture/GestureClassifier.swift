@@ -4,8 +4,6 @@ import Foundation
 /// as multiples of `palmSpan` (wrist→middle-knuckle) so the classifier is
 /// invariant to how close the hand is to the camera.
 public struct GestureThresholds: Sendable {
-    /// A pinch is registered when thumb-tip and index-tip are closer than this.
-    public var pinchDistance: Double = 0.38
     /// Minimum tracking confidence to attempt classification at all.
     public var minConfidence: Double = 0.5
     /// Number of the four non-thumb fingers that must be extended to count as
@@ -52,22 +50,8 @@ public struct GestureClassifier: Sendable {
         return count
     }
 
-    /// Distance between thumb tip and index tip, normalized by palm span.
-    /// Returns nil if either point or the span is unavailable.
-    public func normalizedPinchDistance(_ hand: HandLandmarks) -> Double? {
-        guard let thumb = hand[.thumbTip],
-              let index = hand[.indexTip],
-              let span = hand.palmSpan, span > 0 else { return nil }
-        return thumb.distance(to: index) / span
-    }
-
     public func classify(_ hand: HandLandmarks) -> HandGesture {
         guard hand.confidence >= thresholds.minConfidence else { return .none }
-
-        // Pinch takes priority: thumb and index fingertip touching.
-        if let pinch = normalizedPinchDistance(hand), pinch <= thresholds.pinchDistance {
-            return .pinch
-        }
 
         let extended = extendedFingerCount(hand)
         if extended >= thresholds.openHandMinExtendedFingers {

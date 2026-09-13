@@ -4,6 +4,10 @@
 DerivedData/
 *.xcuserstate
 
+# Release packaging output
+build/
+dist/
+
 # Xcode project is generated from project.yml via XcodeGen; ignore the output
 # so the human-readable spec is the source of truth. (Remove this line if you
 # decide to commit the .xcodeproj instead.)

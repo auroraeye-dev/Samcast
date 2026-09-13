@@ -7,11 +7,30 @@ clicking, no menus.
   offers it to nearby devices ("arm as source").
 - 🖐️ **Open your hand** at another device's camera → your screen is cast to
   *that* device.
-- 🫰 **Snap** → take a screenshot of the current page. *(best-effort; see notes)*
+- 🫰 **Snap your fingers** → take a screenshot (detected by sound, so it never
+  clashes with the fist gesture).
 
 Devices find each other automatically over Bluetooth + peer-to-peer Wi-Fi — only
 devices that also run QuackCast appear, which is exactly the "my nearby
 devices that have the app" behaviour the product is going for.
+
+## Download & install (macOS)
+
+Grab the latest **QuackCast.dmg** from the
+[Releases page](https://github.com/auroraeye-dev/QuackCast/releases), open it,
+and drag **QuackCast** to Applications.
+
+> **First launch:** the build is not yet notarized by Apple, so macOS Gatekeeper
+> will warn the first time. **Right-click the app ▸ Open ▸ Open**, once — after
+> that it launches normally. (If macOS says it's "damaged", clear the download
+> quarantine with `xattr -dr com.apple.quarantine /Applications/QuackCast.app`.)
+>
+> On first use it asks for **Camera**, **Microphone**, and **Screen Recording**
+> permission. Grant Screen Recording in *System Settings ▸ Privacy & Security*
+> and relaunch once for capture to take effect.
+
+A notarized build (double-click, no warning) is planned — it needs an Apple
+Developer ID.
 
 > **Scope note — mirroring, not a true extended display.** The cast screen
 > appears *inside the QuackCast window* on the target device (like a shared
@@ -61,8 +80,21 @@ swift test            # full XCTest suite (requires Xcode)
 The macOS **app** requires **full Xcode** (from the App Store) — Command Line
 Tools alone cannot build a signed app bundle with camera/screen entitlements.
 
+To produce a distributable universal build:
+
+```bash
+bash scripts/package.sh   # -> dist/QuackCast.dmg and dist/QuackCast-macOS.zip
+```
+
+Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`, which builds and
+attaches those artifacts to a GitHub Release automatically.
+
 ## Notes
 
-- **Snap detection** from hand pose alone is unreliable (a snap is a fast
-  transient, better sensed via audio). The pinch/snap heuristics are marked
-  best-effort; an audio-based detector is a likely follow-up.
+- **Gestures:** open/closed hand drives casting; **snap is detected by audio**
+  (a sharp transient), which is robust and never confused with the fist. It can
+  also react to other sharp sounds (claps/knocks) — thresholds are tunable in
+  `AudioSnapDetector`.
+- **Signing:** dev builds are ad-hoc signed, so macOS re-prompts for Screen
+  Recording after each rebuild. Stable signing (Apple Developer ID) fixes this
+  and enables notarization.

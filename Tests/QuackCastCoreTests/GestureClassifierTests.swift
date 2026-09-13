@@ -53,13 +53,6 @@ final class GestureClassifierTests: XCTestCase {
         XCTAssertEqual(classifier.classify(hand), .closedHand)
     }
 
-    func testPinchTakesPriority() {
-        let classifier = GestureClassifier()
-        // Open fingers but thumb touching index -> pinch wins.
-        let hand = makeHand(curl: 0.0, thumbIndexGap: 0.05)
-        XCTAssertEqual(classifier.classify(hand), .pinch)
-    }
-
     func testLowConfidenceIsNone() {
         let classifier = GestureClassifier()
         let hand = makeHand(curl: 0.0, confidence: 0.2)
