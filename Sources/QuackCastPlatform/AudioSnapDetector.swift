@@ -19,6 +19,11 @@ public final class AudioSnapDetector {
     public var minPeak: Float = 0.10
     /// Minimum time between reported snaps.
     public var cooldown: TimeInterval = 0.4
+    /// A finger snap is a *bright* click (lots of high-frequency energy); a
+    /// table tap / knock is a *dull* thud (mostly low frequency). We require the
+    /// high-frequency energy ratio to exceed this to accept a transient as a
+    /// snap. Raise it to be stricter (fewer false snaps), lower to be laxer.
+    public var minBrightness: Float = 0.9
 
     private let engine = AVAudioEngine()
     private var background: Float = 0.02
@@ -51,15 +56,29 @@ public final class AudioSnapDetector {
         let count = Int(buffer.frameLength)
         guard count > 0 else { return }
 
+        // Single pass: peak amplitude, total energy, and high-frequency energy.
+        // The first difference (x[i]-x[i-1]) is a cheap high-pass filter, so the
+        // ratio of its energy to total energy is a "brightness" measure that
+        // separates a snap's bright click from a dull table/knock thud.
         var peak: Float = 0
+        var energy: Float = 0
+        var highEnergy: Float = 0
+        var prev: Float = channel[0]
         for i in 0..<count {
-            let v = abs(channel[i])
-            if v > peak { peak = v }
+            let x = channel[i]
+            let a = abs(x)
+            if a > peak { peak = a }
+            energy += x * x
+            let hp = x - prev
+            highEnergy += hp * hp
+            prev = x
         }
+        let brightness: Float = energy > 1e-9 ? highEnergy / energy : 0
 
         let now = Date()
         let isOnset = peak > minPeak
             && peak > background * triggerFactor
+            && brightness > minBrightness
             && now.timeIntervalSince(lastSnap) > cooldown
         if isOnset {
             lastSnap = now
