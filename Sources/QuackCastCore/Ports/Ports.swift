@@ -27,7 +27,7 @@ public protocol ScreenSource: AnyObject {
     func stopCapture()
     /// A one-shot still capture used for the snap-to-screenshot feature.
     /// Returns a platform path/URL to the saved image, or throws.
-    func captureStill() throws -> URL
+    func captureStill() async throws -> URL
 }
 
 // MARK: - Peer transport

@@ -7,7 +7,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-command -v xcodegen >/dev/null && xcodegen generate
+# The .xcodeproj is generated (gitignored), so it must be created before build.
+xcodegen generate
 
 rm -rf build dist
 mkdir -p dist

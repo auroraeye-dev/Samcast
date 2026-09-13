@@ -72,21 +72,51 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
         isRunning = false
     }
 
-    /// One-shot still of the main display, written to a temp PNG. Uses
-    /// CoreGraphics so it stays synchronous and works back to macOS 12.
-    public func captureStill() throws -> URL {
-        guard let image = CGDisplayCreateImage(CGMainDisplayID()) else {
+    /// One-shot still of the main display, saved as a PNG on the Desktop.
+    /// Uses ScreenCaptureKit's screenshot API (reliable on modern macOS;
+    /// CGDisplayCreateImage is deprecated and increasingly returns nil).
+    public func captureStill() async throws -> URL {
+        guard CGPreflightScreenCaptureAccess() else { throw CaptureError.permissionRequired }
+
+        let cgImage: CGImage
+        if #available(macOS 14.0, *) {
+            cgImage = try await mainDisplayImage()
+        } else if let legacy = CGDisplayCreateImage(CGMainDisplayID()) {
+            cgImage = legacy
+        } else {
             throw CaptureError.stillFailed
         }
-        let dir = FileManager.default.temporaryDirectory
-        let url = dir.appendingPathComponent("QuackCast-\(Int(Date().timeIntervalSince1970)).png")
+
+        // Save to ~/Desktop so the user can actually find it.
+        let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        let stamp = Self.filenameFormatter.string(from: Date())
+        let url = desktop.appendingPathComponent("QuackCast Screenshot \(stamp).png")
+
         guard let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else {
             throw CaptureError.stillFailed
         }
-        CGImageDestinationAddImage(dest, image, nil)
+        CGImageDestinationAddImage(dest, cgImage, nil)
         guard CGImageDestinationFinalize(dest) else { throw CaptureError.stillFailed }
         return url
     }
+
+    @available(macOS 14.0, *)
+    private func mainDisplayImage() async throws -> CGImage {
+        let content = try await SCShareableContent.current
+        guard let display = content.displays.first else { throw CaptureError.stillFailed }
+        let filter = SCContentFilter(display: display, excludingWindows: [])
+        let config = SCStreamConfiguration()
+        config.width = display.width
+        config.height = display.height
+        return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+    }
+
+    private static let filenameFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd 'at' HH.mm.ss"
+        return f
+    }()
 
     // MARK: SCStreamOutput
 

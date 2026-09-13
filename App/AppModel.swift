@@ -123,7 +123,16 @@ final class AppModel: ObservableObject {
         case .notifyEndedCast(let peer):
             transport.send(.endCast, to: peer)
         case .takeScreenshot:
-            lastScreenshot = try? screenSource.captureStill()
+            Task { [weak self] in
+                guard let self else { return }
+                do {
+                    let url = try await self.screenSource.captureStill()
+                    self.lastScreenshot = url
+                    self.statusLine = "📸 Screenshot saved to Desktop: \(url.lastPathComponent)"
+                } catch {
+                    self.statusLine = "Snap heard — but Screen Recording permission is needed to save a screenshot (System Settings ▸ Privacy & Security)."
+                }
+            }
         }
     }
 

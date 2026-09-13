@@ -33,17 +33,70 @@ struct ContentView: View {
     private var content: some View {
         ZStack {
             if let image = model.receivedImage {
-                // Showing a remote screen.
+                // Showing a remote screen that was cast to us.
                 Image(nsImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
             } else {
-                // Otherwise show our own camera so the user can frame the gesture.
-                CameraPreview(tracker: model.handTracker)
+                // No live camera preview — it feels awkward and isn't needed.
+                // The camera still runs in the background for gesture detection.
+                idleView
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black)
+        .background(idleBackground)
+    }
+
+    private var idleView: some View {
+        VStack(spacing: 20) {
+            Text(bigGestureGlyph)
+                .font(.system(size: 96))
+                .animation(.spring(duration: 0.25), value: model.currentGesture)
+            Text(stateHeadline)
+                .font(.title2).bold()
+                .foregroundStyle(.primary)
+            VStack(spacing: 6) {
+                gestureHint("✊", "Close your hand", "share this screen")
+                gestureHint("🖐️", "Open your hand", "cast to a device in front of you")
+                gestureHint("🫰", "Snap", "screenshot to your Desktop")
+            }
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .padding(.top, 4)
+        }
+        .padding()
+    }
+
+    private func gestureHint(_ glyph: String, _ action: String, _ result: String) -> some View {
+        HStack(spacing: 8) {
+            Text(glyph).font(.title3)
+            Text(action).bold().foregroundStyle(.primary)
+            Text("→ \(result)")
+        }
+    }
+
+    private var idleBackground: some View {
+        LinearGradient(colors: [Color(nsColor: .windowBackgroundColor),
+                                Color(nsColor: .underPageBackgroundColor)],
+                       startPoint: .top, endPoint: .bottom)
+    }
+
+    private var bigGestureGlyph: String {
+        switch model.currentGesture {
+        case .openHand: return "🖐️"
+        case .closedHand: return "✊"
+        case .snap: return "🫰"
+        case .none: return "🦆"
+        }
+    }
+
+    private var stateHeadline: String {
+        switch model.state {
+        case .idle: return "Ready"
+        case .armedSource: return "Screen armed"
+        case .casting(let p): return "Casting to \(p.displayName)"
+        case .receiving(let p): return "Receiving from \(p.displayName)"
+        }
     }
 
     private var footer: some View {
