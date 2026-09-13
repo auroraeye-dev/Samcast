@@ -32,17 +32,11 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
         // Already capturing — don't start a second stream.
         guard !isRunning else { return }
 
-        // Gate on permission so we prompt AT MOST ONCE rather than on every
-        // arming gesture. macOS only makes a fresh grant effective after the
-        // app relaunches, so we surface a clear error instead of retrying.
-        guard CGPreflightScreenCaptureAccess() else {
-            if !didRequestPermission {
-                didRequestPermission = true
-                CGRequestScreenCaptureAccess() // shows the prompt once
-            }
-            throw CaptureError.permissionRequired
-        }
-
+        // NOTE: deliberately NOT gating on CGPreflightScreenCaptureAccess().
+        // In sandboxed apps it can report false even when capture is actually
+        // permitted, which would block capture no matter how often the user
+        // grants it. SCShareableContent raises the system prompt by itself when
+        // access really is missing, so just attempt the capture.
         isRunning = true
         SCShareableContent.getWithCompletionHandler { [weak self] content, error in
             guard let self else { return }
@@ -77,8 +71,9 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
     /// Uses ScreenCaptureKit's screenshot API (reliable on modern macOS;
     /// CGDisplayCreateImage is deprecated and increasingly returns nil).
     public func captureStill() async throws -> URL {
-        guard CGPreflightScreenCaptureAccess() else { throw CaptureError.permissionRequired }
-
+        // Attempt the capture and report the *real* outcome. We don't pre-check
+        // CGPreflightScreenCaptureAccess() because it can wrongly report false
+        // in a sandboxed app and would then block a capture that would succeed.
         let cgImage: CGImage
         if #available(macOS 14.0, *) {
             cgImage = try await mainDisplayImage()

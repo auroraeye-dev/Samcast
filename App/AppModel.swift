@@ -146,7 +146,9 @@ final class AppModel: ObservableObject {
                     self.lastScreenshot = url
                     self.statusLine = "📸 Screenshot saved to Desktop: \(url.lastPathComponent)"
                 } catch {
-                    self.statusLine = "Snap heard — but Screen Recording permission is needed to save a screenshot (System Settings ▸ Privacy & Security)."
+                    // Show the real underlying error so failures are diagnosable
+                    // rather than always blamed on permissions.
+                    self.statusLine = "Snap heard — screenshot failed: \(error.localizedDescription)"
                 }
             }
         }
