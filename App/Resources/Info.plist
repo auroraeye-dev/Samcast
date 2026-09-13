@@ -21,6 +21,10 @@
     <key>NSCameraUsageDescription</key>
     <string>QuackCast watches your hand gestures to control screen sharing.</string>
 
+    <!-- Why the app needs the mic: detecting a finger snap to take a screenshot. -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>QuackCast listens for a finger snap to take a screenshot.</string>
+
     <!-- Required for MultipeerConnectivity discovery on the local network. -->
     <key>NSLocalNetworkUsageDescription</key>
     <string>QuackCast discovers your nearby devices that also run the app.</string>

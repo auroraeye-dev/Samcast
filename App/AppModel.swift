@@ -16,16 +16,19 @@ final class AppModel: ObservableObject {
     private var coordinator = SessionCoordinator()
     private let classifier = GestureClassifier()
     private var debouncer = GestureDebouncer(holdDuration: 0.3)
-    private var snapDetector = SnapDetector()
 
     // Platform adapters.
     let handTracker = VisionHandTracker()
     private let transport = MultipeerTransport(kind: .mac)
     private let screenSource = ScreenCaptureKitSource()
+    private let audioSnap = AudioSnapDetector()
     private let ciContext = CIContext()
 
     // Where captured frames are currently being streamed (if casting).
     private var streamingTarget: Peer?
+    // Ignore open/close gestures until this time, right after a snap, so the
+    // fist that naturally forms as you finish snapping doesn't arm a cast.
+    private var snapSuppressUntil = Date.distantPast
 
     // MARK: Published UI state
     @Published private(set) var state: SessionState = .idle
@@ -42,9 +45,14 @@ final class AppModel: ObservableObject {
         handTracker.onHand = { [weak self] hand, time in
             guard let self else { return }
             let raw = hand.map { self.classifier.classify($0) } ?? .none
-            Task { @MainActor in self.handleFrame(hand: hand, raw: raw, at: time) }
+            Task { @MainActor in self.handleGesture(raw, at: time) }
         }
         do { try handTracker.start() } catch { statusLine = "Camera error: \(error)" }
+
+        // Snap is detected by sound (a sharp transient), which is robust and
+        // never confused with the fist cast gesture.
+        audioSnap.onSnap = { [weak self] in self?.handleSnap() }
+        try? audioSnap.start()
 
         screenSource.onFrame = { [weak self] frame, _ in
             guard let self else { return }
@@ -59,23 +67,25 @@ final class AppModel: ObservableObject {
 
     // MARK: Gesture pipeline
 
-    private func handleFrame(hand: HandLandmarks?, raw: HandGesture, at time: TimeInterval) {
-        // The cast gesture (fist) and a snap overlap on camera: closing a fist
-        // moves thumb+middle together then apart, which looks like a snap. So
-        // only hunt for a snap when the hand is NOT a committed open/closed
-        // pose — a real snap reads as a partial pose (index out, others curled),
-        // while a fist reads as fully closed and is excluded here.
-        if raw == .openHand || raw == .closedHand {
-            snapDetector.reset()
-        } else if snapDetector.update(hand, at: time) {
-            currentGesture = .snap
-            apply(coordinator.reduce(.localGesture(.snap)))
+    private func handleGesture(_ raw: HandGesture, at time: TimeInterval) {
+        // Briefly after a snap, ignore open/close so the fist that forms as you
+        // finish snapping doesn't arm a cast.
+        if Date() < snapSuppressUntil {
+            debouncer.reset()
             return
         }
         if let confirmed = debouncer.update(raw, at: time) {
             currentGesture = confirmed
             apply(coordinator.reduce(.localGesture(confirmed)))
         }
+    }
+
+    private func handleSnap() {
+        snapSuppressUntil = Date().addingTimeInterval(0.7)
+        debouncer.reset()
+        currentGesture = .snap
+        apply(coordinator.reduce(.localGesture(.snap)))
+        NSSound(named: "Tink")?.play() // audible confirmation
     }
 
     // MARK: Effect execution
