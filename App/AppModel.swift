@@ -89,7 +89,11 @@ final class AppModel: ObservableObject {
     private func perform(_ effect: SessionEffect) {
         switch effect {
         case .startScreenCapture:
-            try? screenSource.startCapture()
+            do {
+                try screenSource.startCapture()
+            } catch {
+                statusLine = "Enable Screen Recording for QuackCast in System Settings ▸ Privacy & Security, then relaunch."
+            }
         case .stopScreenCapture:
             screenSource.stopCapture()
         case .advertiseSourceAvailable:

@@ -18,11 +18,31 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
     public var framesPerSecond: Int = 30
 
     private var stream: SCStream?
+    private var isRunning = false
+    private var didRequestPermission = false
     private let sampleQueue = DispatchQueue(label: "com.quackcast.sck.samples")
 
     public override init() { super.init() }
 
+    /// Whether Screen Recording permission is currently granted.
+    public var hasScreenPermission: Bool { CGPreflightScreenCaptureAccess() }
+
     public func startCapture() throws {
+        // Already capturing — don't start a second stream.
+        guard !isRunning else { return }
+
+        // Gate on permission so we prompt AT MOST ONCE rather than on every
+        // arming gesture. macOS only makes a fresh grant effective after the
+        // app relaunches, so we surface a clear error instead of retrying.
+        guard CGPreflightScreenCaptureAccess() else {
+            if !didRequestPermission {
+                didRequestPermission = true
+                CGRequestScreenCaptureAccess() // shows the prompt once
+            }
+            throw CaptureError.permissionRequired
+        }
+
+        isRunning = true
         SCShareableContent.getWithCompletionHandler { [weak self] content, error in
             guard let self else { return }
             guard let display = content?.displays.first else { return }
@@ -49,6 +69,7 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
     public func stopCapture() {
         stream?.stopCapture { _ in }
         stream = nil
+        isRunning = false
     }
 
     /// One-shot still of the main display, written to a temp PNG. Uses
@@ -82,5 +103,5 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
         self.stream = nil
     }
 
-    public enum CaptureError: Error { case stillFailed }
+    public enum CaptureError: Error { case stillFailed, permissionRequired }
 }
