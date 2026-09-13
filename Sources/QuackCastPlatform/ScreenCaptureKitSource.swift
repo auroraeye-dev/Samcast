@@ -15,6 +15,11 @@ import QuackCastCore
 public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutput, SCStreamDelegate {
     public var onFrame: ((Any, TimeInterval) -> Void)?
 
+    /// Reports why capture could not start. Without this the failure is
+    /// invisible: SCShareableContent simply returns an error and the stream
+    /// never produces a frame.
+    public var onCaptureError: ((String) -> Void)?
+
     /// Target capture frame rate. 15 is plenty for sharing a screen and halves
     /// the bytes compared with 30.
     public var framesPerSecond: Int = 15
@@ -47,7 +52,16 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
         isRunning = true
         SCShareableContent.getWithCompletionHandler { [weak self] content, error in
             guard let self else { return }
-            guard let display = content?.displays.first else { return }
+            if let error {
+                self.isRunning = false
+                self.report("Screen capture blocked: \(error.localizedDescription). Enable Screen Recording for QuackCast in System Settings ▸ Privacy & Security, then reopen the app.")
+                return
+            }
+            guard let display = content?.displays.first else {
+                self.isRunning = false
+                self.report("Screen capture failed: no display available.")
+                return
+            }
             let filter = SCContentFilter(display: display, excludingWindows: [])
 
             let config = SCStreamConfiguration()
@@ -65,11 +79,22 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
             do {
                 try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: self.sampleQueue)
             } catch {
+                self.isRunning = false
+                self.report("Screen capture failed to start: \(error.localizedDescription)")
                 return
             }
             self.stream = stream
-            stream.startCapture { _ in }
+            stream.startCapture { [weak self] error in
+                guard let self, let error else { return }
+                self.isRunning = false
+                self.report("Screen capture could not start: \(error.localizedDescription)")
+            }
         }
+    }
+
+    private func report(_ message: String) {
+        let handler = onCaptureError
+        DispatchQueue.main.async { handler?(message) }
     }
 
     public func stopCapture() {
@@ -140,6 +165,8 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
 
     public func stream(_ stream: SCStream, didStopWithError error: Error) {
         self.stream = nil
+        isRunning = false
+        report("Screen capture stopped: \(error.localizedDescription)")
     }
 
     public enum CaptureError: Error { case stillFailed, permissionRequired }

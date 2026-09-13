@@ -67,6 +67,10 @@ final class AppModel: ObservableObject {
         do { try handTracker.start() } catch { statusLine = "Camera error: \(error)" }
 
 
+        screenSource.onCaptureError = { [weak self] message in
+            self?.statusLine = message
+        }
+
         screenSource.onFrame = { [weak self] frame, _ in
             guard let self else { return }
             // `frame` is an opaque CVPixelBuffer (a CoreFoundation type, so a
