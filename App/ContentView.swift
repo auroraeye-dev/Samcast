@@ -22,6 +22,13 @@ struct ContentView: View {
             Text(model.statusLine)
                 .font(.headline)
             Spacer()
+            // Live view of what the camera believes it sees, so snap gating
+            // isn't a black box.
+            Text(model.handDetected ? "✋ hand detected" : "no hand")
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(model.handDetected ? Color.green : Color.secondary)
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Capsule().fill(Color.secondary.opacity(0.15)))
             Text(gestureLabel)
                 .font(.system(.body, design: .monospaced))
                 .foregroundStyle(.secondary)

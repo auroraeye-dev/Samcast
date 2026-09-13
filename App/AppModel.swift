@@ -30,22 +30,21 @@ final class AppModel: ObservableObject {
     // fist that naturally forms as you finish snapping doesn't arm a cast.
     private var snapSuppressUntil = Date.distantPast
 
-    // MARK: Snap fusion (vision + audio)
-    // A screenshot fires only when BOTH happen close together: the camera sees
-    // the hand perform a snapping motion (thumb+middle contact then release)
-    // AND the mic hears a sharp click. Either alone is ignored — that's what
-    // stops table taps (sound, no motion) and stray hand motion (no sound).
-    private var visionSnap = SnapDetector()
-    private var lastVisualSnap = Date.distantPast
-    private var lastAudioSnap = Date.distantPast
+    // MARK: Snap gating
+    // Simple rule: a hand must be VISIBLE in the camera when the click is
+    // heard. No motion analysis — just "is a real hand on screen right now".
+    private var lastHandSeen = Date.distantPast
     private var lastSnapFired = Date.distantPast
-    private let fusionWindow: TimeInterval = 0.6
+    private let handVisibleWindow: TimeInterval = 0.5
     private let snapCooldown: TimeInterval = 1.0
 
     // MARK: Published UI state
     @Published private(set) var state: SessionState = .idle
     @Published private(set) var peers: [Peer] = []
     @Published private(set) var currentGesture: HandGesture = .none
+    /// Live: is the camera seeing a real hand right now? Shown in the UI so the
+    /// gating is visible rather than a black box.
+    @Published private(set) var handDetected: Bool = false
     @Published private(set) var receivedImage: NSImage?
     @Published private(set) var lastScreenshot: URL?
     @Published private(set) var statusLine: String = "Starting…"
@@ -79,12 +78,22 @@ final class AppModel: ObservableObject {
 
     // MARK: Gesture pipeline
 
+    /// A detection only counts as a real hand if it's confident, has most of
+    /// its 21 joints, and is big enough in frame — this filters out the
+    /// low-quality phantom detections that were letting plain sounds through.
+    private func isRealHand(_ hand: HandLandmarks?) -> Bool {
+        guard let hand else { return false }
+        guard hand.confidence >= 0.75 else { return false }
+        guard hand.points.count >= 15 else { return false }
+        guard let span = hand.palmSpan, span >= 0.04 else { return false }
+        return true
+    }
+
     private func handleFrame(_ hand: HandLandmarks?, raw: HandGesture, at time: TimeInterval) {
-        // Vision half of the snap: did the hand actually make a snapping motion?
-        if visionSnap.update(hand, at: time) {
-            lastVisualSnap = Date()
-            tryFireSnap()
-        }
+        // Is a real hand on camera right now?
+        let visible = isRealHand(hand)
+        if visible { lastHandSeen = Date() }
+        if handDetected != visible { handDetected = visible }
 
         // Briefly after a snap, ignore open/close so the fist that forms as you
         // finish snapping doesn't arm a cast.
@@ -98,24 +107,14 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// Audio half of the snap.
+    /// A click was heard. Take the screenshot only if a hand is on camera.
     private func handleAudioSnap() {
-        lastAudioSnap = Date()
-        let firedBefore = lastSnapFired
-        tryFireSnap()
-        if lastSnapFired == firedBefore {
-            // Heard something sharp, but the camera never saw a snapping hand.
-            statusLine = "Heard a click — snap with your hand in view of the camera to take a screenshot."
-        }
-    }
-
-    /// Fires only when the seen motion and the heard click coincide. Called from
-    /// both halves, so it works whichever arrives first.
-    private func tryFireSnap() {
         let now = Date()
         guard now.timeIntervalSince(lastSnapFired) > snapCooldown else { return }
-        guard now.timeIntervalSince(lastVisualSnap) < fusionWindow,
-              now.timeIntervalSince(lastAudioSnap) < fusionWindow else { return }
+        guard now.timeIntervalSince(lastHandSeen) < handVisibleWindow else {
+            statusLine = "Heard a click — but no hand in view, so it was ignored."
+            return
+        }
 
         lastSnapFired = now
         snapSuppressUntil = now.addingTimeInterval(0.7)
