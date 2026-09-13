@@ -1,5 +1,5 @@
 import XCTest
-@testable import GestureCastCore
+@testable import QuackCastCore
 
 final class SessionCoordinatorTests: XCTestCase {
     private let mac = Peer(id: "A", displayName: "Mac A", kind: .mac)

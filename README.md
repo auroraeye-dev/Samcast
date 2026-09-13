@@ -1,4 +1,4 @@
-# GestureCast
+# QuackCast
 
 Control screen-sharing between your nearby devices with **hand gestures** — no
 clicking, no menus.
@@ -10,11 +10,11 @@ clicking, no menus.
 - 🫰 **Snap** → take a screenshot of the current page. *(best-effort; see notes)*
 
 Devices find each other automatically over Bluetooth + peer-to-peer Wi-Fi — only
-devices that also run GestureCast appear, which is exactly the "my nearby
+devices that also run QuackCast appear, which is exactly the "my nearby
 devices that have the app" behaviour the product is going for.
 
 > **Scope note — mirroring, not a true extended display.** The cast screen
-> appears *inside the GestureCast window* on the target device (like a shared
+> appears *inside the QuackCast window* on the target device (like a shared
 > screen). Becoming a real macOS extended desktop (à la Sidecar) is only
 > possible for Apple / low-level display drivers, not third-party apps, so that
 > is explicitly out of scope for v1.
@@ -24,7 +24,7 @@ devices that have the app" behaviour the product is going for.
 | Platform | Status | Stack |
 |---|---|---|
 | macOS | 🚧 in progress | SwiftUI · Vision · AVFoundation · ScreenCaptureKit · MultipeerConnectivity |
-| iOS (iPhone/iPad as receivers) | planned | shares `GestureCastCore` |
+| iOS (iPhone/iPad as receivers) | planned | shares `QuackCastCore` |
 | Windows | planned, **separate native build** | reimplements the `Ports` protocols |
 
 The Mac and Windows apps are built and shipped separately (two downloads on the
@@ -35,7 +35,7 @@ site) — this repo currently holds the macOS app plus the shared core.
 Hexagonal / ports-and-adapters so the "brain" stays portable:
 
 ```
-GestureCastCore  (pure Swift, Foundation-only — no Apple UI/media frameworks)
+QuackCastCore  (pure Swift, Foundation-only — no Apple UI/media frameworks)
 ├── Gesture/     HandLandmarks, GestureClassifier (geometry), GestureDebouncer
 ├── Session/     SessionCoordinator — the state machine (idle→armed→casting/receiving)
 └── Ports/       HandTracker · ScreenSource · PeerTransport protocols
@@ -44,7 +44,7 @@ Platform adapters (macOS app, added next):
     VisionHandTracker · ScreenCaptureKitSource · MultipeerTransport · CameraController
 ```
 
-`GestureCastCore` has **zero platform imports**, is fully unit-tested, and is
+`QuackCastCore` has **zero platform imports**, is fully unit-tested, and is
 what a future Windows port reuses — that port only reimplements the three
 `Ports` protocols.
 

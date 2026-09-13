@@ -1,5 +1,5 @@
 import XCTest
-@testable import GestureCastCore
+@testable import QuackCastCore
 
 final class GestureClassifierTests: XCTestCase {
     // Builds a synthetic hand. `curl` in 0...1 pulls fingertips back toward the

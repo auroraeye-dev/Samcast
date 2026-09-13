@@ -1,4 +1,4 @@
-import GestureCastCore
+import QuackCastCore
 import Foundation
 
 // A tiny, dependency-free assertion harness so the core logic can be verified
@@ -42,7 +42,7 @@ func makeHand(curl: Double, thumbIndexGap: Double = 0.6, confidence: Double = 0.
     return HandLandmarks(points: pts, confidence: confidence)
 }
 
-print("GestureCast core smoke test\n")
+print("QuackCast core smoke test\n")
 
 section("GestureClassifier")
 do {

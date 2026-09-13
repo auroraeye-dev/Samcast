@@ -1,9 +1,9 @@
 import Foundation
 import MultipeerConnectivity
-import GestureCastCore
+import QuackCastCore
 
 /// Apple adapter for `PeerTransport`, backed by MultipeerConnectivity. It
-/// advertises and browses for the `gesturecast` service over Bluetooth +
+/// advertises and browses for the `quackcast` service over Bluetooth +
 /// peer-to-peer Wi-Fi simultaneously, so any nearby device also running the
 /// app is discovered and auto-connected. This is the "my nearby devices that
 /// have the app" layer.
@@ -14,7 +14,7 @@ import GestureCastCore
 public final class MultipeerTransport: NSObject, PeerTransport {
     public weak var delegate: PeerTransportDelegate?
 
-    private static let serviceType = "gesturecast" // 1–15 chars, [a-z0-9-]
+    private static let serviceType = "quackcast" // 1–15 chars, [a-z0-9-]
 
     private let localKind: Peer.Kind
     private let localPeerID: MCPeerID
@@ -129,7 +129,7 @@ extension MultipeerTransport: MCNearbyServiceAdvertiserDelegate {
                            didReceiveInvitationFromPeer peerID: MCPeerID,
                            withContext context: Data?,
                            invitationHandler: @escaping (Bool, MCSession?) -> Void) {
-        // Auto-accept invitations from other GestureCast instances.
+        // Auto-accept invitations from other QuackCast instances.
         invitationHandler(true, session)
     }
 }

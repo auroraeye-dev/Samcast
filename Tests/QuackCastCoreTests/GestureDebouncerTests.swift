@@ -1,5 +1,5 @@
 import XCTest
-@testable import GestureCastCore
+@testable import QuackCastCore
 
 final class GestureDebouncerTests: XCTestCase {
     func testGestureMustBeHeldBeforeFiring() {

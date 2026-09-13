@@ -1,5 +1,5 @@
 import SwiftUI
-import GestureCastCore
+import QuackCastCore
 
 struct ContentView: View {
     @EnvironmentObject var model: AppModel

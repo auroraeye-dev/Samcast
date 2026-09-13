@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>GestureCast</string>
+    <string>QuackCast</string>
     <key>CFBundleDisplayName</key>
-    <string>GestureCast</string>
+    <string>QuackCast</string>
     <key>CFBundleIdentifier</key>
     <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleShortVersionString</key>
@@ -19,15 +19,15 @@
 
     <!-- Why the app needs the camera: gesture detection. -->
     <key>NSCameraUsageDescription</key>
-    <string>GestureCast watches your hand gestures to control screen sharing.</string>
+    <string>QuackCast watches your hand gestures to control screen sharing.</string>
 
     <!-- Required for MultipeerConnectivity discovery on the local network. -->
     <key>NSLocalNetworkUsageDescription</key>
-    <string>GestureCast discovers your nearby devices that also run the app.</string>
+    <string>QuackCast discovers your nearby devices that also run the app.</string>
     <key>NSBonjourServices</key>
     <array>
-        <string>_gesturecast._tcp</string>
-        <string>_gesturecast._udp</string>
+        <string>_quackcast._tcp</string>
+        <string>_quackcast._udp</string>
     </array>
 </dict>
 </plist>

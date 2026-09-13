@@ -3,7 +3,7 @@ import Foundation
 /// The "ports" (in the hexagonal-architecture sense) that platform code must
 /// implement. The macOS app supplies Vision / AVFoundation / ScreenCaptureKit /
 /// MultipeerConnectivity adapters; a future Windows app supplies its own.
-/// GestureCastCore depends only on these abstractions.
+/// QuackCastCore depends only on these abstractions.
 
 // MARK: - Hand tracking
 

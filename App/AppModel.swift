@@ -3,8 +3,8 @@ import SwiftUI
 import CoreImage
 import CoreVideo
 import AppKit
-import GestureCastCore
-import GestureCastPlatform
+import QuackCastCore
+import QuackCastPlatform
 
 /// The app-level integration layer: it owns the platform adapters and the
 /// portable `SessionCoordinator`, feeds gestures + peer messages into the

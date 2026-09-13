@@ -1,6 +1,6 @@
 import SwiftUI
 import AVFoundation
-import GestureCastPlatform
+import QuackCastPlatform
 
 /// Shows the live camera feed using an AVCaptureVideoPreviewLayer, mirrored so
 /// it feels like a mirror to the user.

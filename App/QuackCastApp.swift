@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct GestureCastApp: App {
+struct QuackCastApp: App {
     @StateObject private var model = AppModel()
 
     var body: some Scene {

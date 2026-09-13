@@ -4,7 +4,7 @@ import CoreMedia
 import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
-import GestureCastCore
+import QuackCastCore
 
 /// Apple adapter for `ScreenSource`, backed by ScreenCaptureKit for the live
 /// stream and CoreGraphics for one-shot stills. Emitted frames are
@@ -18,7 +18,7 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
     public var framesPerSecond: Int = 30
 
     private var stream: SCStream?
-    private let sampleQueue = DispatchQueue(label: "com.gesturecast.sck.samples")
+    private let sampleQueue = DispatchQueue(label: "com.quackcast.sck.samples")
 
     public override init() { super.init() }
 
@@ -58,7 +58,7 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
             throw CaptureError.stillFailed
         }
         let dir = FileManager.default.temporaryDirectory
-        let url = dir.appendingPathComponent("GestureCast-\(Int(Date().timeIntervalSince1970)).png")
+        let url = dir.appendingPathComponent("QuackCast-\(Int(Date().timeIntervalSince1970)).png")
         guard let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else {
             throw CaptureError.stillFailed
         }

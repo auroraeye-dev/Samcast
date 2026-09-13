@@ -1,7 +1,7 @@
 import Foundation
 import AVFoundation
 import Vision
-import GestureCastCore
+import QuackCastCore
 
 /// Apple adapter for `HandTracker`: owns the camera capture session and runs
 /// Vision's hand-pose request on every frame, translating Vision's joint names
@@ -16,7 +16,7 @@ public final class VisionHandTracker: NSObject, HandTracker, AVCaptureVideoDataO
     public var minPointConfidence: Float = 0.3
 
     private let session = AVCaptureSession()
-    private let videoQueue = DispatchQueue(label: "com.gesturecast.vision.video")
+    private let videoQueue = DispatchQueue(label: "com.quackcast.vision.video")
     private let handRequest: VNDetectHumanHandPoseRequest = {
         let r = VNDetectHumanHandPoseRequest()
         r.maximumHandCount = 1
