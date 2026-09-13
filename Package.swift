@@ -18,12 +18,15 @@ let package = Package(
         // A dependency-free smoke test runnable with `swift run CoreCheck`,
         // even on a machine with only Command Line Tools (no full Xcode / no
         // XCTest). The XCTest suite below is the richer suite used in Xcode/CI.
-        .executable(name: "CoreCheck", targets: ["CoreCheck"])
+        .executable(name: "CoreCheck", targets: ["CoreCheck"]),
+        // Headless peer used to test casting without a second device.
+        .executable(name: "CastPeer", targets: ["CastPeer"])
     ],
     targets: [
         .target(name: "QuackCastCore"),
         .target(name: "QuackCastPlatform", dependencies: ["QuackCastCore"]),
         .executableTarget(name: "CoreCheck", dependencies: ["QuackCastCore"]),
+        .executableTarget(name: "CastPeer", dependencies: ["QuackCastCore", "QuackCastPlatform"]),
         .testTarget(
             name: "QuackCastCoreTests",
             dependencies: ["QuackCastCore"]

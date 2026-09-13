@@ -141,8 +141,9 @@ extension MultipeerTransport: MCNearbyServiceAdvertiserDelegate {
                            didReceiveInvitationFromPeer peerID: MCPeerID,
                            withContext context: Data?,
                            invitationHandler: @escaping (Bool, MCSession?) -> Void) {
-        // Auto-accept invitations from other QuackCast instances.
-        invitationHandler(true, session)
+        // Accept invitations from other QuackCast instances, unless we are
+        // already connected to that peer (which would create a second session).
+        invitationHandler(!session.connectedPeers.contains(peerID), session)
     }
 }
 
@@ -152,7 +153,21 @@ extension MultipeerTransport: MCNearbyServiceBrowserDelegate {
                         withDiscoveryInfo info: [String: String]?) {
         let kind = Peer.Kind(rawValue: info?["kind"] ?? "") ?? .unknown
         _ = peer(for: peerID, kind: kind)
-        browser.invitePeer(peerID, to: session, withContext: nil, timeout: 15)
+
+        // Every peer both advertises and browses, so if both invite at once
+        // they build two competing sessions and knock each other offline. Use
+        // a deterministic tie-break: the lower id invites, the other accepts.
+        if localPeerID.displayName < peerID.displayName {
+            browser.invitePeer(peerID, to: session, withContext: nil, timeout: 15)
+        } else {
+            // Fallback: if the preferred initiator never invites (it may not be
+            // able to browse), invite it ourselves so we still connect.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+                guard let self,
+                      !self.session.connectedPeers.contains(peerID) else { return }
+                self.browser.invitePeer(peerID, to: self.session, withContext: nil, timeout: 15)
+            }
+        }
     }
 
     public func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
