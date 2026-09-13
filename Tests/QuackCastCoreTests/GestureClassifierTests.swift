@@ -59,9 +59,9 @@ final class GestureClassifierTests: XCTestCase {
         XCTAssertEqual(classifier.classify(hand), .none)
     }
 
-    func testPartiallyCurledIsNoneNotOpenOrClosed() {
+    func testIndexAndMiddleExtendedIsPeace() {
         let classifier = GestureClassifier()
-        // Two fingers extended -> between thresholds -> ambiguous.
+        // Index + middle extended -> the V sign used for screenshots.
         var hand = makeHand(curl: 0.0)
         // Curl the ring and little fingers by moving their tips below the pip.
         for tip in [HandJoint.ringTip, .littleTip] {
@@ -69,6 +69,6 @@ final class GestureClassifierTests: XCTestCase {
             hand.points[tip] = Point2D(x: pip.x, y: pip.y + 0.1)
         }
         XCTAssertEqual(classifier.extendedFingerCount(hand), 2)
-        XCTAssertEqual(classifier.classify(hand), .none)
+        XCTAssertEqual(classifier.classify(hand), .peace)
     }
 }

@@ -32,7 +32,6 @@ final class AppModel: ObservableObject {
     // MARK: Snap gating
     // Simple rule: a hand must be VISIBLE in the camera when the click is
     // heard. No motion analysis — just "is a real hand on screen right now".
-    private var tPose = TPoseDetector()
     private var lastHandSeen = Date.distantPast
     private var lastSnapFired = Date.distantPast
     private let handVisibleWindow: TimeInterval = 0.5
@@ -45,6 +44,9 @@ final class AppModel: ObservableObject {
     /// Live: is the camera seeing a real hand right now? Shown in the UI so the
     /// gating is visible rather than a black box.
     @Published private(set) var handDetected: Bool = false
+    /// Live readout of which fingers the camera sees extended, so gesture
+    /// recognition is observable instead of a black box.
+    @Published private(set) var fingerReadout: String = "—" 
     @Published private(set) var receivedImage: NSImage?
     @Published private(set) var lastScreenshot: URL?
     @Published private(set) var statusLine: String = "Starting…"
@@ -56,7 +58,11 @@ final class AppModel: ObservableObject {
         handTracker.onHands = { [weak self] hands, time in
             guard let self else { return }
             let raw = hands.first.map { self.classifier.classify($0) } ?? .none
-            Task { @MainActor in self.handleFrame(hands, raw: raw, at: time) }
+            let fingers = hands.first.map { self.classifier.extendedFingers($0) }
+            Task { @MainActor in
+                self.updateFingerReadout(fingers)
+                self.handleFrame(hands, raw: raw, at: time)
+            }
         }
         do { try handTracker.start() } catch { statusLine = "Camera error: \(error)" }
 
@@ -86,12 +92,6 @@ final class AppModel: ObservableObject {
     }
 
     private func handleFrame(_ hands: [HandLandmarks], raw: HandGesture, at time: TimeInterval) {
-        // Two hands forming a T take a screenshot.
-        if tPose.update(hands, at: time) {
-            fireScreenshot()
-            return
-        }
-
         // Is a real hand on camera right now?
         let visible = isRealHand(hands.first)
         if visible { lastHandSeen = Date() }
@@ -105,11 +105,30 @@ final class AppModel: ObservableObject {
         }
         if let confirmed = debouncer.update(raw, at: time) {
             currentGesture = confirmed
+            if confirmed == .peace {
+                fireScreenshot()
+                return
+            }
             apply(coordinator.reduce(.localGesture(confirmed)))
         }
     }
 
-    /// The T-pose was held: take a screenshot.
+    /// Readable summary of the extended fingers, e.g. "index+middle (2)".
+    private func updateFingerReadout(_ fingers: GestureClassifier.ExtendedFingers?) {
+        guard let f = fingers else {
+            if fingerReadout != "—" { fingerReadout = "—" }
+            return
+        }
+        var names: [String] = []
+        if f.index { names.append("index") }
+        if f.middle { names.append("middle") }
+        if f.ring { names.append("ring") }
+        if f.little { names.append("little") }
+        let text = names.isEmpty ? "none (0)" : "\(names.joined(separator: "+")) (\(f.count))"
+        if fingerReadout != text { fingerReadout = text }
+    }
+
+    /// The V sign was held: take a screenshot.
     private func fireScreenshot() {
         let now = Date()
         guard now.timeIntervalSince(lastSnapFired) > snapCooldown else { return }
@@ -117,8 +136,8 @@ final class AppModel: ObservableObject {
         // Ignore open/close for 2s so hands returning to rest can't arm a cast.
         snapSuppressUntil = now.addingTimeInterval(2.0)
         debouncer.reset()
-        currentGesture = .tPose
-        apply(coordinator.reduce(.localGesture(.tPose)))
+        currentGesture = .peace
+        apply(coordinator.reduce(.localGesture(.peace)))
         NSSound(named: "Tink")?.play() // audible confirmation
     }
 

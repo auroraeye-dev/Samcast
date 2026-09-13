@@ -65,7 +65,7 @@ struct ContentView: View {
             VStack(spacing: 6) {
                 gestureHint("✊", "Close your hand", "share this screen")
                 gestureHint("🖐️", "Open your hand", "cast to a device in front of you")
-                gestureHint("🙌", "Make a T with both hands", "screenshot to your Desktop")
+                gestureHint("✌️", "Peace sign", "screenshot to your Desktop")
             }
             .font(.callout)
             .foregroundStyle(.secondary)
@@ -92,7 +92,7 @@ struct ContentView: View {
         switch model.currentGesture {
         case .openHand: return "🖐️"
         case .closedHand: return "✊"
-        case .tPose: return "🇹"
+        case .peace: return "✌️"
         case .none: return "🦆"
         }
     }
@@ -109,6 +109,9 @@ struct ContentView: View {
     private var footer: some View {
         HStack(spacing: 16) {
             Label("\(model.peers.count) nearby", systemImage: "dot.radiowaves.left.and.right")
+            Text("fingers: \(model.fingerReadout)")
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.secondary)
             ForEach(model.peers) { peer in
                 Text(peer.displayName)
                     .font(.caption)
@@ -130,7 +133,7 @@ struct ContentView: View {
         case .none: return "—"
         case .openHand: return "🖐️ open"
         case .closedHand: return "✊ closed"
-        case .tPose: return "🇹 T-pose"
+        case .peace: return "✌️ peace"
         }
     }
 

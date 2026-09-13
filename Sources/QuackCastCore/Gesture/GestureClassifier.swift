@@ -35,6 +35,31 @@ public struct GestureClassifier: Sendable {
         (.littleTip, .littlePIP)
     ]
 
+    /// Which of the four non-thumb fingers are extended.
+    public struct ExtendedFingers: Equatable, Sendable {
+        public var index = false
+        public var middle = false
+        public var ring = false
+        public var little = false
+        public var count: Int { [index, middle, ring, little].filter { $0 }.count }
+        public init() {}
+    }
+
+    /// Per-finger extension, used to recognise specific shapes like the V sign.
+    public func extendedFingers(_ hand: HandLandmarks) -> ExtendedFingers {
+        var result = ExtendedFingers()
+        guard let wrist = hand[.wrist] else { return result }
+        func isExtended(_ tip: HandJoint, _ pip: HandJoint) -> Bool {
+            guard let t = hand[tip], let p = hand[pip] else { return false }
+            return t.distance(to: wrist) > p.distance(to: wrist)
+        }
+        result.index = isExtended(.indexTip, .indexPIP)
+        result.middle = isExtended(.middleTip, .middlePIP)
+        result.ring = isExtended(.ringTip, .ringPIP)
+        result.little = isExtended(.littleTip, .littlePIP)
+        return result
+    }
+
     /// A non-thumb finger is considered extended when its tip is farther from
     /// the wrist than its middle (PIP) joint — true for a straight finger,
     /// false for a curled one, regardless of hand rotation.
@@ -53,11 +78,16 @@ public struct GestureClassifier: Sendable {
     public func classify(_ hand: HandLandmarks) -> HandGesture {
         guard hand.confidence >= thresholds.minConfidence else { return .none }
 
-        let extended = extendedFingerCount(hand)
-        if extended >= thresholds.openHandMinExtendedFingers {
+        let fingers = extendedFingers(hand)
+
+        // V sign: index + middle out, ring + little tucked.
+        if fingers.index && fingers.middle && !fingers.ring && !fingers.little {
+            return .peace
+        }
+        if fingers.count >= thresholds.openHandMinExtendedFingers {
             return .openHand
         }
-        if extended <= thresholds.closedHandMaxExtendedFingers {
+        if fingers.count <= thresholds.closedHandMaxExtendedFingers {
             return .closedHand
         }
         return .none

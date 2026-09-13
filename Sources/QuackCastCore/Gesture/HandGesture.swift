@@ -10,7 +10,9 @@ public enum HandGesture: String, Equatable, Sendable {
     /// Fingers curled into a fist — the "duck-mouth close" that *arms /
     /// captures* the current screen on the source device.
     case closedHand
-    /// A two-handed "T" (time-out signal), used to take a screenshot. Purely
-    /// visual, so no microphone is involved and no sound can trigger it.
-    case tPose
+    /// Index + middle extended, ring + little curled — the "peace"/V sign,
+    /// used to take a screenshot. Chosen because it is exactly two extended
+    /// fingers, which no fist (zero) or open palm (four) can be mistaken for,
+    /// and it needs only one hand with nothing overlapping.
+    case peace
 }

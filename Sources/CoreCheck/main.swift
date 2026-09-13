@@ -52,6 +52,25 @@ do {
     expectEqual(c.classify(makeHand(curl: 0.0, confidence: 0.2)), HandGesture.none, "low confidence -> none")
 }
 
+section("Peace sign (screenshot gesture)")
+do {
+    let c = GestureClassifier()
+    // Curl only ring + little on an otherwise open hand -> V sign.
+    var v = makeHand(curl: 0.0)
+    for tip in [HandJoint.ringTip, .littleTip] {
+        let pip = tip == .ringTip ? v[.ringPIP]! : v[.littlePIP]!
+        v.points[tip] = Point2D(x: pip.x, y: pip.y + 0.1)
+    }
+    let f = c.extendedFingers(v)
+    expect(f.index && f.middle, "index and middle extended")
+    expect(!f.ring && !f.little, "ring and little curled")
+    expectEqual(f.count, 2, "exactly two fingers extended")
+    expectEqual(c.classify(v), .peace, "V sign classifies as peace")
+    // Must not be confused with the casting gestures.
+    expectEqual(c.classify(makeHand(curl: 0.0)), .openHand, "open palm is still openHand")
+    expectEqual(c.classify(makeHand(curl: 1.0)), .closedHand, "fist is still closedHand")
+}
+
 section("GestureDebouncer")
 do {
     var d = GestureDebouncer(holdDuration: 0.25)
@@ -80,39 +99,6 @@ do {
     expect(s2.update(hand(gap: 0.9), at: 1.0) == false, "slow release -> no snap")
 }
 
-section("TPoseDetector")
-do {
-    // Build a hand pointing in a given direction from a wrist position.
-    func hand(wrist: Point2D, dir: Point2D, span: Double = 0.25, conf: Double = 0.9) -> HandLandmarks {
-        let mcp = Point2D(x: wrist.x + dir.x * span, y: wrist.y + dir.y * span)
-        let tip = Point2D(x: wrist.x + dir.x * span * 2, y: wrist.y + dir.y * span * 2)
-        return HandLandmarks(points: [.wrist: wrist, .middleMCP: mcp, .middleTip: tip], confidence: conf)
-    }
-    // Stem: upright hand (points up = -y). Tip lands at y = 0.5.
-    let stem = hand(wrist: Point2D(x: 0.5, y: 1.0), dir: Point2D(x: 0, y: -1))
-    // Crossbar: horizontal hand sitting on the stem's fingertips.
-    let bar = hand(wrist: Point2D(x: 0.3, y: 0.5), dir: Point2D(x: 1, y: 0))
-    expect(TPoseDetector.isTPose(stem, bar), "upright + horizontal hands form a T")
-    expect(TPoseDetector.isTPose(bar, stem), "order of hands does not matter")
-
-    // Two upright hands are not a T.
-    let stem2 = hand(wrist: Point2D(x: 0.8, y: 1.0), dir: Point2D(x: 0, y: -1))
-    expect(TPoseDetector.isTPose(stem, stem2) == false, "two upright hands are not a T")
-
-    // Horizontal hand far away from the stem is not a T.
-    let farBar = hand(wrist: Point2D(x: 0.05, y: 0.05), dir: Point2D(x: 1, y: 0))
-    expect(TPoseDetector.isTPose(stem, farBar) == false, "crossbar too far away is not a T")
-
-    // Must be held before it fires.
-    var det = TPoseDetector(); det.holdDuration = 0.3
-    expect(det.update([stem, bar], at: 0.0) == false, "T not fired immediately")
-    expect(det.update([stem, bar], at: 0.4) == true, "T fires after being held")
-    expect(det.update([stem, bar], at: 0.8) == false, "T does not re-fire while held")
-    expect(det.update([], at: 1.0) == false, "releasing the pose resets")
-    expect(det.update([stem, bar], at: 1.1) == false, "re-arm needs the hold again")
-    expect(det.update([stem, bar], at: 1.6) == true, "fires again after re-holding")
-}
-
 section("SessionCoordinator — two-device handshake")
 do {
     let mac = Peer(id: "A", displayName: "Mac A", kind: .mac)
@@ -130,7 +116,7 @@ do {
     expectEqual(a.reduce(.remoteRequestedCast(ipad)), [.startStreaming(to: ipad), .withdrawSourceAvailable], "A starts streaming")
     expectEqual(a.state, .casting(to: ipad), "A is casting")
 
-    expectEqual(a.reduce(.localGesture(.tPose)), [.takeScreenshot], "T-pose screenshots")
+    expectEqual(a.reduce(.localGesture(.peace)), [.takeScreenshot], "T-pose screenshots")
     expectEqual(a.state, .casting(to: ipad), "T-pose does not change state")
 }
 
