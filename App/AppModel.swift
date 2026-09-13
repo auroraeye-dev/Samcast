@@ -35,11 +35,6 @@ final class AppModel: ObservableObject {
     // heard. No motion analysis — just "is a real hand on screen right now".
     private var lastHandSeen = Date.distantPast
     private var lastSnapFired = Date.distantPast
-    /// After a snap, the hand naturally ends up in a fist — which is the "share
-    /// screen" gesture. So we refuse to act on a closed hand until the hand has
-    /// clearly left the closed pose, making the cast gesture edge-triggered
-    /// rather than firing on the snap's follow-through.
-    private var awaitingGestureReset = false
     private let handVisibleWindow: TimeInterval = 0.5
     private let snapCooldown: TimeInterval = 1.0
 
@@ -115,12 +110,6 @@ final class AppModel: ObservableObject {
         }
         if let confirmed = debouncer.update(raw, at: time) {
             currentGesture = confirmed
-            if awaitingGestureReset {
-                // Swallow the post-snap follow-through. Once the hand is no
-                // longer closed, normal gesture handling resumes.
-                if confirmed != .closedHand { awaitingGestureReset = false }
-                return
-            }
             apply(coordinator.reduce(.localGesture(confirmed)))
         }
     }
@@ -135,8 +124,9 @@ final class AppModel: ObservableObject {
         }
 
         lastSnapFired = now
-        snapSuppressUntil = now.addingTimeInterval(0.5)
-        awaitingGestureReset = true
+        // After a screenshot, ignore open/close gestures for 2s so the fist the
+        // hand lands in as the snap finishes can't arm a cast.
+        snapSuppressUntil = now.addingTimeInterval(2.0)
         debouncer.reset()
         currentGesture = .snap
         apply(coordinator.reduce(.localGesture(.snap)))
