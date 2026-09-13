@@ -34,6 +34,11 @@ targets:
         INFOPLIST_FILE: App/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: App/Resources/QuackCast.entitlements
         CODE_SIGN_STYLE: Automatic
+        # A stable signing identity is what makes macOS remember granted
+        # permissions across rebuilds; ad-hoc signing changes every build and
+        # makes the system treat each build as a brand-new app.
+        DEVELOPMENT_TEAM: Q5LUR3UAL8
+        CODE_SIGN_IDENTITY: "Apple Development" 
         ENABLE_HARDENED_RUNTIME: YES
         SWIFT_VERSION: "5.9"
         LD_RUNPATH_SEARCH_PATHS:
@@ -60,4 +65,5 @@ targets:
         INFOPLIST_FILE: App-iOS/Resources/Info.plist
         TARGETED_DEVICE_FAMILY: "1,2"
         CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: Q5LUR3UAL8
         SWIFT_VERSION: "5.9"
