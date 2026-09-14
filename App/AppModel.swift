@@ -236,7 +236,7 @@ final class AppModel: ObservableObject {
                     let url = try await self.screenSource.captureStill()
                     self.lastScreenshot = url
                     self.permissions.screenRecordingFailed = false
-                    self.setStatus("📸 Screenshot saved to Pictures: \(url.lastPathComponent)")
+                    self.setStatus("📸 Screenshot saved to Desktop: \(url.lastPathComponent)")
                 } catch {
                     // Show the real underlying error so failures are diagnosable
                     // rather than always blamed on permissions.

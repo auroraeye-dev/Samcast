@@ -76,7 +76,7 @@ struct ContentView: View {
             VStack(spacing: 6) {
                 gestureHint("✊", "Close your hand", "grab this page (or window)")
                 gestureHint("🖐️", "Open your hand", "drop it on the device in front of you")
-                gestureHint("✌️", "Peace sign", "screenshot to your Pictures")
+                gestureHint("✌️", "Peace sign", "screenshot to your Desktop")
             }
             .font(.callout)
             .foregroundStyle(.secondary)

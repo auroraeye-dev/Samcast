@@ -3,23 +3,12 @@
 <plist version="1.0">
 <dict>
 	<key>com.apple.security.app-sandbox</key>
-	<true/>
-	<key>com.apple.security.assets.pictures.read-write</key>
-	<true/>
+	<false/>
 	<key>com.apple.security.device.camera</key>
 	<true/>
 	<key>com.apple.security.network.client</key>
 	<true/>
 	<key>com.apple.security.network.server</key>
 	<true/>
-	<key>com.apple.security.temporary-exception.apple-events</key>
-	<array>
-		<string>com.apple.Safari</string>
-		<string>com.google.Chrome</string>
-		<string>com.microsoft.edgemac</string>
-		<string>com.brave.Browser</string>
-		<string>company.thebrowser.Browser</string>
-		<string>com.vivaldi.Vivaldi</string>
-	</array>
 </dict>
 </plist>

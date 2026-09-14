@@ -160,7 +160,7 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
         isRunning = false
     }
 
-    /// One-shot still of the main display, saved as a PNG in ~/Pictures.
+    /// One-shot still of the main display, saved as a PNG on the Desktop.
     /// Uses ScreenCaptureKit's screenshot API (reliable on modern macOS;
     /// CGDisplayCreateImage is deprecated and increasingly returns nil).
     public func captureStill() async throws -> URL {
@@ -176,13 +176,11 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
             throw CaptureError.stillFailed
         }
 
-        // Save to ~/Pictures. The app is sandboxed, and macOS provides no
-        // Desktop entitlement — Pictures is the writable, findable home for
-        // screenshots (see com.apple.security.assets.pictures.read-write).
-        let pictures = FileManager.default.urls(for: .picturesDirectory, in: .userDomainMask).first
+        // Saved to the Desktop, where screenshots are expected to appear.
+        let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
         let stamp = Self.filenameFormatter.string(from: Date())
-        let url = pictures.appendingPathComponent("QuackCast Screenshot \(stamp).png")
+        let url = desktop.appendingPathComponent("QuackCast Screenshot \(stamp).png")
 
         guard let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else {
             throw CaptureError.stillFailed
