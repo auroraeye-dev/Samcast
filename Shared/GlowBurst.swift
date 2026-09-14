@@ -4,7 +4,7 @@ import SwiftUI
 /// arriving on it.
 enum GlowDirection {
     case outward   // handed away — rings bloom out and fade
-    case inward    // arrived here — rings rush in and settle
+    case inward    // arriving here — rings sweep in and settle
 
     /// Warm for leaving, cool for arriving, so the two read differently at a
     /// glance without needing to read any text.
@@ -16,31 +16,53 @@ enum GlowDirection {
     }
 }
 
-/// A soft concentric glow that blooms from the centre of the screen when a
-/// page or window changes hands. Deliberately brief and low contrast: it
-/// should register as "that worked" in peripheral vision, not demand
-/// attention or obscure what is underneath.
+/// A slow concentric glow that sweeps from the centre of the screen when a
+/// page or window changes hands.
 ///
-/// Driven by a counter so the same event can replay: bump `trigger` to play.
+/// It runs for a couple of seconds on purpose. Partly so it can actually be
+/// seen and enjoyed, and partly because it starts the moment the gesture is
+/// recognised and plays *through* the network round-trip — so the wait reads
+/// as part of the effect rather than as lag.
 struct GlowBurst: View {
     let trigger: Int
     let direction: GlowDirection
 
+    /// Total travel time of the rings.
+    private let duration: Double = 2.2
+    /// Gap between successive rings setting off.
+    private let stagger: Double = 0.16
+    private let ringCount = 5
+
     @State private var ringScale: CGFloat = 0.2
     @State private var bloomScale: CGFloat = 0.4
+    @State private var haloScale: CGFloat = 0.5
     @State private var opacity: Double = 0
-
-    private let duration: Double = 1.1
 
     var body: some View {
         GeometryReader { geo in
             let size = min(geo.size.width, geo.size.height) * 0.55
             ZStack {
-                // Soft core bloom.
+                // Broad, very soft halo — gives the effect presence without
+                // hard edges over whatever is underneath.
                 Circle()
                     .fill(
                         RadialGradient(
-                            colors: [direction.tint.opacity(0.55), direction.tint.opacity(0.0)],
+                            colors: [direction.tint.opacity(0.28), .clear],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: size * 0.9
+                        )
+                    )
+                    .frame(width: size * 1.8, height: size * 1.8)
+                    .scaleEffect(haloScale)
+                    .blur(radius: 40)
+                    .opacity(opacity * 0.8)
+
+                // Core bloom.
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [direction.tint.opacity(0.6), direction.tint.opacity(0.0)],
                             center: .center,
                             startRadius: 0,
                             endRadius: size / 2
@@ -48,26 +70,29 @@ struct GlowBurst: View {
                     )
                     .frame(width: size, height: size)
                     .scaleEffect(bloomScale)
-                    .blur(radius: 18)
+                    .blur(radius: 22)
                     .opacity(opacity)
 
-                // Concentric rings, each slightly behind the last so it ripples.
-                ForEach(0..<3, id: \.self) { index in
+                // Concentric rings, each setting off a little after the last
+                // so the effect ripples rather than pulsing all at once.
+                ForEach(0..<ringCount, id: \.self) { index in
                     Circle()
                         .strokeBorder(
                             LinearGradient(
-                                colors: [direction.tint.opacity(0.9), direction.tint.opacity(0.15)],
-                                startPoint: .top,
-                                endPoint: .bottom
+                                colors: [direction.tint.opacity(0.95), direction.tint.opacity(0.2)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
                             ),
-                            lineWidth: 2.5 - Double(index) * 0.6
+                            lineWidth: 3.0 - Double(index) * 0.45
                         )
                         .frame(width: size, height: size)
                         .scaleEffect(ringScale)
-                        .opacity(opacity)
-                        .blur(radius: Double(index) * 0.8)
-                        .animation(.easeOut(duration: duration).delay(Double(index) * 0.13),
-                                   value: ringScale)
+                        .opacity(opacity * (1.0 - Double(index) * 0.12))
+                        .blur(radius: Double(index) * 0.9)
+                        .animation(
+                            .easeInOut(duration: duration).delay(Double(index) * stagger),
+                            value: ringScale
+                        )
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
@@ -77,14 +102,24 @@ struct GlowBurst: View {
     }
 
     private func play() {
-        // Snap to the start of the gesture without animating, then animate out.
-        ringScale = direction == .outward ? 0.18 : 1.75
-        bloomScale = direction == .outward ? 0.35 : 1.4
-        opacity = 0.95
+        // Jump to the start of the gesture without animating.
+        ringScale = direction == .outward ? 0.16 : 2.0
+        bloomScale = direction == .outward ? 0.3 : 1.6
+        haloScale = direction == .outward ? 0.4 : 1.5
+        opacity = 0
 
-        withAnimation(.easeOut(duration: duration)) {
-            ringScale = direction == .outward ? 1.8 : 0.22
-            bloomScale = direction == .outward ? 1.5 : 0.3
+        // Appear quickly so the gesture feels instantly acknowledged…
+        withAnimation(.easeOut(duration: 0.22)) {
+            opacity = 0.95
+        }
+        // …then travel slowly across the screen…
+        withAnimation(.easeInOut(duration: duration)) {
+            ringScale = direction == .outward ? 2.05 : 0.2
+            bloomScale = direction == .outward ? 1.7 : 0.28
+            haloScale = direction == .outward ? 1.9 : 0.45
+        }
+        // …and fade out over the back half, so it never cuts off abruptly.
+        withAnimation(.easeIn(duration: duration * 0.55).delay(duration * 0.45)) {
             opacity = 0
         }
     }
