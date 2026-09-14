@@ -119,6 +119,9 @@ struct ContentView: View {
 
     private var footer: some View {
         HStack(spacing: 16) {
+            Label(model.identity.name, systemImage: "person.crop.circle")
+                .font(.caption)
+                .help("This device's QuackCast name — other devices see this")
             Label("\(model.peers.count) nearby", systemImage: "dot.radiowaves.left.and.right")
             Text("fingers: \(model.fingerReadout)")
                 .font(.system(.caption, design: .monospaced))

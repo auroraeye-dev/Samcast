@@ -34,6 +34,18 @@ struct ContentView: View {
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(model.handDetected ? Color.green : Color.gray)
 
+            Text("This device: \(model.identity.name)")
+                .font(.caption)
+                .foregroundStyle(.gray)
+
+            Button(action: { model.grabFromClipboard() }) {
+                Label("Send copied link", systemImage: "link")
+                    .font(.subheadline)
+                    .padding(.horizontal, 18).padding(.vertical, 10)
+                    .background(Capsule().fill(Color.gray.opacity(0.35)))
+                    .foregroundStyle(.white)
+            }
+
             if model.availableSource != nil {
                 Button(action: { model.tapToReceive() }) {
                     Label("Receive screen", systemImage: "tv")

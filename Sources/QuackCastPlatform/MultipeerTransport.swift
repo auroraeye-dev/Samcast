@@ -5,13 +5,11 @@ import QuackCastCore
 import UIKit
 #endif
 
-/// The local device's human-readable name, cross-platform.
-private func localDeviceName() -> String {
-    #if os(iOS)
-    return UIDevice.current.name
-    #else
-    return Host.current().localizedName ?? "Mac"
-    #endif
+/// This device's persistent QuackCast name. Devices are discovered and trusted
+/// by this rather than by the OS device name, which can change or be
+/// unreadable.
+private func quackCastName() -> String {
+    DeviceIdentity.loadOrCreate().name
 }
 
 /// Apple adapter for `PeerTransport`, backed by MultipeerConnectivity. It
@@ -38,7 +36,7 @@ public final class MultipeerTransport: NSObject, PeerTransport {
 
     public init(displayName: String? = nil, kind: Peer.Kind = .mac) {
         self.localKind = kind
-        let name = String((displayName ?? localDeviceName()).prefix(63))
+        let name = String((displayName ?? quackCastName()).prefix(63))
         self.localPeerID = MCPeerID(displayName: name)
         self.session = MCSession(peer: localPeerID, securityIdentity: nil, encryptionPreference: .required)
         self.advertiser = MCNearbyServiceAdvertiser(peer: localPeerID,

@@ -4,10 +4,15 @@ import UIKit
 import QuackCastCore
 import QuackCastPlatform
 
-/// iOS/iPadOS receiver. Discovers a Mac running QuackCast, and when you open
-/// your hand at the iPad's camera (or tap the button) it pulls the Mac's screen
-/// and displays it. iOS can't capture its own screen for casting, so this
-/// device is receive-only for now.
+/// iOS/iPadOS peer. Works in both directions:
+///
+/// * **Receiving** — open your hand here to take a page or screen that another
+///   device has grabbed. Devices you have accepted from before are trusted, so
+///   it happens automatically without tapping anything.
+/// * **Sending** — close your hand to grab the link currently on the clipboard
+///   and offer it to other devices. iOS cannot read Safari's open tab the way
+///   macOS can (there is no AppleScript), so the clipboard is the way a link
+///   leaves an iPad.
 @MainActor
 final class ReceiverModel: ObservableObject {
     private var coordinator = SessionCoordinator()
@@ -16,6 +21,14 @@ final class ReceiverModel: ObservableObject {
 
     let handTracker = VisionHandTracker()
     private let transport = MultipeerTransport(kind: .iPad)
+    private let trust = TrustStore()
+
+    /// A link grabbed here, waiting to be dropped on another device.
+    private var pendingHandoff: URL?
+
+    /// This device's persistent QuackCast name, shown so you know what to look
+    /// for on the other device.
+    let identity = DeviceIdentity.loadOrCreate(kind: .iPad)
 
     @Published private(set) var state: SessionState = .idle
     @Published private(set) var peers: [Peer] = []
@@ -25,6 +38,8 @@ final class ReceiverModel: ObservableObject {
     @Published private(set) var availableSource: Peer?
     /// Live: is a real hand in front of this device's camera?
     @Published private(set) var handDetected = false
+    /// Devices already accepted from; these are taken automatically.
+    @Published private(set) var trustedNames: [String] = []
 
     func start() {
         transport.delegate = self
@@ -47,6 +62,7 @@ final class ReceiverModel: ObservableObject {
         }
         try? handTracker.start()
 
+        trustedNames = Array(trust.trusted.values).sorted()
         updateStatus()
     }
 
@@ -74,6 +90,11 @@ final class ReceiverModel: ObservableObject {
         switch (state, confirmed) {
         case (.idle, .openHand):
             requestReceive()
+        case (.idle, .closedHand):
+            // Grab the clipboard link and offer it to other devices.
+            apply(coordinator.reduce(.localGesture(.closedHand)))
+        case (.armedSource, .closedHand):
+            apply(coordinator.reduce(.localGesture(.closedHand))) // cancel
         case (.receiving, .closedHand):
             apply(coordinator.reduce(.localGesture(.closedHand)))
         default:
@@ -85,9 +106,30 @@ final class ReceiverModel: ObservableObject {
     /// Simulator) and as a convenience.
     func tapToReceive() { requestReceive() }
 
+    /// Grab whatever link is on the clipboard so it can be sent elsewhere.
+    func grabFromClipboard() {
+        guard case .idle = state else { return }
+        apply(coordinator.reduce(.localGesture(.closedHand)))
+    }
+
+    private func clipboardURL() -> URL? {
+        if let url = UIPasteboard.general.url, url.scheme?.hasPrefix("http") == true { return url }
+        if let text = UIPasteboard.general.string,
+           let url = URL(string: text.trimmingCharacters(in: .whitespacesAndNewlines)),
+           url.scheme?.hasPrefix("http") == true { return url }
+        return nil
+    }
+
     private func requestReceive() {
-        guard case .idle = state, coordinator.preferredSource != nil else { return }
+        guard case .idle = state, let source = coordinator.preferredSource else { return }
+        // Accepting from a device is what establishes trust with it.
+        trust.trust(source.id, name: source.displayName)
+        trustedNames = Array(trust.trusted.values).sorted()
         apply(coordinator.reduce(.localGesture(.openHand)))
+    }
+
+    private func broadcast(_ message: ControlMessage) {
+        for peer in transport.connectedPeers { transport.send(message, to: peer) }
     }
 
     private func apply(_ effects: [SessionEffect]) {
@@ -106,9 +148,24 @@ final class ReceiverModel: ObservableObject {
             receivedImage = nil
         case .notifyEndedCast(let peer):
             transport.send(.endCast, to: peer)
-        // The iPad can't be a source; ignore capture/advertise/stream effects.
-        case .startScreenCapture, .stopScreenCapture, .advertiseSourceAvailable,
-             .withdrawSourceAvailable, .startStreaming, .stopStreaming, .takeScreenshot:
+
+        case .startScreenCapture:
+            // iOS can't capture its own screen, so "grabbing" here means
+            // taking the link on the clipboard.
+            pendingHandoff = clipboardURL()
+        case .stopScreenCapture:
+            pendingHandoff = nil
+        case .advertiseSourceAvailable:
+            broadcast(.sourceAvailable)
+        case .withdrawSourceAvailable:
+            broadcast(.sourceWithdrawn)
+        case .startStreaming(let peer):
+            if let url = pendingHandoff {
+                transport.send(.handoff, payload: url.absoluteString, to: peer)
+                statusLine = "✅ Sent \(url.host ?? "link") to \(peer.displayName)"
+                pendingHandoff = nil
+            }
+        case .stopStreaming, .takeScreenshot:
             break
         }
     }
@@ -125,8 +182,12 @@ final class ReceiverModel: ObservableObject {
             }
         case .receiving(let p):
             statusLine = "Receiving from \(p.displayName)"
-        case .armedSource, .casting:
-            statusLine = ""
+        case .armedSource:
+            statusLine = pendingHandoff.map {
+                "Grabbed \($0.host ?? "link") — open your hand at the device you want it on"
+            } ?? "Copy a link first, then close your hand to send it"
+        case .casting(let p):
+            statusLine = "Sending to \(p.displayName)"
         }
     }
 }
@@ -155,6 +216,14 @@ extension ReceiverModel: PeerTransportDelegate {
                             : "Couldn't open \(url.absoluteString)"
                     }
                 }
+                return
+            }
+            // A device you've accepted from before doesn't need approving
+            // again — that's the whole point of trusting it.
+            if message == .sourceAvailable, self.trust.isTrusted(peer.id),
+               case .idle = self.state {
+                self.apply(self.coordinator.reduce(.remoteSourceBecameAvailable(peer)))
+                self.apply(self.coordinator.reduce(.localGesture(.openHand)))
                 return
             }
             let input: SessionInput

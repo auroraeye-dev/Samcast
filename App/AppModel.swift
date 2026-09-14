@@ -26,6 +26,10 @@ final class AppModel: ObservableObject {
     /// Tracks macOS privacy permissions so the UI can guide setup.
     let permissions = Permissions()
 
+    private let trust = TrustStore()
+    /// This device's persistent QuackCast name — how other devices see it.
+    let identity = DeviceIdentity.loadOrCreate(kind: .mac)
+
     // Where captured frames are currently being streamed (if casting).
     private var streamingTarget: Peer?
     // Ignore open/close gestures until this time, right after a snap, so the
@@ -55,6 +59,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var statusLine: String = "Starting…"
     /// What is currently being cast, e.g. "Safari — Example Page".
     @Published private(set) var castTarget: String = ""
+    /// Devices already accepted from; their offers are taken automatically.
+    @Published private(set) var trustedNames: [String] = []
 
     /// A page grabbed by the fist gesture, waiting to be dropped on another
     /// device. When set, arming hands this over instead of streaming pixels.
@@ -100,6 +106,7 @@ final class AppModel: ObservableObject {
             self.forwardFrame(frame as! CVPixelBuffer)
         }
 
+        trustedNames = Array(trust.trusted.values).sorted()
         updateStatus()
     }
 
@@ -234,6 +241,8 @@ final class AppModel: ObservableObject {
         case .withdrawSourceAvailable:
             broadcast(.sourceWithdrawn)
         case .requestCastFromPeer(let peer):
+            trust.trust(peer.id, name: peer.displayName)
+            trustedNames = Array(trust.trusted.values).sorted()
             transport.send(.requestCast, to: peer)
         case .startStreaming(let peer):
             if let page = pendingHandoff {
@@ -338,6 +347,13 @@ extension AppModel: PeerTransportDelegate {
                 BrowserLink.open(url)
                 self.setStatus("📬 Opened a page from \(peer.displayName)")
                 self.apply(self.coordinator.reduce(.remoteEndedCast(peer)))
+                return
+            }
+            // Already-accepted devices don't need approving again.
+            if message == .sourceAvailable, self.trust.isTrusted(peer.id),
+               self.coordinator.state == .idle {
+                self.apply(self.coordinator.reduce(.remoteSourceBecameAvailable(peer)))
+                self.apply(self.coordinator.reduce(.localGesture(.openHand)))
                 return
             }
             let input: SessionInput
