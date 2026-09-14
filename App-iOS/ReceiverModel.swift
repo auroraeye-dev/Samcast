@@ -122,6 +122,10 @@ final class ReceiverModel: ObservableObject {
     /// grab it just made.
     private var armedAt = Date.distantPast
     private let cancelGuard: TimeInterval = 5
+    /// A request that gets no answer must not leave this device stuck waiting;
+    /// it returns to idle so you can simply try again.
+    private var requestTimeout: Task<Void, Never>?
+    private let requestDeadline: TimeInterval = 5
 
     /// On iPad we act on: open hand → receive; close hand (while receiving) →
     /// dismiss. The iPad is never a source.
@@ -172,6 +176,7 @@ final class ReceiverModel: ObservableObject {
             trust.trust(source.id, name: source.displayName)
             trustedNames = Array(trust.trusted.values).sorted()
             apply(coordinator.reduce(.localGesture(.openHand)))
+            startRequestDeadline()
             return
         }
 
@@ -189,6 +194,33 @@ final class ReceiverModel: ObservableObject {
         statusLine = "Asking \(candidates.map(\.displayName).joined(separator: ", "))…"
         for peer in candidates {
             transport.send(.requestCast, to: peer)
+        }
+        startRequestDeadline()
+    }
+
+    /// Give up on an unanswered request rather than waiting forever.
+    private func startRequestDeadline() {
+        requestTimeout?.cancel()
+        requestTimeout = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(5 * 1_000_000_000))
+            guard let self, !Task.isCancelled else { return }
+            guard self.receivedPage == nil else { return }
+            if case .receiving(let peer) = self.state {
+                self.apply(self.coordinator.reduce(.remoteEndedCast(peer)))
+            }
+            self.statusLine = "Nothing arrived — open your hand again to retry"
+            print("QC: request timed out, back to \(self.state)")
+        }
+    }
+
+    /// Swap the page shown in the in-app browser. Assigning a new value while
+    /// one is already presented does not re-present, so dismiss first.
+    private func present(_ page: ReceivedPage) {
+        if receivedPage != nil {
+            receivedPage = nil
+            DispatchQueue.main.async { [weak self] in self?.receivedPage = page }
+        } else {
+            receivedPage = page
         }
     }
 
@@ -289,8 +321,13 @@ extension ReceiverModel: PeerTransportDelegate {
                 self.pulseGlow(.inward)
                 self.statusLine = "📬 Received \(url.host ?? url.absoluteString) from \(peer.displayName)"
                 print("QC: HANDOFF received \(url.absoluteString)")
+                self.requestTimeout?.cancel()
                 self.lastReceived = "\(url.host ?? url.absoluteString) — from \(peer.displayName)"
-                self.receivedPage = ReceivedPage(url: url, from: peer.displayName)
+                self.present(ReceivedPage(url: url, from: peer.displayName))
+                // A handoff is complete the moment it arrives. Without this the
+                // session stayed in "receiving" and every later attempt was
+                // refused, so only the first handoff of a session ever worked.
+                self.apply(self.coordinator.reduce(.remoteEndedCast(peer)))
                 return
             }
             let input: SessionInput
