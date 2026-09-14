@@ -73,10 +73,24 @@ public final class MultipeerTransport: NSObject, PeerTransport {
     }
 
     public func send(_ message: ControlMessage, payload: String?, to peer: Peer) {
-        guard let mcID = mcID(for: peer) else { return }
+        // Failures here were swallowed, which hid a one-directional link: the
+        // other side's messages arrived while ours silently went nowhere.
+        guard let mcID = mcID(for: peer) else {
+            print("QC-net: send \(message.rawValue) FAILED — no peer id for \(peer.displayName)")
+            return
+        }
+        guard session.connectedPeers.contains(mcID) else {
+            print("QC-net: send \(message.rawValue) FAILED — \(peer.displayName) not in session (connected: \(session.connectedPeers.map(\.displayName)))")
+            return
+        }
         let envelope = ControlEnvelope(control: message, payload: payload)
         guard let data = try? JSONEncoder().encode(envelope) else { return }
-        try? session.send(data, toPeers: [mcID], with: .reliable)
+        do {
+            try session.send(data, toPeers: [mcID], with: .reliable)
+            print("QC-net: sent \(message.rawValue) to \(peer.displayName)")
+        } catch {
+            print("QC-net: send \(message.rawValue) to \(peer.displayName) THREW \(error.localizedDescription)")
+        }
     }
 
     /// Send an encoded screen frame (e.g. JPEG) to a peer. Unreliable so a
