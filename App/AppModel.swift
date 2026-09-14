@@ -85,6 +85,7 @@ final class AppModel: ObservableObject {
     private var statusHoldUntil = Date.distantPast
 
     func start() {
+        QCLog.write("=== QuackCast started as \(identity.name) ===")
         transport.delegate = self
         transport.start()
 
@@ -152,6 +153,7 @@ final class AppModel: ObservableObject {
             return
         }
         if let confirmed = debouncer.update(raw, at: time) {
+            QCLog.write("gesture \(confirmed.rawValue) | state=\(coordinator.state) | pending=\(pendingHandoff?.url.absoluteString ?? "none")")
             currentGesture = confirmed
             if confirmed == .peace {
                 fireScreenshot()
@@ -160,6 +162,7 @@ final class AppModel: ObservableObject {
             // Don't let a flickering fist cancel the grab it just made.
             if confirmed == .closedHand, coordinator.state == .armedSource,
                Date().timeIntervalSince(armedAt) < cancelGuard {
+                QCLog.write("ignored repeat fist within cancel guard")
                 return
             }
             let wasIdle = coordinator.state == .idle
@@ -202,6 +205,7 @@ final class AppModel: ObservableObject {
             try? await Task.sleep(nanoseconds: 120_000_000_000)
             guard let self, let pending = self.pendingHandoff,
                   pending.url == page.url else { return }
+            QCLog.write("PUT BACK (timeout) \(pending.url.absoluteString)")
             BrowserLink.open(pending.url)
             self.pendingHandoff = nil
             // Leave the armed state too, so a later request doesn't find an
@@ -217,6 +221,9 @@ final class AppModel: ObservableObject {
     // MARK: Effect execution
 
     private func apply(_ effects: [SessionEffect]) {
+        if !effects.isEmpty {
+            QCLog.write("effects \(effects) | state before=\(coordinator.state)")
+        }
         for effect in effects { perform(effect) }
         state = coordinator.state
         updateStatus()
@@ -230,6 +237,7 @@ final class AppModel: ObservableObject {
             // the other person's own browser without touching their tabs.
             do {
                 let page = try BrowserLink.frontmostPage()
+                QCLog.write("GRABBED \(page.url.absoluteString)")
                 pendingHandoff = page
                 BrowserLink.closeFrontmostTab()
                 // If no device takes it, put the page back rather than leaving
@@ -253,6 +261,7 @@ final class AppModel: ObservableObject {
         case .stopScreenCapture:
             // Cancelled before dropping it — put the page back where it was.
             if let page = pendingHandoff {
+                QCLog.write("PUT BACK (cancelled) \(page.url.absoluteString)")
                 BrowserLink.open(page.url)
                 setStatus("Put “\(page.title)” back")
                 pulseGlow(.inward, message: "Put back — nothing took it")
@@ -269,6 +278,7 @@ final class AppModel: ObservableObject {
             transport.send(.requestCast, to: peer)
         case .startStreaming(let peer):
             if let page = pendingHandoff {
+                QCLog.write("-> handoff \(page.url.absoluteString) to \(peer.displayName)")
                 transport.send(.handoff, payload: page.url.absoluteString, to: peer)
                 setStatus("✅ Handed “\(page.title)” to \(peer.displayName)")
                 pulseGlow(.outward, message: "Sent to \(peer.displayName)")
@@ -363,6 +373,7 @@ final class AppModel: ObservableObject {
 extension AppModel: PeerTransportDelegate {
     nonisolated func transport(_ transport: PeerTransport, didUpdate peers: [Peer]) {
         Task { @MainActor in
+            QCLog.write("peers now: \(peers.map(\.displayName))")
             self.peers = peers
             // Keep newly-joined peers informed if we are currently a source.
             if case .armedSource = self.state { self.broadcast(.sourceAvailable) }
@@ -372,6 +383,7 @@ extension AppModel: PeerTransportDelegate {
 
     nonisolated func transport(_ transport: PeerTransport, didReceive message: ControlMessage, payload: String?, from peer: Peer) {
         Task { @MainActor in
+            QCLog.write("<- \(message.rawValue) from \(peer.displayName)\(payload.map { " payload=\($0)" } ?? "")")
             // A handed-over page opens natively here; there is no session state
             // to advance, the thing has simply arrived.
             if message == .handoff {
