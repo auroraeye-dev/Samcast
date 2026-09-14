@@ -84,6 +84,11 @@ final class AppModel: ObservableObject {
     /// they are overwritten before they can be read.
     private var statusHoldUntil = Date.distantPast
     private var reannounceTask: Task<Void, Never>?
+    /// Only the newest grab may be undone by a timeout. Previously each grab
+    /// left its own timer running, so an old timer could fire and put back a
+    /// page grabbed much later — seconds after grabbing it, rather than the
+    /// two minutes intended.
+    private var recoveryTask: Task<Void, Never>?
 
     func start() {
         QCLog.write("=== QuackCast started as \(identity.name) ===")
@@ -230,8 +235,10 @@ final class AppModel: ObservableObject {
 
     /// Restore a grabbed page if it is never dropped anywhere.
     private func scheduleHandoffRecovery(for page: BrowserLink.Page) {
-        Task { @MainActor [weak self] in
+        recoveryTask?.cancel()
+        recoveryTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 120_000_000_000)
+            guard !Task.isCancelled else { return }
             guard let self, let pending = self.pendingHandoff,
                   pending.url == page.url else { return }
             self.reannounceTask?.cancel()
@@ -293,6 +300,7 @@ final class AppModel: ObservableObject {
             // Cancelled before dropping it — put the page back where it was.
             if let page = pendingHandoff {
                 reannounceTask?.cancel()
+                recoveryTask?.cancel()
                 QCLog.write("PUT BACK (cancelled) \(page.url.absoluteString)")
                 BrowserLink.open(page.url)
                 setStatus("Put “\(page.title)” back")
@@ -311,6 +319,7 @@ final class AppModel: ObservableObject {
         case .startStreaming(let peer):
             if let page = pendingHandoff {
                 reannounceTask?.cancel()
+                recoveryTask?.cancel()
                 QCLog.write("-> handoff \(page.url.absoluteString) to \(peer.displayName)")
                 transport.send(.handoff, payload: page.url.absoluteString, to: peer)
                 setStatus("✅ Handed “\(page.title)” to \(peer.displayName)")
