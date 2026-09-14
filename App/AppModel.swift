@@ -362,13 +362,6 @@ extension AppModel: PeerTransportDelegate {
                 self.apply(self.coordinator.reduce(.remoteEndedCast(peer)))
                 return
             }
-            // Already-accepted devices don't need approving again.
-            if message == .sourceAvailable, self.trust.isTrusted(peer.id),
-               self.coordinator.state == .idle {
-                self.apply(self.coordinator.reduce(.remoteSourceBecameAvailable(peer)))
-                self.apply(self.coordinator.reduce(.localGesture(.openHand)))
-                return
-            }
             let input: SessionInput
             switch message {
             case .sourceAvailable: input = .remoteSourceBecameAvailable(peer)

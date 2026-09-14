@@ -229,14 +229,6 @@ extension ReceiverModel: PeerTransportDelegate {
                 }
                 return
             }
-            // A device you've accepted from before doesn't need approving
-            // again — that's the whole point of trusting it.
-            if message == .sourceAvailable, self.trust.isTrusted(peer.id),
-               case .idle = self.state {
-                self.apply(self.coordinator.reduce(.remoteSourceBecameAvailable(peer)))
-                self.apply(self.coordinator.reduce(.localGesture(.openHand)))
-                return
-            }
             let input: SessionInput
             switch message {
             case .sourceAvailable: input = .remoteSourceBecameAvailable(peer)
