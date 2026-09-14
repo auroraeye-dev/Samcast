@@ -50,7 +50,10 @@ public final class MultipeerTransport: NSObject, PeerTransport {
     }
 
     public var connectedPeers: [Peer] {
-        session.connectedPeers.compactMap { peersByMCID[$0] }
+        // Register on demand: a peer can be connected without having gone
+        // through discovery in this process (e.g. after a reconnect), and
+        // dropping those made connected peers invisible in the UI.
+        session.connectedPeers.map { peer(for: $0) }
     }
 
     public func start() {
@@ -112,6 +115,10 @@ public final class MultipeerTransport: NSObject, PeerTransport {
 
 extension MultipeerTransport: MCSessionDelegate {
     public func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
+        if state == .connected {
+            // Make sure the peer is known, so it shows up as nearby.
+            _ = peer(for: peerID)
+        }
         if state == .notConnected {
             // Forget the peer so a later discovery is treated as fresh. Holding
             // a stale entry made us refuse the reconnect invitation, which is
