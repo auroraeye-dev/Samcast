@@ -8,7 +8,22 @@ struct ContentView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if let image = model.receivedImage {
+            if let page = model.currentPage {
+                VStack(spacing: 0) {
+                    HStack {
+                        Text(page.host ?? page.absoluteString)
+                            .font(.caption)
+                            .foregroundStyle(.gray)
+                            .lineLimit(1)
+                        Spacer()
+                        Button("Done") { model.closePage() }
+                            .font(.callout)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    WebPageView(url: page)
+                }
+            } else if let image = model.receivedImage {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)

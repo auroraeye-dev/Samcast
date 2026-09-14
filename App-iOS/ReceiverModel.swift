@@ -52,6 +52,9 @@ final class ReceiverModel: ObservableObject {
     /// suspends its networking and camera — so the device silently stops being
     /// able to receive anything until you switch back. Keeping the page inside
     /// the app keeps the connection and the gesture camera alive.
+    /// The page currently being shown. Rendered as part of the main view, so
+    /// there is no modal presentation to fail.
+    @Published var currentPage: URL?
     /// The last page received, kept so it can be reopened from the UI.
     @Published private(set) var lastReceivedURL: URL?
     /// Kept after the browser is dismissed, so there is always evidence of
@@ -144,10 +147,13 @@ final class ReceiverModel: ObservableObject {
         }
     }
 
-    /// Reopen the most recent page, e.g. after closing the browser.
+    /// Reopen the most recent page after closing it.
     func reopenLastPage() {
-        guard let url = lastReceivedURL else { return }
-        PagePresenter.show(url)
+        currentPage = lastReceivedURL
+    }
+
+    func closePage() {
+        currentPage = nil
     }
 
     /// Touch fallback so it works on a device with no usable camera (e.g. the
@@ -204,7 +210,8 @@ final class ReceiverModel: ObservableObject {
         requestTimeout = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(5 * 1_000_000_000))
             guard let self, !Task.isCancelled else { return }
-            guard self.lastReceivedURL == nil || self.state != .idle else { return }
+            // Something arrived in time, nothing to undo.
+            guard self.currentPage == nil else { return }
             if case .receiving(let peer) = self.state {
                 self.apply(self.coordinator.reduce(.remoteEndedCast(peer)))
             }
@@ -313,7 +320,7 @@ extension ReceiverModel: PeerTransportDelegate {
                 self.requestTimeout?.cancel()
                 self.lastReceived = "\(url.host ?? url.absoluteString) — from \(peer.displayName)"
                 self.lastReceivedURL = url
-                PagePresenter.show(url)
+                self.currentPage = url
                 // A handoff is complete the moment it arrives. Without this the
                 // session stayed in "receiving" and every later attempt was
                 // refused, so only the first handoff of a session ever worked.
