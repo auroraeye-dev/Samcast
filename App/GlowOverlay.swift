@@ -21,12 +21,18 @@ final class GlowOverlay {
 
         let overlay = window ?? makeWindow()
         window = overlay
+        // Cover the whole screen including the menu bar area.
         overlay.setFrame(screen.frame, display: false)
-        // A fresh view each time so the animation replays from the start.
-        overlay.contentView = NSHostingView(
-            rootView: GlowBurst(trigger: 1, direction: direction)
-        )
+
+        // Show the window *before* installing the view, so the burst animates
+        // in a window that is already on screen.
         overlay.orderFrontRegardless()
+
+        // A fresh view each time so the animation replays from the start.
+        let host = NSHostingView(rootView: GlowBurst(trigger: 1, direction: direction))
+        host.frame = overlay.contentLayoutRect
+        host.autoresizingMask = [.width, .height]
+        overlay.contentView = host
 
         hideTask = Task { @MainActor [weak overlay] in
             try? await Task.sleep(nanoseconds: UInt64(visibleFor * 1_000_000_000))

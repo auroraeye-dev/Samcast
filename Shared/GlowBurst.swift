@@ -99,9 +99,13 @@ struct GlowBurst: View {
         }
         .allowsHitTesting(false)   // purely decorative; never eat a click
         .onChange(of: trigger) { _ in play() }
-        // A freshly presented burst plays immediately, which is how the
-        // full-screen overlay window uses it.
-        .onAppear { play() }
+        // A freshly presented burst plays itself, which is how the full-screen
+        // overlay window uses it. Deferred by one runloop turn: animating state
+        // that is set during the same pass the view first appears gets
+        // collapsed to its final value, so the burst would never be drawn.
+        .onAppear {
+            DispatchQueue.main.async { play() }
+        }
     }
 
     private func play() {
