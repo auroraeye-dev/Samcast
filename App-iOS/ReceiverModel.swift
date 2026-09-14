@@ -160,11 +160,30 @@ final class ReceiverModel: ObservableObject {
     }
 
     private func requestReceive() {
-        guard case .idle = state, let source = coordinator.preferredSource else { return }
-        // Accepting from a device is what establishes trust with it.
-        trust.trust(source.id, name: source.displayName)
-        trustedNames = Array(trust.trusted.values).sorted()
-        apply(coordinator.reduce(.localGesture(.openHand)))
+        guard case .idle = state else { return }
+
+        if let source = coordinator.preferredSource {
+            // Accepting from a device is what establishes trust with it.
+            trust.trust(source.id, name: source.displayName)
+            trustedNames = Array(trust.trusted.values).sorted()
+            apply(coordinator.reduce(.localGesture(.openHand)))
+            return
+        }
+
+        // We may never have heard the offer: the announcement is sent once,
+        // and a link that was re-establishing at that moment simply misses it,
+        // leaving this device convinced nothing is on offer. Rather than rely
+        // on that one message, ask every connected device — only one actually
+        // holding something will answer.
+        let candidates = transport.connectedPeers
+        guard !candidates.isEmpty else {
+            statusLine = "No devices nearby to take anything from"
+            return
+        }
+        statusLine = "Asking \(candidates.map(\.displayName).joined(separator: ", "))…"
+        for peer in candidates {
+            transport.send(.requestCast, to: peer)
+        }
     }
 
     private func pulseGlow(_ direction: GlowDirection) {
@@ -257,6 +276,8 @@ extension ReceiverModel: PeerTransportDelegate {
                     self.statusLine = "Received something unreadable from \(peer.displayName)"
                     return
                 }
+                self.trust.trust(peer.id, name: peer.displayName)
+                self.trustedNames = Array(self.trust.trusted.values).sorted()
                 self.pulseGlow(.inward)
                 self.statusLine = "📬 Received \(url.host ?? url.absoluteString) from \(peer.displayName)"
                 self.receivedPage = ReceivedPage(url: url, from: peer.displayName)

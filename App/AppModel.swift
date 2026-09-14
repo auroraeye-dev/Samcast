@@ -83,6 +83,7 @@ final class AppModel: ObservableObject {
     /// survive the routine status refresh that follows every effect, otherwise
     /// they are overwritten before they can be read.
     private var statusHoldUntil = Date.distantPast
+    private var reannounceTask: Task<Void, Never>?
 
     func start() {
         QCLog.write("=== QuackCast started as \(identity.name) ===")
@@ -211,12 +212,29 @@ final class AppModel: ObservableObject {
         NSSound(named: "Tink")?.play() // audible confirmation
     }
 
+    /// Re-announce a held page every couple of seconds.
+    ///
+    /// The offer is otherwise sent once, so any device that reconnects (or
+    /// whose session was still settling) never learns there is something to
+    /// take, and opening your hand at it does nothing.
+    private func startReannouncing() {
+        reannounceTask?.cancel()
+        reannounceTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                guard let self, self.pendingHandoff != nil else { return }
+                self.broadcast(.sourceAvailable)
+            }
+        }
+    }
+
     /// Restore a grabbed page if it is never dropped anywhere.
     private func scheduleHandoffRecovery(for page: BrowserLink.Page) {
         Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 120_000_000_000)
             guard let self, let pending = self.pendingHandoff,
                   pending.url == page.url else { return }
+            self.reannounceTask?.cancel()
             QCLog.write("PUT BACK (timeout) \(pending.url.absoluteString)")
             BrowserLink.open(pending.url)
             self.pendingHandoff = nil
@@ -251,6 +269,7 @@ final class AppModel: ObservableObject {
                 let page = try BrowserLink.frontmostPage()
                 QCLog.write("GRABBED \(page.url.absoluteString)")
                 pendingHandoff = page
+                startReannouncing()
                 BrowserLink.closeFrontmostTab()
                 // If no device takes it, put the page back rather than leaving
                 // the user with a closed tab and nothing to show for it.
@@ -273,6 +292,7 @@ final class AppModel: ObservableObject {
         case .stopScreenCapture:
             // Cancelled before dropping it — put the page back where it was.
             if let page = pendingHandoff {
+                reannounceTask?.cancel()
                 QCLog.write("PUT BACK (cancelled) \(page.url.absoluteString)")
                 BrowserLink.open(page.url)
                 setStatus("Put “\(page.title)” back")
@@ -290,6 +310,7 @@ final class AppModel: ObservableObject {
             transport.send(.requestCast, to: peer)
         case .startStreaming(let peer):
             if let page = pendingHandoff {
+                reannounceTask?.cancel()
                 QCLog.write("-> handoff \(page.url.absoluteString) to \(peer.displayName)")
                 transport.send(.handoff, payload: page.url.absoluteString, to: peer)
                 setStatus("✅ Handed “\(page.title)” to \(peer.displayName)")
@@ -334,7 +355,9 @@ final class AppModel: ObservableObject {
     }
 
     private func broadcast(_ message: ControlMessage) {
-        for peer in transport.connectedPeers { transport.send(message, to: peer) }
+        let recipients = transport.connectedPeers
+        QCLog.write("-> broadcast \(message.rawValue) to \(recipients.map(\.displayName))")
+        for peer in recipients { transport.send(message, to: peer) }
     }
 
     // MARK: Streaming
