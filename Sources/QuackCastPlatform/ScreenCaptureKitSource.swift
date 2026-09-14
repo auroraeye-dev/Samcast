@@ -33,7 +33,7 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
     /// display is far too large to push over a peer-to-peer link frame by
     /// frame; scaling here (rather than after capture) also saves the encode
     /// and copy cost of the full-size image.
-    public var maxCaptureWidth: Int = 1280
+    public var maxCaptureWidth: Int = 1800
 
     private var stream: SCStream?
     private var isRunning = false
@@ -62,34 +62,28 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
                 self.report("Screen capture blocked: \(error.localizedDescription). Enable Screen Recording for QuackCast in System Settings ▸ Privacy & Security, then reopen the app.")
                 return
             }
-            guard let content, let display = content.displays.first else {
+            guard let content, !content.displays.isEmpty else {
                 self.isRunning = false
                 self.report("Screen capture failed: no display available.")
                 return
             }
 
-            // Cast the window the user is actually working in, not the whole
-            // desktop. Falls back to the full display if no suitable window is
-            // found (e.g. only the Finder desktop is frontmost).
-            let filter: SCContentFilter
-            let sourceWidth: Int
-            let sourceHeight: Int
-            if let window = self.frontmostWindow(in: content) {
-                filter = SCContentFilter(desktopIndependentWindow: window)
-                sourceWidth = Int(window.frame.width)
-                sourceHeight = Int(window.frame.height)
-                let app = window.owningApplication?.applicationName ?? "Window"
-                let title = window.title ?? ""
-                let label = title.isEmpty ? app : "\(app) — \(title)"
-                let handler = self.onCaptureTarget
-                DispatchQueue.main.async { handler?(label) }
-            } else {
-                filter = SCContentFilter(display: display, excludingWindows: [])
-                sourceWidth = display.width
-                sourceHeight = display.height
-                let handler = self.onCaptureTarget
-                DispatchQueue.main.async { handler?("Whole screen") }
+            // Cast the window the user is working in. There is deliberately no
+            // whole-desktop fallback: casting the desktop would include any
+            // window showing the cast, creating a feedback loop.
+            guard let window = self.frontmostWindow(in: content) else {
+                self.isRunning = false
+                self.report("Nothing to cast — open an app window first, then make a fist while it's in front.")
+                return
             }
+            let filter = SCContentFilter(desktopIndependentWindow: window)
+            let sourceWidth = Int(window.frame.width)
+            let sourceHeight = Int(window.frame.height)
+            let app = window.owningApplication?.applicationName ?? "Window"
+            let title = window.title ?? ""
+            let label = title.isEmpty ? app : "\(app) — \(title)"
+            let targetHandler = self.onCaptureTarget
+            DispatchQueue.main.async { targetHandler?(label) }
 
             let config = SCStreamConfiguration()
             // Downscale, preserving aspect ratio, to keep frames small enough
@@ -133,6 +127,13 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
             return nil
         }
         for info in infos {
+            // Skip every QuackCast-family window — the app itself and any
+            // viewer/receiver process. Capturing a window that is *displaying*
+            // the cast feeds the stream back into itself and produces an
+            // infinite mirror tunnel.
+            let owner = (info[kCGWindowOwnerName as String] as? String ?? "").lowercased()
+            if owner.contains("quackcast") || owner.contains("castpeer") { continue }
+
             guard let pid = info[kCGWindowOwnerPID as String] as? pid_t, pid != myPID,
                   // Layer 0 is a normal window; higher layers are menu bar,
                   // Dock, overlays and so on.

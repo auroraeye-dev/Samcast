@@ -220,7 +220,7 @@ final class AppModel: ObservableObject {
         transport.sendFrameData(data, to: target)
     }
 
-    private func jpeg(from pixelBuffer: CVPixelBuffer, quality: CGFloat = 0.5) -> Data? {
+    private func jpeg(from pixelBuffer: CVPixelBuffer, quality: CGFloat = 0.75) -> Data? {
         let image = CIImage(cvPixelBuffer: pixelBuffer)
         let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
         return ciContext.jpegRepresentation(of: image, colorSpace: colorSpace,
