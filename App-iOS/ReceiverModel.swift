@@ -37,10 +37,12 @@ final class ReceiverModel: ObservableObject {
             // past — with several devices nearby, the wrong one could grab it.
             let hand = hands.first
             let real = Self.isRealHand(hand)
-            let raw = real ? (hand.map { self.classifier.classify($0) } ?? .none) : .none
+            let raw = hand.map { self.classifier.classify($0) } ?? .none
             Task { @MainActor in
-                if self.handDetected != real { self.handDetected = real }
-                self.handleGesture(raw, at: time)
+                if real { self.lastRealHand = Date() }
+                let present = Date().timeIntervalSince(self.lastRealHand) < self.handGrace
+                if self.handDetected != present { self.handDetected = present }
+                self.handleGesture(present ? raw : .none, at: time)
             }
         }
         try? handTracker.start()
@@ -48,13 +50,21 @@ final class ReceiverModel: ObservableObject {
         updateStatus()
     }
 
+    /// Deliberately forgiving: hand tracking drops frames constantly, and
+    /// treating each miss as "no hand" made the indicator flicker and reset
+    /// the gesture timer, so a held open hand never completed.
     private static func isRealHand(_ hand: HandLandmarks?) -> Bool {
         guard let hand else { return false }
-        guard hand.confidence >= 0.75 else { return false }
-        guard hand.points.count >= 15 else { return false }
-        guard let span = hand.palmSpan, span >= 0.04 else { return false }
+        guard hand.confidence >= 0.5 else { return false }
+        guard hand.points.count >= 10 else { return false }
+        guard let span = hand.palmSpan, span >= 0.03 else { return false }
         return true
     }
+
+    /// A hand counts as present for a short while after the last good frame,
+    /// which bridges the gaps between detections.
+    private var lastRealHand = Date.distantPast
+    private let handGrace: TimeInterval = 0.5
 
     /// On iPad we act on: open hand → receive; close hand (while receiving) →
     /// dismiss. The iPad is never a source.

@@ -108,19 +108,22 @@ final class AppModel: ObservableObject {
     /// A detection only counts as a real hand if it's confident, has most of
     /// its 21 joints, and is big enough in frame — this filters out the
     /// low-quality phantom detections that were letting plain sounds through.
+    /// Forgiving on purpose — hand tracking drops frames, and treating every
+    /// miss as "no hand" makes the indicator flicker and resets gesture timing.
     private func isRealHand(_ hand: HandLandmarks?) -> Bool {
         guard let hand else { return false }
-        guard hand.confidence >= 0.75 else { return false }
-        guard hand.points.count >= 15 else { return false }
-        guard let span = hand.palmSpan, span >= 0.04 else { return false }
+        guard hand.confidence >= 0.5 else { return false }
+        guard hand.points.count >= 10 else { return false }
+        guard let span = hand.palmSpan, span >= 0.03 else { return false }
         return true
     }
 
     private func handleFrame(_ hands: [HandLandmarks], raw: HandGesture, at time: TimeInterval) {
         // Is a real hand on camera right now?
-        let visible = isRealHand(hands.first)
-        if visible { lastHandSeen = Date() }
-        if handDetected != visible { handDetected = visible }
+        if isRealHand(hands.first) { lastHandSeen = Date() }
+        // Bridge dropped frames so the badge is steady rather than strobing.
+        let present = Date().timeIntervalSince(lastHandSeen) < 0.5
+        if handDetected != present { handDetected = present }
 
         // Briefly after a snap, ignore open/close so the fist that forms as you
         // finish snapping doesn't arm a cast.
@@ -166,6 +169,18 @@ final class AppModel: ObservableObject {
         NSSound(named: "Tink")?.play() // audible confirmation
     }
 
+    /// Restore a grabbed page if it is never dropped anywhere.
+    private func scheduleHandoffRecovery(for page: BrowserLink.Page) {
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 45_000_000_000)
+            guard let self, let pending = self.pendingHandoff,
+                  pending.url == page.url else { return }
+            BrowserLink.open(pending.url)
+            self.pendingHandoff = nil
+            self.setStatus("Nobody took “\(pending.title)” — put it back")
+        }
+    }
+
     // MARK: Effect execution
 
     private func apply(_ effects: [SessionEffect]) {
@@ -184,6 +199,9 @@ final class AppModel: ObservableObject {
                 let page = try BrowserLink.frontmostPage()
                 pendingHandoff = page
                 BrowserLink.closeFrontmostTab()
+                // If no device takes it, put the page back rather than leaving
+                // the user with a closed tab and nothing to show for it.
+                scheduleHandoffRecovery(for: page)
                 castTarget = "\(page.browserName) — \(page.title)"
                 setStatus("Grabbed “\(page.title)” — now open your hand at the device you want it on")
                 return
