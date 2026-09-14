@@ -143,9 +143,18 @@ extension ReceiverModel: PeerTransportDelegate {
         Task { @MainActor in
             // A handed-over page opens in this device's own browser.
             if message == .handoff {
-                guard let payload, let url = URL(string: payload) else { return }
-                UIApplication.shared.open(url)
-                self.statusLine = "Opened a page from \(peer.displayName)"
+                guard let payload, let url = URL(string: payload) else {
+                    self.statusLine = "Received something unreadable from \(peer.displayName)"
+                    return
+                }
+                self.statusLine = "📬 Opening \(url.host ?? url.absoluteString)…"
+                UIApplication.shared.open(url) { ok in
+                    Task { @MainActor in
+                        self.statusLine = ok
+                            ? "📬 Opened \(url.host ?? "page") from \(peer.displayName)"
+                            : "Couldn't open \(url.absoluteString)"
+                    }
+                }
                 return
             }
             let input: SessionInput

@@ -172,11 +172,16 @@ final class AppModel: ObservableObject {
     /// Restore a grabbed page if it is never dropped anywhere.
     private func scheduleHandoffRecovery(for page: BrowserLink.Page) {
         Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 45_000_000_000)
+            try? await Task.sleep(nanoseconds: 120_000_000_000)
             guard let self, let pending = self.pendingHandoff,
                   pending.url == page.url else { return }
             BrowserLink.open(pending.url)
             self.pendingHandoff = nil
+            // Leave the armed state too, so a later request doesn't find an
+            // armed source with nothing behind it.
+            if case .armedSource = self.coordinator.state {
+                self.apply(self.coordinator.reduce(.localGesture(.closedHand)))
+            }
             self.setStatus("Nobody took “\(pending.title)” — put it back")
         }
     }
@@ -233,12 +238,20 @@ final class AppModel: ObservableObject {
         case .startStreaming(let peer):
             if let page = pendingHandoff {
                 transport.send(.handoff, payload: page.url.absoluteString, to: peer)
-                setStatus("Handed “\(page.title)” to \(peer.displayName)")
+                setStatus("✅ Handed “\(page.title)” to \(peer.displayName)")
                 pendingHandoff = nil
                 streamingTarget = nil
                 return
             }
+            // No held page: stream instead. Capture may not be running (the
+            // handoff path skips it), so make sure it is started.
             streamingTarget = peer
+            do {
+                try screenSource.startCapture()
+                setStatus("Streaming to \(peer.displayName)")
+            } catch {
+                setStatus("Couldn't start streaming: \(error.localizedDescription)")
+            }
         case .stopStreaming:
             streamingTarget = nil
         case .showRemoteScreen:
