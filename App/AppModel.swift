@@ -60,6 +60,11 @@ final class AppModel: ObservableObject {
     /// device. When set, arming hands this over instead of streaming pixels.
     private var pendingHandoff: BrowserLink.Page?
 
+    /// Important messages (why a handoff failed, where a screenshot went) must
+    /// survive the routine status refresh that follows every effect, otherwise
+    /// they are overwritten before they can be read.
+    private var statusHoldUntil = Date.distantPast
+
     func start() {
         transport.delegate = self
         transport.start()
@@ -82,7 +87,7 @@ final class AppModel: ObservableObject {
 
         screenSource.onCaptureError = { [weak self] message in
             guard let self else { return }
-            self.statusLine = message
+            self.setStatus(message, hold: 12)
             self.permissions.screenRecordingFailed = true
             self.permissions.refresh()
         }
@@ -180,12 +185,12 @@ final class AppModel: ObservableObject {
                 pendingHandoff = page
                 BrowserLink.closeFrontmostTab()
                 castTarget = "\(page.browserName) — \(page.title)"
-                statusLine = "Grabbed “\(page.title)” — open your hand at another device to drop it"
+                setStatus("Grabbed “\(page.title)” — open your hand at another device to drop it")
                 return
             } catch {
                 // Say why the page couldn't be grabbed instead of silently
                 // streaming, which looks like the feature is broken.
-                statusLine = "Streaming the window — \(error.localizedDescription)"
+                setStatus("Streaming the window — \(error.localizedDescription)", hold: 12)
             }
             pendingHandoff = nil
             do {
@@ -197,7 +202,7 @@ final class AppModel: ObservableObject {
             // Cancelled before dropping it — put the page back where it was.
             if let page = pendingHandoff {
                 BrowserLink.open(page.url)
-                statusLine = "Put “\(page.title)” back"
+                setStatus("Put “\(page.title)” back")
                 pendingHandoff = nil
             }
             screenSource.stopCapture()
@@ -210,7 +215,7 @@ final class AppModel: ObservableObject {
         case .startStreaming(let peer):
             if let page = pendingHandoff {
                 transport.send(.handoff, payload: page.url.absoluteString, to: peer)
-                statusLine = "Handed “\(page.title)” to \(peer.displayName)"
+                setStatus("Handed “\(page.title)” to \(peer.displayName)")
                 pendingHandoff = nil
                 streamingTarget = nil
                 return
@@ -231,7 +236,7 @@ final class AppModel: ObservableObject {
                     let url = try await self.screenSource.captureStill()
                     self.lastScreenshot = url
                     self.permissions.screenRecordingFailed = false
-                    self.statusLine = "📸 Screenshot saved to Pictures: \(url.lastPathComponent)"
+                    self.setStatus("📸 Screenshot saved to Pictures: \(url.lastPathComponent)")
                 } catch {
                     // Show the real underlying error so failures are diagnosable
                     // rather than always blamed on permissions.
@@ -260,7 +265,14 @@ final class AppModel: ObservableObject {
                                              options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: quality])
     }
 
+    /// Show a message and protect it from being overwritten for a moment.
+    private func setStatus(_ text: String, hold: TimeInterval = 6) {
+        statusLine = text
+        statusHoldUntil = Date().addingTimeInterval(hold)
+    }
+
     private func updateStatus() {
+        guard Date() >= statusHoldUntil else { return }
         switch state {
         case .idle:
             statusLine = peers.isEmpty ? "Waiting for nearby devices…" : "Ready — close your hand to share this screen"
@@ -293,7 +305,7 @@ extension AppModel: PeerTransportDelegate {
             if message == .handoff {
                 guard let payload, let url = URL(string: payload) else { return }
                 BrowserLink.open(url)
-                self.statusLine = "📬 Opened a page from \(peer.displayName)"
+                self.setStatus("📬 Opened a page from \(peer.displayName)")
                 self.apply(self.coordinator.reduce(.remoteEndedCast(peer)))
                 return
             }
