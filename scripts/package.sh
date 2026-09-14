@@ -1,30 +1,72 @@
 #!/usr/bin/env bash
-# Builds a universal Release .app and packages it into dist/QuackCast.dmg and
-# dist/QuackCast-macOS.zip. Ad-hoc signed (no Apple account needed); see README
-# for the notarization upgrade that removes the Gatekeeper prompt.
+# Build QuackCast and package it for distribution.
+#
+#   ./scripts/package.sh              build + package (ad-hoc/dev signed)
+#   ./scripts/package.sh --run        build, install to /Applications, launch
+#   SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" ./scripts/package.sh
+#   NOTARY_PROFILE=quackcast ./scripts/package.sh    also notarize (needs the above)
+#
+# Signing notes:
+#   * Default signing uses whatever the project is configured with (a free
+#     Apple Development identity). That is fine for running locally and keeps
+#     macOS privacy permissions stable across rebuilds.
+#   * A Developer ID identity + notarization is the ONLY way a *downloaded*
+#     build opens with no Gatekeeper warning, and requires a paid Apple
+#     Developer Program membership.
+#   * Building from source (this script) never sets the quarantine flag, so
+#     locally built apps open with no warning regardless of signing.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# The .xcodeproj is generated (gitignored), so it must be created before build.
+RUN_AFTER=false
+[[ "${1:-}" == "--run" ]] && RUN_AFTER=true
+
+command -v xcodegen >/dev/null || { echo "xcodegen is required: brew install xcodegen" >&2; exit 1; }
 xcodegen generate
 
 rm -rf build dist
 mkdir -p dist
 
+SIGN_ARGS=()
+if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+  echo "Signing with: $SIGN_IDENTITY"
+  SIGN_ARGS=(CODE_SIGN_IDENTITY="$SIGN_IDENTITY")
+fi
+
 xcodebuild -project QuackCast.xcodeproj -scheme QuackCast -configuration Release \
   -derivedDataPath build/dd \
-  ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO CODE_SIGN_IDENTITY="-" build
+  ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO "${SIGN_ARGS[@]}" build
 
 APP="build/dd/Build/Products/Release/QuackCast.app"
+
+# Package a DMG (drag-to-Applications) and a plain zip.
 STAGE="build/dmg"
 rm -rf "$STAGE"; mkdir -p "$STAGE"
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
-
 hdiutil create -volname "QuackCast" -srcfolder "$STAGE" -ov -format UDZO dist/QuackCast.dmg
 ditto -c -k --sequesterRsrc --keepParent "$APP" dist/QuackCast-macOS.zip
 
+# Notarize only when a stored notarytool profile is supplied.
+if [[ -n "${NOTARY_PROFILE:-}" ]]; then
+  echo "Notarizing with profile: $NOTARY_PROFILE"
+  xcrun notarytool submit dist/QuackCast.dmg --keychain-profile "$NOTARY_PROFILE" --wait
+  xcrun stapler staple dist/QuackCast.dmg
+fi
+
+echo
 echo "Artifacts:"
 ls -lh dist/
+codesign -dv "$APP" 2>&1 | grep -E "Authority|TeamIdentifier" || true
+
+if $RUN_AFTER; then
+  echo
+  echo "Installing to /Applications and launching…"
+  pkill -f "QuackCast.app/Contents/MacOS/QuackCast" 2>/dev/null || true
+  sleep 1
+  rm -rf /Applications/QuackCast.app
+  cp -R "$APP" /Applications/QuackCast.app
+  open -a /Applications/QuackCast.app
+fi

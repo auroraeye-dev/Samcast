@@ -7,36 +7,64 @@ clicking, no menus.
   offers it to nearby devices ("arm as source").
 - 🖐️ **Open your hand** at another device's camera → your screen is cast to
   *that* device.
-- 🫰 **Snap your fingers** → take a screenshot (detected by sound, so it never
-  clashes with the fist gesture).
+- ✌️ **Peace sign** → take a screenshot (saved to ~/Pictures).
 
-Devices find each other automatically over Bluetooth + peer-to-peer Wi-Fi — only
-devices that also run QuackCast appear, which is exactly the "my nearby
-devices that have the app" behaviour the product is going for.
+Devices find each other automatically over Apple's peer-to-peer Wi-Fi (the same
+mechanism AirDrop uses), with Bluetooth assisting discovery. Only devices also
+running QuackCast appear. No network setup, no pairing, no internet.
 
-## Download & install (macOS)
+## Install
 
-Grab the latest **QuackCast.dmg** from the
-[Releases page](https://github.com/auroraeye-dev/QuackCast/releases), open it,
-and drag **QuackCast** to Applications.
+### Build from source (recommended, no warnings)
+macOS only attaches its quarantine flag to *downloaded* files, so an app you
+build yourself opens with **no Gatekeeper warning at all**:
 
-> **First launch:** the build is not yet notarized by Apple, so macOS Gatekeeper
-> will warn the first time. **Right-click the app ▸ Open ▸ Open**, once — after
-> that it launches normally. (If macOS says it's "damaged", clear the download
-> quarantine with `xattr -dr com.apple.quarantine /Applications/QuackCast.app`.)
->
-> On first use it asks for **Camera**, **Microphone**, and **Screen Recording**
-> permission. Grant Screen Recording in *System Settings ▸ Privacy & Security*
-> and relaunch once for capture to take effect.
+```bash
+git clone https://github.com/auroraeye-dev/QuackCast.git
+cd QuackCast
+brew install xcodegen          # one-time
+./scripts/package.sh --run     # builds, installs to /Applications, launches
+```
+Requires Xcode (from the App Store).
 
-A notarized build (double-click, no warning) is planned — it needs an Apple
-Developer ID.
+### Or download a release
+Grab **QuackCast.dmg** from the
+[Releases page](https://github.com/auroraeye-dev/QuackCast/releases), open it and
+drag QuackCast to Applications.
 
-> **Scope note — mirroring, not a true extended display.** The cast screen
-> appears *inside the QuackCast window* on the target device (like a shared
-> screen). Becoming a real macOS extended desktop (à la Sidecar) is only
-> possible for Apple / low-level display drivers, not third-party apps, so that
-> is explicitly out of scope for v1.
+> Downloaded builds are **not notarized**, so macOS will warn the first time.
+> Either **right-click the app ▸ Open ▸ Open**, or clear the quarantine flag:
+> ```bash
+> xattr -dr com.apple.quarantine /Applications/QuackCast.app
+> ```
+> Notarization (which removes the warning entirely) requires a paid Apple
+> Developer Program membership; see *Signing* below.
+
+### First run
+QuackCast asks for **Camera** (to read gestures) and **Screen Recording** (to
+share the screen and take screenshots). The app's setup screen links straight to
+the right System Settings pane. macOS requires a relaunch after granting Screen
+Recording — there's a button for it.
+
+## Signing
+
+| Goal | Identity | Cost |
+|---|---|---|
+| Run locally, permissions persist across rebuilds | Apple Development (free Apple ID) | Free |
+| Downloads open with no Gatekeeper warning | Developer ID + notarization | $99/yr |
+
+The project pins a stable signing identity in `project.yml`. This matters more
+than it sounds: macOS ties privacy permissions to an app's signature, so an
+ad-hoc signed app (whose signature changes every build) makes users re-grant
+Screen Recording after every update.
+
+To produce a notarized build once you have a Developer ID:
+
+```bash
+SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+NOTARY_PROFILE=quackcast ./scripts/package.sh
+```
+
 
 ## Platforms
 
@@ -59,8 +87,8 @@ QuackCastCore  (pure Swift, Foundation-only — no Apple UI/media frameworks)
 ├── Session/     SessionCoordinator — the state machine (idle→armed→casting/receiving)
 └── Ports/       HandTracker · ScreenSource · PeerTransport protocols
 
-Platform adapters (macOS app, added next):
-    VisionHandTracker · ScreenCaptureKitSource · MultipeerTransport · CameraController
+Platform adapters (macOS):
+    VisionHandTracker · ScreenCaptureKitSource · MultipeerTransport
 ```
 
 `QuackCastCore` has **zero platform imports**, is fully unit-tested, and is
@@ -75,26 +103,27 @@ not need full Xcode** for this part:
 ```bash
 swift run CoreCheck   # dependency-free smoke test (works with Command Line Tools)
 swift test            # full XCTest suite (requires Xcode)
+swift run CastPeer    # headless receiver: test casting without a second device
 ```
 
 The macOS **app** requires **full Xcode** (from the App Store) — Command Line
 Tools alone cannot build a signed app bundle with camera/screen entitlements.
 
-To produce a distributable universal build:
-
-```bash
-bash scripts/package.sh   # -> dist/QuackCast.dmg and dist/QuackCast-macOS.zip
-```
+`CastPeer` is worth knowing about: it joins the same Multipeer service as the
+app and reports the frame rate and bandwidth actually achieved, so the cast
+pipeline can be tested and measured on one machine. It is how the connection
+flapping bug was found.
 
 Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`, which builds and
-attaches those artifacts to a GitHub Release automatically.
+attaches the DMG/zip to a GitHub Release automatically.
 
 ## Notes
 
-- **Gestures:** open/closed hand drives casting; **snap is detected by audio**
-  (a sharp transient), which is robust and never confused with the fist. It can
-  also react to other sharp sounds (claps/knocks) — thresholds are tunable in
-  `AudioSnapDetector`.
-- **Signing:** dev builds are ad-hoc signed, so macOS re-prompts for Screen
-  Recording after each rebuild. Stable signing (Apple Developer ID) fixes this
-  and enables notarization.
+- **Gestures** are separated by extended-finger count, the most reliable thing
+  hand tracking reports: fist (0) shares, peace sign (2) screenshots, open palm
+  (4) casts. Earlier designs using a finger snap (audio) and a two-handed "T"
+  were dropped — any sharp noise imitated a snap, and hand tracking degrades
+  badly when two hands overlap.
+- **Casting is mirroring, not an extended display**, and currently sends JPEG
+  frames (~100 KB each). Moving to H.264 is the main outstanding work: it would
+  cut bandwidth roughly 10× and sharpen text.
