@@ -175,12 +175,17 @@ final class AppModel: ObservableObject {
             // Prefer handing the *content* over to streaming a picture of it.
             // A page travels as a URL: instant, pixel-perfect, and it opens in
             // the other person's own browser without touching their tabs.
-            if let page = BrowserLink.frontmostPage() {
+            do {
+                let page = try BrowserLink.frontmostPage()
                 pendingHandoff = page
                 BrowserLink.closeFrontmostTab()
                 castTarget = "\(page.browserName) — \(page.title)"
                 statusLine = "Grabbed “\(page.title)” — open your hand at another device to drop it"
                 return
+            } catch {
+                // Say why the page couldn't be grabbed instead of silently
+                // streaming, which looks like the feature is broken.
+                statusLine = "Streaming the window — \(error.localizedDescription)"
             }
             pendingHandoff = nil
             do {

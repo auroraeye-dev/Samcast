@@ -36,11 +36,32 @@ public enum BrowserLink {
         Browser(bundleID: "com.vivaldi.Vivaldi", appName: "Vivaldi", isChromium: true)
     ]
 
-    /// The page in the frontmost browser, or nil if the front app isn't a
-    /// browser we can read.
-    public static func frontmostPage() -> Page? {
-        guard let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier,
-              let browser = known.first(where: { $0.bundleID == front }) else { return nil }
+    /// Why a page could not be grabbed. Surfaced to the user rather than
+    /// silently falling back, so failures are diagnosable.
+    public enum LinkError: LocalizedError {
+        case frontAppNotABrowser(String)
+        case scriptFailed(String)
+        case noUsableURL
+
+        public var errorDescription: String? {
+            switch self {
+            case .frontAppNotABrowser(let app):
+                return "front app is \(app), not a supported browser"
+            case .scriptFailed(let message):
+                return message
+            case .noUsableURL:
+                return "the tab has no http(s) address"
+            }
+        }
+    }
+
+    /// The page open in the frontmost browser.
+    public static func frontmostPage() throws -> Page {
+        let frontApp = NSWorkspace.shared.frontmostApplication
+        guard let front = frontApp?.bundleIdentifier,
+              let browser = known.first(where: { $0.bundleID == front }) else {
+            throw LinkError.frontAppNotABrowser(frontApp?.localizedName ?? "unknown")
+        }
 
         let script: String
         if browser.isChromium {
@@ -61,10 +82,13 @@ public enum BrowserLink {
             """
         }
 
-        guard let result = run(script) else { return nil }
+        let result = try run(script)
         let parts = result.components(separatedBy: "\n")
-        guard let first = parts.first, let url = URL(string: first.trimmingCharacters(in: .whitespacesAndNewlines)),
-              url.scheme == "http" || url.scheme == "https" else { return nil }
+        guard let first = parts.first,
+              let url = URL(string: first.trimmingCharacters(in: .whitespacesAndNewlines)),
+              url.scheme == "http" || url.scheme == "https" else {
+            throw LinkError.noUsableURL
+        }
         let title = parts.count > 1 ? parts[1] : url.host ?? first
         return Page(url: url, title: title, browserName: browser.appName)
     }
@@ -86,7 +110,7 @@ public enum BrowserLink {
             tell application "\(browser.appName)" to close current tab of front window
             """
         }
-        return run(script) != nil
+        return (try? run(script)) != nil
     }
 
     /// Opens a handed-over URL in this machine's default browser.
@@ -94,11 +118,22 @@ public enum BrowserLink {
         NSWorkspace.shared.open(url)
     }
 
-    private static func run(_ source: String) -> String? {
+    private static func run(_ source: String) throws -> String {
         var error: NSDictionary?
-        guard let script = NSAppleScript(source: source) else { return nil }
+        guard let script = NSAppleScript(source: source) else {
+            throw LinkError.scriptFailed("could not compile the AppleScript")
+        }
         let output = script.executeAndReturnError(&error)
-        if error != nil { return nil }
+        if let error {
+            // -1743 is "not authorised to send Apple events", i.e. the
+            // Automation permission was denied or never granted.
+            let code = (error[NSAppleScript.errorNumber] as? Int) ?? 0
+            let message = (error[NSAppleScript.errorMessage] as? String) ?? "unknown AppleScript error"
+            if code == -1743 {
+                throw LinkError.scriptFailed("QuackCast isn't allowed to control your browser. Enable it under System Settings ▸ Privacy & Security ▸ Automation.")
+            }
+            throw LinkError.scriptFailed("AppleScript error \(code): \(message)")
+        }
         return output.stringValue ?? ""
     }
 }
