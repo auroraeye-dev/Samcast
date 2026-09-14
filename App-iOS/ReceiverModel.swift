@@ -12,7 +12,7 @@ import QuackCastPlatform
 final class ReceiverModel: ObservableObject {
     private var coordinator = SessionCoordinator()
     private let classifier = GestureClassifier()
-    private var debouncer = GestureDebouncer(holdDuration: 0.3)
+    private var debouncer = GestureDebouncer(holdDuration: 0.6)
 
     let handTracker = VisionHandTracker()
     private let transport = MultipeerTransport(kind: .iPad)
@@ -23,6 +23,8 @@ final class ReceiverModel: ObservableObject {
     @Published private(set) var receivedImage: UIImage?
     @Published private(set) var statusLine = "Looking for a Mac…"
     @Published private(set) var availableSource: Peer?
+    /// Live: is a real hand in front of this device's camera?
+    @Published private(set) var handDetected = false
 
     func start() {
         transport.delegate = self
@@ -30,12 +32,28 @@ final class ReceiverModel: ObservableObject {
 
         handTracker.onHands = { [weak self] hands, time in
             guard let self else { return }
-            let raw = hands.first.map { self.classifier.classify($0) } ?? .none
-            Task { @MainActor in self.handleGesture(raw, at: time) }
+            // Only a confident, properly sized hand counts. Receiving someone's
+            // screen must never be triggered by a stray detection as you walk
+            // past — with several devices nearby, the wrong one could grab it.
+            let hand = hands.first
+            let real = Self.isRealHand(hand)
+            let raw = real ? (hand.map { self.classifier.classify($0) } ?? .none) : .none
+            Task { @MainActor in
+                if self.handDetected != real { self.handDetected = real }
+                self.handleGesture(raw, at: time)
+            }
         }
         try? handTracker.start()
 
         updateStatus()
+    }
+
+    private static func isRealHand(_ hand: HandLandmarks?) -> Bool {
+        guard let hand else { return false }
+        guard hand.confidence >= 0.75 else { return false }
+        guard hand.points.count >= 15 else { return false }
+        guard let span = hand.palmSpan, span >= 0.04 else { return false }
+        return true
     }
 
     /// On iPad we act on: open hand → receive; close hand (while receiving) →
@@ -90,10 +108,10 @@ final class ReceiverModel: ObservableObject {
         switch state {
         case .idle:
             if let src = coordinator.preferredSource {
-                statusLine = "Open your hand (or tap) to view \(src.displayName)"
+                statusLine = "🖐️ \(src.displayName) has something for you — open your hand here to take it"
             } else {
                 statusLine = peers.isEmpty ? "Looking for a Mac running QuackCast…"
-                                           : "Connected — waiting for a shared screen"
+                                           : "Connected — waiting for something to be grabbed"
             }
         case .receiving(let p):
             statusLine = "Receiving from \(p.displayName)"

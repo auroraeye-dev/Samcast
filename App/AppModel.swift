@@ -185,7 +185,7 @@ final class AppModel: ObservableObject {
                 pendingHandoff = page
                 BrowserLink.closeFrontmostTab()
                 castTarget = "\(page.browserName) — \(page.title)"
-                setStatus("Grabbed “\(page.title)” — open your hand at another device to drop it")
+                setStatus("Grabbed “\(page.title)” — now open your hand at the device you want it on")
                 return
             } catch {
                 // Say why the page couldn't be grabbed instead of silently

@@ -30,6 +30,10 @@ struct ContentView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
+            Text(model.handDetected ? "✋ hand detected" : "no hand")
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(model.handDetected ? Color.green : Color.gray)
+
             if model.availableSource != nil {
                 Button(action: { model.tapToReceive() }) {
                     Label("Receive screen", systemImage: "tv")
