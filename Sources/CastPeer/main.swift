@@ -60,7 +60,11 @@ final class ViewerReceiver: NSObject, PeerTransportDelegate, NSApplicationDelega
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    private func setStatus(_ text: String) { statusLabel.stringValue = text }
+    private func setStatus(_ text: String) {
+        statusLabel.stringValue = text
+        // Also log, so connection state is visible without reading the window.
+        print(text)
+    }
 
     // MARK: PeerTransportDelegate
 
@@ -114,6 +118,9 @@ final class ViewerReceiver: NSObject, PeerTransportDelegate, NSApplicationDelega
 
 // Top-level code is nonisolated, so hop to the main actor to build the
 // main-actor-isolated delegate before handing it to AppKit.
+// Unbuffered stdout so status is visible immediately when piped to a file.
+setvbuf(stdout, nil, _IONBF, 0)
+
 MainActor.assumeIsolated {
     let app = NSApplication.shared
     app.setActivationPolicy(.regular)
