@@ -158,6 +158,15 @@ final class AppModel: ObservableObject {
         if let confirmed = debouncer.update(raw, at: time) {
             QCLog.write("gesture \(confirmed.rawValue) | state=\(coordinator.state) | pending=\(pendingHandoff?.url.absoluteString ?? "none")")
             currentGesture = confirmed
+
+            // Once a page is grabbed and waiting to be dropped, this camera
+            // stops deciding anything. You are walking to another device and
+            // gesturing at *that* one; hands this camera happens to catch on
+            // the way were cancelling the grab before it could be delivered.
+            if pendingHandoff != nil {
+                QCLog.write("ignored \(confirmed.rawValue): holding a grabbed page")
+                return
+            }
             if confirmed == .peace {
                 fireScreenshot()
                 return
@@ -342,6 +351,16 @@ final class AppModel: ObservableObject {
         return ciContext.jpegRepresentation(of: image, colorSpace: colorSpace,
                                              options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: quality])
     }
+
+    /// Put a grabbed page back, from the UI. Gestures deliberately cannot do
+    /// this while a page is held, so there has to be an explicit way.
+    func cancelGrab() {
+        guard pendingHandoff != nil else { return }
+        apply(coordinator.reduce(.localGesture(.closedHand)))
+    }
+
+    /// True while a page is grabbed and waiting for a device to take it.
+    var isHoldingPage: Bool { pendingHandoff != nil }
 
     /// Play the glow for something leaving or arriving.
     private func pulseGlow(_ direction: GlowDirection, message: String? = nil) {

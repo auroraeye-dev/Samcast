@@ -35,6 +35,9 @@ struct ContentView: View {
             Text(model.handDetected ? "✋ hand detected" : "no hand")
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(model.handDetected ? Color.green : Color.gray)
+            Text("fingers: \(model.fingerReadout)")
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(.gray)
 
             Text("This device: \(model.identity.name)")
                 .font(.caption)

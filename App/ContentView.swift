@@ -74,6 +74,11 @@ struct ContentView: View {
                     .truncationMode(.middle)
                     .frame(maxWidth: 460)
             }
+            if model.isHoldingPage {
+                Button("Put it back") { model.cancelGrab() }
+                    .controlSize(.large)
+                    .padding(.bottom, 4)
+            }
             VStack(spacing: 6) {
                 gestureHint("✊", "Close your hand", "grab this page (or window)")
                 gestureHint("🖐️", "Open your hand", "drop it on the device in front of you")

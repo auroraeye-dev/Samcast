@@ -43,6 +43,9 @@ final class ReceiverModel: ObservableObject {
     /// True when the device offering something has been approved before, in
     /// which case the gesture alone is enough and no button is shown.
     @Published private(set) var sourceIsKnown = false
+    /// Live readout of the fingers this device's camera sees, so it is obvious
+    /// whether an open hand is being recognised here.
+    @Published private(set) var fingerReadout = "—"
     /// Bumped to play the glow when something leaves or arrives.
     @Published private(set) var glowTrigger = 0
     @Published private(set) var glowDirection: GlowDirection = .inward
@@ -59,7 +62,17 @@ final class ReceiverModel: ObservableObject {
             let hand = hands.first
             let real = Self.isRealHand(hand)
             let raw = hand.map { self.classifier.classify($0) } ?? .none
+            let fingers = hand.map { self.classifier.extendedFingers($0) }
             Task { @MainActor in
+                let text = fingers.map { f -> String in
+                    var names: [String] = []
+                    if f.index { names.append("index") }
+                    if f.middle { names.append("middle") }
+                    if f.ring { names.append("ring") }
+                    if f.little { names.append("little") }
+                    return names.isEmpty ? "none (0)" : "\(names.joined(separator: "+")) (\(f.count))"
+                } ?? "—"
+                if self.fingerReadout != text { self.fingerReadout = text }
                 if real { self.lastRealHand = Date() }
                 let present = Date().timeIntervalSince(self.lastRealHand) < self.handGrace
                 if self.handDetected != present { self.handDetected = present }
