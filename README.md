@@ -1,17 +1,28 @@
 # QuackCast
 
-Control screen-sharing between your nearby devices with **hand gestures** — no
-clicking, no menus.
+Move what you're working on to another device with a **hand gesture**.
 
-- ✊ **Close your hand** at your Mac's camera → it captures your screen and
-  offers it to nearby devices ("arm as source").
-- 🖐️ **Open your hand** at another device's camera → your screen is cast to
-  *that* device.
-- ✌️ **Peace sign** → take a screenshot (saved to ~/Pictures).
+- ✊ **Close your hand** → grab the page (or window) you're in
+- 🖐️ **Open your hand at another device** → it lands there
+- ✌️ **Peace sign** → screenshot to your Desktop
+
+**A link doesn't get streamed, it moves.** Grab a web page and the tab closes
+on your Mac; open your hand at your iPad and the *real page* opens in its
+browser — instantly, at full fidelity, fully usable, leaving their other tabs
+alone. Anything that isn't a web page falls back to live-streaming that one
+window.
 
 Devices find each other automatically over Apple's peer-to-peer Wi-Fi (the same
 mechanism AirDrop uses), with Bluetooth assisting discovery. Only devices also
-running QuackCast appear. No network setup, no pairing, no internet.
+running QuackCast appear. No network setup, no pairing, no internet, nothing
+leaves your local network.
+
+### Devices and trust
+Each install picks a permanent friendly name such as `swift-heron-3172` and is
+discovered by that, rather than by an OS device name that can change or
+collide. The first time you accept something from a device it becomes trusted,
+and after that its offers are taken automatically — unknown devices always
+require a deliberate gesture.
 
 ## Install
 
@@ -68,14 +79,19 @@ NOTARY_PROFILE=quackcast ./scripts/package.sh
 
 ## Platforms
 
-| Platform | Status | Stack |
+| Platform | Status | Notes |
 |---|---|---|
-| macOS | 🚧 in progress | SwiftUI · Vision · AVFoundation · ScreenCaptureKit · MultipeerConnectivity |
-| iOS (iPhone/iPad as receivers) | planned | shares `QuackCastCore` |
-| Windows | planned, **separate native build** | reimplements the `Ports` protocols |
+| macOS | working | Grabs the page you're in, or streams the focused window |
+| iOS / iPadOS | working | Receives anything; sends links via the clipboard |
+| Windows | planned, **separate build** | Would reimplement the `Ports` protocols |
 
-The Mac and Windows apps are built and shipped separately (two downloads on the
-site) — this repo currently holds the macOS app plus the shared core.
+**iOS can send too, but only via the clipboard.** There is no AppleScript on
+iOS, so an app cannot read Safari's open tab the way it can on macOS — copy the
+link, then make a fist. A Share Extension would remove that step.
+
+**Windows can't join this network.** MultipeerConnectivity is Apple-only, so a
+Windows build would be its own island unless the transport is replaced with
+something cross-platform (mDNS + WebRTC/QUIC).
 
 ## Architecture
 
@@ -84,11 +100,12 @@ Hexagonal / ports-and-adapters so the "brain" stays portable:
 ```
 QuackCastCore  (pure Swift, Foundation-only — no Apple UI/media frameworks)
 ├── Gesture/     HandLandmarks, GestureClassifier (geometry), GestureDebouncer
-├── Session/     SessionCoordinator — the state machine (idle→armed→casting/receiving)
+├── Session/     SessionCoordinator (state machine), DeviceIdentity, TrustStore
 └── Ports/       HandTracker · ScreenSource · PeerTransport protocols
 
-Platform adapters (macOS):
-    VisionHandTracker · ScreenCaptureKitSource · MultipeerTransport
+Platform adapters:
+    VisionHandTracker · ScreenCaptureKitSource (macOS) · MultipeerTransport
+    BrowserLink (reads/closes the frontmost browser tab, macOS)
 ```
 
 `QuackCastCore` has **zero platform imports**, is fully unit-tested, and is
@@ -120,10 +137,17 @@ attaches the DMG/zip to a GitHub Release automatically.
 ## Notes
 
 - **Gestures** are separated by extended-finger count, the most reliable thing
-  hand tracking reports: fist (0) shares, peace sign (2) screenshots, open palm
-  (4) casts. Earlier designs using a finger snap (audio) and a two-handed "T"
-  were dropped — any sharp noise imitated a snap, and hand tracking degrades
-  badly when two hands overlap.
-- **Casting is mirroring, not an extended display**, and currently sends JPEG
-  frames (~100 KB each). Moving to H.264 is the main outstanding work: it would
-  cut bandwidth roughly 10× and sharpen text.
+  hand tracking reports: fist (0) grabs, peace sign (2) screenshots, open palm
+  (4) receives. Earlier designs using a finger snap (audio) and a two-handed
+  "T" were dropped — any sharp noise imitated a snap, and hand tracking
+  degrades badly when two hands overlap.
+- **The app is not sandboxed.** Reading the frontmost browser tab needs Apple
+  Events, which the sandbox blocks for directly-distributed apps. macOS still
+  gates Camera, Screen Recording and Automation individually. Hardened Runtime
+  additionally requires `com.apple.security.automation.apple-events`, without
+  which Apple Events fail silently with no permission prompt at all.
+- **Streaming is mirroring, not an extended display**, and still sends JPEG
+  frames (~100 KB each). H.264 is the main outstanding work: roughly 10× less
+  bandwidth and sharper text.
+- **Testing without a second device:** `swift run CastPeer` opens a viewer
+  window that joins as a separate peer on the same Mac.

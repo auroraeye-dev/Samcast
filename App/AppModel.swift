@@ -32,17 +32,17 @@ final class AppModel: ObservableObject {
 
     // Where captured frames are currently being streamed (if casting).
     private var streamingTarget: Peer?
-    // Ignore open/close gestures until this time, right after a snap, so the
-    // fist that naturally forms as you finish snapping doesn't arm a cast.
-    private var snapSuppressUntil = Date.distantPast
+    /// Ignore open/close gestures until this time, just after a screenshot, so
+    /// hands returning to rest can't accidentally arm a cast.
+    private var gestureSuppressUntil = Date.distantPast
 
-    // MARK: Snap gating
-    // Simple rule: a hand must be VISIBLE in the camera when the click is
-    // heard. No motion analysis — just "is a real hand on screen right now".
+    // MARK: Gesture timing
+    /// When a hand was last seen, used to keep the indicator steady across
+    /// dropped tracking frames.
     private var lastHandSeen = Date.distantPast
-    private var lastSnapFired = Date.distantPast
-    private let handVisibleWindow: TimeInterval = 0.5
-    private let snapCooldown: TimeInterval = 1.0
+    /// Screenshots are rate limited so one held gesture fires once.
+    private var lastScreenshotAt = Date.distantPast
+    private let screenshotCooldown: TimeInterval = 1.0
 
     // MARK: Published UI state
     @Published private(set) var state: SessionState = .idle
@@ -136,9 +136,9 @@ final class AppModel: ObservableObject {
         let present = Date().timeIntervalSince(lastHandSeen) < 0.5
         if handDetected != present { handDetected = present }
 
-        // Briefly after a snap, ignore open/close so the fist that forms as you
-        // finish snapping doesn't arm a cast.
-        if Date() < snapSuppressUntil {
+        // Briefly after a screenshot, ignore open/close so a hand returning to
+        // rest can't arm a cast.
+        if Date() < gestureSuppressUntil {
             debouncer.reset()
             return
         }
@@ -167,13 +167,13 @@ final class AppModel: ObservableObject {
         if fingerReadout != text { fingerReadout = text }
     }
 
-    /// The V sign was held: take a screenshot.
+    /// The peace sign was held: take a screenshot.
     private func fireScreenshot() {
         let now = Date()
-        guard now.timeIntervalSince(lastSnapFired) > snapCooldown else { return }
-        lastSnapFired = now
+        guard now.timeIntervalSince(lastScreenshotAt) > screenshotCooldown else { return }
+        lastScreenshotAt = now
         // Ignore open/close for 2s so hands returning to rest can't arm a cast.
-        snapSuppressUntil = now.addingTimeInterval(2.0)
+        gestureSuppressUntil = now.addingTimeInterval(2.0)
         debouncer.reset()
         currentGesture = .peace
         apply(coordinator.reduce(.localGesture(.peace)))

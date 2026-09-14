@@ -80,25 +80,6 @@ do {
     expect(d.update(.openHand, at: 0.6) == nil, "no re-fire while held")
 }
 
-section("SnapDetector")
-do {
-    // Build a hand with a given thumb–middle gap (normalized by palm span ~0.25).
-    func hand(gap: Double) -> HandLandmarks {
-        let wrist = Point2D(x: 0.5, y: 1.0)
-        let middleTip = Point2D(x: 0.5, y: 0.5)
-        let thumbTip = Point2D(x: 0.5 + gap * 0.25, y: 0.5)
-        return HandLandmarks(points: [.wrist: wrist, .middleMCP: Point2D(x: 0.5, y: 0.75),
-                                      .middleTip: middleTip, .thumbTip: thumbTip], confidence: 0.9)
-    }
-    var s = SnapDetector()
-    expect(s.update(hand(gap: 0.2), at: 0.0) == false, "contact frame: no snap yet")
-    expect(s.update(hand(gap: 0.9), at: 0.2) == true, "quick release -> snap")
-    // A slow release should not count.
-    var s2 = SnapDetector()
-    _ = s2.update(hand(gap: 0.2), at: 0.0)
-    expect(s2.update(hand(gap: 0.9), at: 1.0) == false, "slow release -> no snap")
-}
-
 section("DeviceIdentity")
 do {
     // Use a scratch defaults domain so the real identity isn't touched.
