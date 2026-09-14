@@ -4,6 +4,13 @@ import UIKit
 import QuackCastCore
 import QuackCastPlatform
 
+/// A received page, wrapped so SwiftUI can present it by identity.
+struct ReceivedPage: Identifiable {
+    let id = UUID()
+    let url: URL
+    let from: String
+}
+
 /// iOS/iPadOS peer. Works in both directions:
 ///
 /// * **Receiving** — open your hand here to take a page or screen that another
@@ -46,6 +53,13 @@ final class ReceiverModel: ObservableObject {
     /// Live readout of the fingers this device's camera sees, so it is obvious
     /// whether an open hand is being recognised here.
     @Published private(set) var fingerReadout = "—"
+    /// A page handed to this device, shown in an in-app browser.
+    ///
+    /// Opening it in Safari instead would background QuackCast, and iOS then
+    /// suspends its networking and camera — so the device silently stops being
+    /// able to receive anything until you switch back. Keeping the page inside
+    /// the app keeps the connection and the gesture camera alive.
+    @Published var receivedPage: ReceivedPage?
     /// Bumped to play the glow when something leaves or arrives.
     @Published private(set) var glowTrigger = 0
     @Published private(set) var glowDirection: GlowDirection = .inward
@@ -243,15 +257,9 @@ extension ReceiverModel: PeerTransportDelegate {
                     self.statusLine = "Received something unreadable from \(peer.displayName)"
                     return
                 }
-                self.statusLine = "📬 Opening \(url.host ?? url.absoluteString)…"
                 self.pulseGlow(.inward)
-                UIApplication.shared.open(url) { ok in
-                    Task { @MainActor in
-                        self.statusLine = ok
-                            ? "📬 Opened \(url.host ?? "page") from \(peer.displayName)"
-                            : "Couldn't open \(url.absoluteString)"
-                    }
-                }
+                self.statusLine = "📬 Received \(url.host ?? url.absoluteString) from \(peer.displayName)"
+                self.receivedPage = ReceivedPage(url: url, from: peer.displayName)
                 return
             }
             let input: SessionInput

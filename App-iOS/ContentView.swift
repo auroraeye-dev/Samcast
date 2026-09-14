@@ -1,5 +1,16 @@
 import SwiftUI
+import SafariServices
 import QuackCastCore
+
+/// Shows a handed-over page without leaving QuackCast, so the app stays
+/// foregrounded and keeps receiving.
+struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        SFSafariViewController(url: url)
+    }
+    func updateUIViewController(_ controller: SFSafariViewController, context: Context) {}
+}
 
 struct ContentView: View {
     @EnvironmentObject var model: ReceiverModel
@@ -18,6 +29,9 @@ struct ContentView: View {
         }
         .overlay(GlowBurst(trigger: model.glowTrigger, direction: model.glowDirection)
             .ignoresSafeArea())
+        .fullScreenCover(item: $model.receivedPage) { page in
+            SafariView(url: page.url).ignoresSafeArea()
+        }
     }
 
     private var idleView: some View {
