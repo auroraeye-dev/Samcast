@@ -112,6 +112,18 @@ public final class MultipeerTransport: NSObject, PeerTransport {
 
 extension MultipeerTransport: MCSessionDelegate {
     public func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
+        if state == .notConnected {
+            // Forget the peer so a later discovery is treated as fresh. Holding
+            // a stale entry made us refuse the reconnect invitation, which is
+            // why restarting one side left both stuck on "no nearby devices".
+            peersByMCID.removeValue(forKey: peerID)
+            // The other side may already be advertising again; re-invite shortly.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                guard let self,
+                      !self.session.connectedPeers.contains(peerID) else { return }
+                self.browser.invitePeer(peerID, to: self.session, withContext: nil, timeout: 15)
+            }
+        }
         notifyPeersChanged()
     }
 
@@ -147,6 +159,14 @@ extension MultipeerTransport: MCNearbyServiceAdvertiserDelegate {
         // already connected to that peer (which would create a second session).
         invitationHandler(!session.connectedPeers.contains(peerID), session)
     }
+
+    public func advertiser(_ advertiser: MCNearbyServiceAdvertiser,
+                           didNotStartAdvertisingPeer error: Error) {
+        // Same reasoning as browsing: retry rather than going silently dark.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            self?.advertiser.startAdvertisingPeer()
+        }
+    }
 }
 
 extension MultipeerTransport: MCNearbyServiceBrowserDelegate {
@@ -175,5 +195,13 @@ extension MultipeerTransport: MCNearbyServiceBrowserDelegate {
     public func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
         peersByMCID.removeValue(forKey: peerID)
         notifyPeersChanged()
+    }
+
+    public func browser(_ browser: MCNearbyServiceBrowser, didNotStartBrowsingForPeers error: Error) {
+        // Browsing can fail transiently (e.g. the network changing). Without a
+        // retry the app silently never discovers anything again.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            self?.browser.startBrowsingForPeers()
+        }
     }
 }

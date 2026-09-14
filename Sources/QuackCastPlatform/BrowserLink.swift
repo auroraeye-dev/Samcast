@@ -41,7 +41,7 @@ public enum BrowserLink {
     public enum LinkError: LocalizedError {
         case frontAppNotABrowser(String)
         case scriptFailed(String)
-        case noUsableURL
+        case noUsableURL(String)
 
         public var errorDescription: String? {
             switch self {
@@ -49,8 +49,8 @@ public enum BrowserLink {
                 return "front app is \(app), not a supported browser"
             case .scriptFailed(let message):
                 return message
-            case .noUsableURL:
-                return "the tab has no http(s) address"
+            case .noUsableURL(let detail):
+                return detail
             }
         }
     }
@@ -67,29 +67,44 @@ public enum BrowserLink {
         if browser.isChromium {
             script = """
             tell application "\(browser.appName)"
-                set theURL to URL of active tab of front window
-                set theTitle to title of active tab of front window
-                return theURL & "\\n" & theTitle
+                if (count of windows) is 0 then return ""
+                set theTab to active tab of front window
+                set theURL to URL of theTab
+                if theURL is missing value then return ""
+                return (theURL as text) & linefeed & (title of theTab as text)
             end tell
             """
         } else {
             script = """
             tell application "\(browser.appName)"
-                set theURL to URL of current tab of front window
-                set theTitle to name of current tab of front window
-                return theURL & "\\n" & theTitle
+                if (count of windows) is 0 then return ""
+                set theTab to current tab of front window
+                set theURL to URL of theTab
+                if theURL is missing value then return ""
+                return (theURL as text) & linefeed & (name of theTab as text)
             end tell
             """
         }
 
         let result = try run(script)
-        let parts = result.components(separatedBy: "\n")
-        guard let first = parts.first,
-              let url = URL(string: first.trimmingCharacters(in: .whitespacesAndNewlines)),
-              url.scheme == "http" || url.scheme == "https" else {
-            throw LinkError.noUsableURL
+        // Split on any line ending: AppleScript may return CR, LF or CRLF
+        // depending on the app and OS version.
+        let parts = result
+            .components(separatedBy: CharacterSet.newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+
+        guard let raw = parts.first, !raw.isEmpty, raw != "missing value" else {
+            throw LinkError.noUsableURL("the browser reported no open page")
         }
-        let title = parts.count > 1 ? parts[1] : url.host ?? first
+        guard let url = URL(string: raw), let scheme = url.scheme?.lowercased() else {
+            throw LinkError.noUsableURL("couldn't read an address (got “\(raw.prefix(60))”)")
+        }
+        guard scheme == "http" || scheme == "https" else {
+            // e.g. a local file, a PDF blob, or the Start Page.
+            throw LinkError.noUsableURL("that page is \(scheme):, which can't be opened on another device")
+        }
+        let title = parts.count > 1 ? parts[1] : (url.host ?? raw)
         return Page(url: url, title: title, browserName: browser.appName)
     }
 

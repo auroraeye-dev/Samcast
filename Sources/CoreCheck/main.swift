@@ -99,6 +99,53 @@ do {
     expect(s2.update(hand(gap: 0.9), at: 1.0) == false, "slow release -> no snap")
 }
 
+section("DeviceIdentity")
+do {
+    // Use a scratch defaults domain so the real identity isn't touched.
+    let suite = "quackcast.tests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suite)!
+
+    let first = DeviceIdentity.loadOrCreate(defaults: defaults)
+    expect(!first.id.isEmpty, "identity has an id")
+    expect(first.name.split(separator: "-").count == 3, "name looks like adjective-animal-number")
+
+    // The whole point is that it survives restarts.
+    let second = DeviceIdentity.loadOrCreate(defaults: defaults)
+    expectEqual(second.id, first.id, "id persists across loads")
+    expectEqual(second.name, first.name, "name persists across loads")
+
+    DeviceIdentity.rename(to: "kitchen-mac", defaults: defaults)
+    expectEqual(DeviceIdentity.loadOrCreate(defaults: defaults).name, "kitchen-mac", "rename sticks")
+    DeviceIdentity.rename(to: "   ", defaults: defaults)
+    expectEqual(DeviceIdentity.loadOrCreate(defaults: defaults).name, "kitchen-mac", "blank rename ignored")
+
+    defaults.removePersistentDomain(forName: suite)
+}
+
+section("TrustStore")
+do {
+    let suite = "quackcast.tests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suite)!
+    let trust = TrustStore(defaults: defaults)
+
+    expect(!trust.isTrusted("peer-a"), "unknown peer is not trusted")
+    trust.trust("peer-a", name: "swift-heron-1234")
+    expect(trust.isTrusted("peer-a"), "accepted peer becomes trusted")
+    expectEqual(trust.trusted["peer-a"], "swift-heron-1234", "remembers the name")
+
+    // Trust must survive a new store, or it isn't trust.
+    let reopened = TrustStore(defaults: defaults)
+    expect(reopened.isTrusted("peer-a"), "trust persists")
+
+    trust.untrust("peer-a")
+    expect(!trust.isTrusted("peer-a"), "untrust removes it")
+    trust.trust("peer-b", name: "b")
+    trust.untrustAll()
+    expect(trust.trusted.isEmpty, "untrustAll clears everything")
+
+    defaults.removePersistentDomain(forName: suite)
+}
+
 section("SessionCoordinator — two-device handshake")
 do {
     let mac = Peer(id: "A", displayName: "Mac A", kind: .mac)
