@@ -79,7 +79,7 @@ public final class MultipeerTransport: NSObject, PeerTransport {
             print("QC-net: send \(message.rawValue) FAILED — no peer id for \(peer.displayName)")
             return
         }
-        guard session.connectedPeers.contains(mcID) else {
+        guard session.connectedPeers.contains(where: { $0.displayName == mcID.displayName }) else {
             print("QC-net: send \(message.rawValue) FAILED — \(peer.displayName) not in session (connected: \(session.connectedPeers.map(\.displayName)))")
             return
         }
@@ -96,7 +96,9 @@ public final class MultipeerTransport: NSObject, PeerTransport {
     /// Send an encoded screen frame (e.g. JPEG) to a peer. Unreliable so a
     /// dropped frame is simply skipped rather than delaying the stream.
     public func sendFrameData(_ frame: Data, to peer: Peer) {
-        guard let mcID = mcID(for: peer) else { return }
+        guard let mcID = mcID(for: peer),
+              session.connectedPeers.contains(where: { $0.displayName == mcID.displayName })
+        else { return }
         try? session.send(frame, toPeers: [mcID], with: .unreliable)
     }
 
@@ -122,8 +124,18 @@ public final class MultipeerTransport: NSObject, PeerTransport {
         }
     }
 
+    /// Resolve a peer to the MCPeerID the *session* is using.
+    ///
+    /// MCPeerID identity is not its display name: two instances describing the
+    /// same device — one from discovery, one from the session — compare as
+    /// different objects. Addressing a send with a cached instance therefore
+    /// failed silently, so one direction of the link went nowhere while the
+    /// other worked. Always prefer the session's own instance.
     private func mcID(for peer: Peer) -> MCPeerID? {
-        peersByMCID.first(where: { $0.value.id == peer.id })?.key
+        if let live = session.connectedPeers.first(where: { $0.displayName == peer.id }) {
+            return live
+        }
+        return peersByMCID.first(where: { $0.value.id == peer.id })?.key
     }
 
     private func peer(for mcID: MCPeerID, kind: Peer.Kind = .unknown) -> Peer {
