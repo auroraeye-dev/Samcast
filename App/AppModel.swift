@@ -91,7 +91,10 @@ final class AppModel: ObservableObject {
 
         handTracker.onHands = { [weak self] hands, time in
             guard let self else { return }
-            let raw = hands.first.map { self.classifier.classify($0) } ?? .none
+            // A low-quality detection must not drive a gesture: at launch a
+            // phantom "fist" armed a handoff with no input from the user.
+            let hand = hands.first
+            let raw = self.isRealHand(hand) ? (hand.map { self.classifier.classify($0) } ?? .none) : .none
             let fingers = hands.first.map { self.classifier.extendedFingers($0) }
             Task { @MainActor in
                 self.updateFingerReadout(fingers)

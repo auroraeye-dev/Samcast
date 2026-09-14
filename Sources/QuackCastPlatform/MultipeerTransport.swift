@@ -86,6 +86,17 @@ public final class MultipeerTransport: NSObject, PeerTransport {
 
     // MARK: - Helpers
 
+    /// Deterministic, and identical on both sides, so exactly one of any pair
+    /// ever sends an invitation.
+    private func shouldInitiate(to peerID: MCPeerID) -> Bool {
+        localPeerID.displayName < peerID.displayName
+    }
+
+    private func invite(_ peerID: MCPeerID) {
+        guard !session.connectedPeers.contains(peerID) else { return }
+        browser.invitePeer(peerID, to: session, withContext: nil, timeout: 15)
+    }
+
     private func mcID(for peer: Peer) -> MCPeerID? {
         peersByMCID.first(where: { $0.value.id == peer.id })?.key
     }
@@ -124,11 +135,12 @@ extension MultipeerTransport: MCSessionDelegate {
             // a stale entry made us refuse the reconnect invitation, which is
             // why restarting one side left both stuck on "no nearby devices".
             peersByMCID.removeValue(forKey: peerID)
-            // The other side may already be advertising again; re-invite shortly.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                guard let self,
-                      !self.session.connectedPeers.contains(peerID) else { return }
-                self.browser.invitePeer(peerID, to: self.session, withContext: nil, timeout: 15)
+            // Only the designated initiator retries, for the same reason it is
+            // the only one that invites in the first place.
+            if shouldInitiate(to: peerID) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+                    self?.invite(peerID)
+                }
             }
         }
         notifyPeersChanged()
@@ -183,20 +195,13 @@ extension MultipeerTransport: MCNearbyServiceBrowserDelegate {
         let kind = Peer.Kind(rawValue: info?["kind"] ?? "") ?? .unknown
         _ = peer(for: peerID, kind: kind)
 
-        // Every peer both advertises and browses, so if both invite at once
-        // they build two competing sessions and knock each other offline. Use
-        // a deterministic tie-break: the lower id invites, the other accepts.
-        if localPeerID.displayName < peerID.displayName {
-            browser.invitePeer(peerID, to: session, withContext: nil, timeout: 15)
-        } else {
-            // Fallback: if the preferred initiator never invites (it may not be
-            // able to browse), invite it ourselves so we still connect.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
-                guard let self,
-                      !self.session.connectedPeers.contains(peerID) else { return }
-                self.browser.invitePeer(peerID, to: self.session, withContext: nil, timeout: 15)
-            }
-        }
+        // Exactly one side may invite. Every peer both advertises and
+        // browses, so if both invite they build two competing sessions which
+        // immediately tear each other down — the connection then flaps on and
+        // off every few milliseconds. The peer with the lower id invites; the
+        // other waits to be invited and never initiates.
+        guard shouldInitiate(to: peerID) else { return }
+        invite(peerID)
     }
 
     public func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
