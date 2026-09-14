@@ -1,65 +1,119 @@
 import Foundation
+import AppKit
 import QuackCastCore
 import QuackCastPlatform
 
-/// A headless second peer for testing the cast pipeline without a second
-/// device. It joins the same Multipeer service as the app, auto-requests a
-/// cast when a source announces itself, and reports the frame rate and
-/// bandwidth actually achieved — which is the only way to know whether the
-/// stream is genuinely usable.
+/// A second QuackCast receiver you can run on the *same* Mac, so casting can be
+/// developed and demoed without owning a second machine. It joins the same
+/// Multipeer service as the app, auto-accepts a cast, shows the incoming window
+/// live, and reports the frame rate and bandwidth actually achieved.
 ///
 /// Run with:  swift run CastPeer
-final class TestReceiver: PeerTransportDelegate {
-    private let transport = MultipeerTransport(displayName: "QuackCast Test Receiver", kind: .mac)
+@MainActor
+final class ViewerReceiver: NSObject, PeerTransportDelegate, NSApplicationDelegate {
+    private let transport = MultipeerTransport(displayName: "QuackCast Viewer", kind: .mac)
+    private var window: NSWindow!
+    private var imageView: NSImageView!
+    private var statusLabel: NSTextField!
+
     private var frames = 0
     private var bytes = 0
     private var windowStart = Date()
 
-    func start() {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        buildWindow()
         transport.delegate = self
         transport.start()
-        print("🦆 Test receiver running as “QuackCast Test Receiver”.")
-        print("   Browsing for QuackCast peers — make a ✊ fist on the Mac app to arm sharing.\n")
+        setStatus("Waiting for a cast — make a ✊ fist in QuackCast")
     }
 
-    func transport(_ transport: PeerTransport, didUpdate peers: [Peer]) {
-        if peers.isEmpty {
-            print("… no peers connected")
-        } else {
-            print("✅ connected peers: \(peers.map(\.displayName).joined(separator: ", "))")
+    private func buildWindow() {
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 900, height: 620),
+                          styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                          backing: .buffered,
+                          defer: false)
+        window.title = "QuackCast Viewer (test receiver)"
+        window.center()
+
+        imageView = NSImageView()
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+
+        statusLabel = NSTextField(labelWithString: "")
+        statusLabel.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+        statusLabel.textColor = .secondaryLabelColor
+        statusLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        let container = NSView()
+        container.addSubview(imageView)
+        container.addSubview(statusLabel)
+        NSLayoutConstraint.activate([
+            imageView.topAnchor.constraint(equalTo: container.topAnchor),
+            imageView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            imageView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            imageView.bottomAnchor.constraint(equalTo: statusLabel.topAnchor, constant: -6),
+            statusLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 10),
+            statusLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -8)
+        ])
+        window.contentView = container
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func setStatus(_ text: String) { statusLabel.stringValue = text }
+
+    // MARK: PeerTransportDelegate
+
+    nonisolated func transport(_ transport: PeerTransport, didUpdate peers: [Peer]) {
+        Task { @MainActor in
+            setStatus(peers.isEmpty
+                      ? "No peers — waiting for QuackCast…"
+                      : "Connected: \(peers.map(\.displayName).joined(separator: ", "))")
         }
     }
 
-    func transport(_ transport: PeerTransport, didReceive message: ControlMessage, from peer: Peer) {
-        print("📨 \(message.rawValue) ← \(peer.displayName)")
-        if message == .sourceAvailable {
-            print("➡️  requesting cast from \(peer.displayName)")
-            transport.send(.requestCast, to: peer)
+    nonisolated func transport(_ transport: PeerTransport, didReceive message: ControlMessage, from peer: Peer) {
+        Task { @MainActor in
+            switch message {
+            case .sourceAvailable:
+                setStatus("\(peer.displayName) is sharing — requesting…")
+                transport.send(.requestCast, to: peer)
+            case .endCast, .sourceWithdrawn:
+                setStatus("Cast ended by \(peer.displayName)")
+            case .requestCast:
+                break
+            }
         }
     }
 
-    func transport(_ transport: PeerTransport, didReceiveFrame frame: Any, from peer: Peer) {
+    nonisolated func transport(_ transport: PeerTransport, didReceiveFrame frame: Any, from peer: Peer) {
         guard let data = frame as? Data else { return }
-        frames += 1
-        bytes += data.count
+        Task { @MainActor in
+            if let image = NSImage(data: data) { imageView.image = image }
 
-        let now = Date()
-        let elapsed = now.timeIntervalSince(windowStart)
-        if elapsed >= 1.0 {
-            let kb = Double(bytes) / 1024.0
-            let fps = Double(frames) / elapsed
-            let avg = kb / Double(max(frames, 1))
-            print(String(format: "🎞  %.1f fps   %.0f KB/s   avg frame %.0f KB", fps, kb / elapsed, avg))
-            frames = 0
-            bytes = 0
-            windowStart = now
+            frames += 1
+            bytes += data.count
+            let elapsed = Date().timeIntervalSince(windowStart)
+            if elapsed >= 1.0 {
+                let kbps = Double(bytes) / 1024.0 / elapsed
+                let fps = Double(frames) / elapsed
+                let avg = Double(bytes) / 1024.0 / Double(max(frames, 1))
+                setStatus(String(format: "%@  •  %.1f fps  •  %.0f KB/s  •  avg frame %.0f KB",
+                                 peer.displayName, fps, kbps, avg))
+                frames = 0; bytes = 0; windowStart = Date()
+            }
         }
     }
 }
 
-// Unbuffered stdout so progress is visible when output is piped to a file.
-setvbuf(stdout, nil, _IONBF, 0)
-
-let receiver = TestReceiver()
-receiver.start()
-RunLoop.main.run()
+// Top-level code is nonisolated, so hop to the main actor to build the
+// main-actor-isolated delegate before handing it to AppKit.
+MainActor.assumeIsolated {
+    let app = NSApplication.shared
+    app.setActivationPolicy(.regular)
+    let delegate = ViewerReceiver()
+    // AppKit holds the delegate weakly; keep it alive for the process lifetime.
+    objc_setAssociatedObject(app, "quackcast.viewer", delegate, .OBJC_ASSOCIATION_RETAIN)
+    app.delegate = delegate
+    app.run()
+}

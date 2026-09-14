@@ -119,20 +119,33 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
         }
     }
 
-    /// The frontmost app's largest on-screen window, excluding our own.
-    /// Chosen by owning application rather than list order, which is not a
-    /// documented z-order.
+    /// The window the user was last working in — the topmost normal window
+    /// that isn't QuackCast's own.
+    ///
+    /// Uses CGWindowListCopyWindowInfo because it is genuinely front-to-back
+    /// z-ordered (SCShareableContent's order is not documented), and skips our
+    /// own windows so arming the cast while looking at QuackCast still picks
+    /// the app you came from rather than falling back to the whole desktop.
     private func frontmostWindow(in content: SCShareableContent) -> SCWindow? {
         let myPID = ProcessInfo.processInfo.processIdentifier
-        guard let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier,
-              frontPID != myPID else { return nil }
-        return content.windows
-            .filter { window in
-                window.isOnScreen
-                    && window.owningApplication?.processID == frontPID
-                    && window.frame.width > 120 && window.frame.height > 120
+        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+        guard let infos = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else {
+            return nil
+        }
+        for info in infos {
+            guard let pid = info[kCGWindowOwnerPID as String] as? pid_t, pid != myPID,
+                  // Layer 0 is a normal window; higher layers are menu bar,
+                  // Dock, overlays and so on.
+                  let layer = info[kCGWindowLayer as String] as? Int, layer == 0,
+                  let windowID = info[kCGWindowNumber as String] as? CGWindowID,
+                  let bounds = info[kCGWindowBounds as String] as? [String: CGFloat],
+                  (bounds["Width"] ?? 0) > 120, (bounds["Height"] ?? 0) > 120
+            else { continue }
+            if let match = content.windows.first(where: { $0.windowID == windowID }) {
+                return match
             }
-            .max { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height }
+        }
+        return nil
     }
 
     private func report(_ message: String) {
