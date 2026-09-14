@@ -1,19 +1,24 @@
 import AppKit
-import SwiftUI
 
 /// Shows the handoff glow across the whole screen, above every other app.
 ///
-/// The in-window animation was effectively invisible on the sending machine:
-/// when you grab a page you are looking at your browser, and QuackCast is
-/// behind it. A borderless, transparent, click-through window floating above
-/// everything means the effect happens where you are actually looking.
+/// When you grab a page you are looking at your browser, not at QuackCast, so
+/// an animation inside the app window is never seen. This is a borderless,
+/// transparent, click-through window floating above everything.
+///
+/// It is drawn with CoreAnimation rather than SwiftUI on purpose: a SwiftUI
+/// view hosted in a freshly shown borderless window is unreliable about
+/// running an entrance animation (state animated in the same pass the view
+/// appears gets collapsed to its final value), whereas explicit CAAnimations
+/// always run.
 @MainActor
 final class GlowOverlay {
     private var window: NSWindow?
     private var hideTask: Task<Void, Never>?
 
-    /// Slightly longer than the animation so it can finish before we hide.
-    private let visibleFor: TimeInterval = 2.9
+    private let duration: CFTimeInterval = 2.2
+    private let stagger: CFTimeInterval = 0.16
+    private let ringCount = 5
 
     func flash(_ direction: GlowDirection) {
         guard let screen = NSScreen.main else { return }
@@ -21,23 +26,92 @@ final class GlowOverlay {
 
         let overlay = window ?? makeWindow()
         window = overlay
-        // Cover the whole screen including the menu bar area.
         overlay.setFrame(screen.frame, display: false)
-
-        // Show the window *before* installing the view, so the burst animates
-        // in a window that is already on screen.
         overlay.orderFrontRegardless()
 
-        // A fresh view each time so the animation replays from the start.
-        let host = NSHostingView(rootView: GlowBurst(trigger: 1, direction: direction))
-        host.frame = overlay.contentLayoutRect
-        host.autoresizingMask = [.width, .height]
-        overlay.contentView = host
+        guard let host = overlay.contentView else { return }
+        host.layer?.sublayers?.forEach { $0.removeFromSuperlayer() }
+        addGlowLayers(to: host, direction: direction)
 
         hideTask = Task { @MainActor [weak overlay] in
-            try? await Task.sleep(nanoseconds: UInt64(visibleFor * 1_000_000_000))
+            let total = duration + stagger * Double(ringCount) + 0.2
+            try? await Task.sleep(nanoseconds: UInt64(total * 1_000_000_000))
             guard !Task.isCancelled else { return }
             overlay?.orderOut(nil)
+        }
+    }
+
+    // MARK: - Drawing
+
+    private func addGlowLayers(to view: NSView, direction: GlowDirection) {
+        let bounds = view.bounds
+        guard bounds.width > 1, bounds.height > 1 else { return }
+        let radius = min(bounds.width, bounds.height) * 0.26
+        let centre = CGPoint(x: bounds.midX, y: bounds.midY)
+        let colour = tint(for: direction).cgColor
+
+        // Soft central bloom.
+        let bloom = CALayer()
+        bloom.frame = CGRect(x: centre.x - radius, y: centre.y - radius,
+                             width: radius * 2, height: radius * 2)
+        bloom.cornerRadius = radius
+        bloom.backgroundColor = colour.copy(alpha: 0.22)
+        bloom.shadowColor = colour
+        bloom.shadowOpacity = 0.9
+        bloom.shadowRadius = radius * 0.7
+        bloom.shadowOffset = .zero
+        bloom.opacity = 0
+        view.layer?.addSublayer(bloom)
+        animate(bloom, direction: direction, delay: 0)
+
+        // Concentric rings, each setting off after the last so it ripples.
+        for index in 0..<ringCount {
+            let ring = CAShapeLayer()
+            let box = CGRect(x: 0, y: 0, width: radius * 2, height: radius * 2)
+            ring.path = CGPath(ellipseIn: box, transform: nil)
+            ring.frame = CGRect(x: centre.x - radius, y: centre.y - radius,
+                                width: radius * 2, height: radius * 2)
+            ring.fillColor = NSColor.clear.cgColor
+            ring.strokeColor = colour
+            ring.lineWidth = 3.0 - CGFloat(index) * 0.45
+            ring.shadowColor = colour
+            ring.shadowOpacity = 0.8
+            ring.shadowRadius = 12
+            ring.shadowOffset = .zero
+            ring.opacity = 0
+            view.layer?.addSublayer(ring)
+            animate(ring, direction: direction, delay: Double(index) * stagger)
+        }
+    }
+
+    private func animate(_ layer: CALayer, direction: GlowDirection, delay: CFTimeInterval) {
+        let from: CGFloat = direction == .outward ? 0.15 : 2.1
+        let to: CGFloat = direction == .outward ? 2.1 : 0.18
+
+        let scale = CABasicAnimation(keyPath: "transform.scale")
+        scale.fromValue = from
+        scale.toValue = to
+
+        // Quick to appear so the gesture is acknowledged at once, then a long
+        // gentle fade so it never cuts off abruptly.
+        let fade = CAKeyframeAnimation(keyPath: "opacity")
+        fade.values = [0.0, 0.95, 0.85, 0.0]
+        fade.keyTimes = [0.0, 0.10, 0.45, 1.0]
+
+        let group = CAAnimationGroup()
+        group.animations = [scale, fade]
+        group.duration = duration
+        group.beginTime = CACurrentMediaTime() + delay
+        group.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        group.fillMode = .backwards
+        layer.add(group, forKey: "glow")
+    }
+
+    /// Warm for leaving, cool for arriving.
+    private func tint(for direction: GlowDirection) -> NSColor {
+        switch direction {
+        case .outward: return NSColor(calibratedRed: 1.0, green: 0.72, blue: 0.35, alpha: 1)
+        case .inward:  return NSColor(calibratedRed: 0.45, green: 0.85, blue: 1.0, alpha: 1)
         }
     }
 
@@ -49,12 +123,17 @@ final class GlowOverlay {
         overlay.isOpaque = false
         overlay.backgroundColor = .clear
         overlay.hasShadow = false
-        // Above normal windows, but it never takes focus or swallows clicks.
-        overlay.level = .screenSaver
-        overlay.ignoresMouseEvents = true
+        overlay.level = .screenSaver          // above normal and full-screen apps
+        overlay.ignoresMouseEvents = true     // never intercept a click
         overlay.isReleasedWhenClosed = false
         overlay.collectionBehavior = [.canJoinAllSpaces, .stationary,
                                       .ignoresCycle, .fullScreenAuxiliary]
+
+        let content = NSView()
+        content.wantsLayer = true
+        content.layer?.backgroundColor = NSColor.clear.cgColor
+        content.autoresizingMask = [.width, .height]
+        overlay.contentView = content
         return overlay
     }
 }
