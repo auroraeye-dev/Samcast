@@ -61,6 +61,10 @@ final class AppModel: ObservableObject {
     @Published private(set) var castTarget: String = ""
     /// Devices already accepted from; their offers are taken automatically.
     @Published private(set) var trustedNames: [String] = []
+    /// Bumped to play the glow; direction says whether something left or
+    /// arrived, so the animation reads correctly without any text.
+    @Published private(set) var glowTrigger = 0
+    @Published private(set) var glowDirection: GlowDirection = .outward
 
     /// A page grabbed by the fist gesture, waiting to be dropped on another
     /// device. When set, arming hands this over instead of streaming pixels.
@@ -248,6 +252,7 @@ final class AppModel: ObservableObject {
             if let page = pendingHandoff {
                 transport.send(.handoff, payload: page.url.absoluteString, to: peer)
                 setStatus("✅ Handed “\(page.title)” to \(peer.displayName)")
+                pulseGlow(.outward)
                 pendingHandoff = nil
                 streamingTarget = nil
                 return
@@ -265,6 +270,7 @@ final class AppModel: ObservableObject {
             streamingTarget = nil
         case .showRemoteScreen:
             receivedImage = nil // frames will populate it
+            pulseGlow(.inward)
         case .hideRemoteScreen:
             receivedImage = nil
         case .notifyEndedCast(let peer):
@@ -303,6 +309,12 @@ final class AppModel: ObservableObject {
         let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
         return ciContext.jpegRepresentation(of: image, colorSpace: colorSpace,
                                              options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: quality])
+    }
+
+    /// Play the glow for something leaving or arriving.
+    private func pulseGlow(_ direction: GlowDirection) {
+        glowDirection = direction
+        glowTrigger &+= 1
     }
 
     /// Show a message and protect it from being overwritten for a moment.
@@ -346,6 +358,7 @@ extension AppModel: PeerTransportDelegate {
                 guard let payload, let url = URL(string: payload) else { return }
                 BrowserLink.open(url)
                 self.setStatus("📬 Opened a page from \(peer.displayName)")
+                self.pulseGlow(.inward)
                 self.apply(self.coordinator.reduce(.remoteEndedCast(peer)))
                 return
             }

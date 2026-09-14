@@ -55,6 +55,7 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(idleBackground)
+        .overlay(GlowBurst(trigger: model.glowTrigger, direction: model.glowDirection))
     }
 
     private var idleView: some View {

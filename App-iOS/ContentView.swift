@@ -16,6 +16,8 @@ struct ContentView: View {
                 idleView
             }
         }
+        .overlay(GlowBurst(trigger: model.glowTrigger, direction: model.glowDirection)
+            .ignoresSafeArea())
     }
 
     private var idleView: some View {

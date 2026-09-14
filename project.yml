@@ -19,6 +19,7 @@ targets:
     platform: macOS
     sources:
       - path: App
+      - path: Shared
     dependencies:
       - package: QuackCast
         product: QuackCastCore
@@ -50,6 +51,7 @@ targets:
     platform: iOS
     sources:
       - path: App-iOS
+      - path: Shared
     dependencies:
       - package: QuackCast
         product: QuackCastCore

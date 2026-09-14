@@ -40,6 +40,9 @@ final class ReceiverModel: ObservableObject {
     @Published private(set) var handDetected = false
     /// Devices already accepted from; these are taken automatically.
     @Published private(set) var trustedNames: [String] = []
+    /// Bumped to play the glow when something leaves or arrives.
+    @Published private(set) var glowTrigger = 0
+    @Published private(set) var glowDirection: GlowDirection = .inward
 
     func start() {
         transport.delegate = self
@@ -128,6 +131,11 @@ final class ReceiverModel: ObservableObject {
         apply(coordinator.reduce(.localGesture(.openHand)))
     }
 
+    private func pulseGlow(_ direction: GlowDirection) {
+        glowDirection = direction
+        glowTrigger &+= 1
+    }
+
     private func broadcast(_ message: ControlMessage) {
         for peer in transport.connectedPeers { transport.send(message, to: peer) }
     }
@@ -144,6 +152,7 @@ final class ReceiverModel: ObservableObject {
             transport.send(.requestCast, to: peer)
         case .showRemoteScreen:
             receivedImage = nil // populated as frames arrive
+            pulseGlow(.inward)
         case .hideRemoteScreen:
             receivedImage = nil
         case .notifyEndedCast(let peer):
@@ -163,6 +172,7 @@ final class ReceiverModel: ObservableObject {
             if let url = pendingHandoff {
                 transport.send(.handoff, payload: url.absoluteString, to: peer)
                 statusLine = "✅ Sent \(url.host ?? "link") to \(peer.displayName)"
+                pulseGlow(.outward)
                 pendingHandoff = nil
             }
         case .stopStreaming, .takeScreenshot:
@@ -209,6 +219,7 @@ extension ReceiverModel: PeerTransportDelegate {
                     return
                 }
                 self.statusLine = "📬 Opening \(url.host ?? url.absoluteString)…"
+                self.pulseGlow(.inward)
                 UIApplication.shared.open(url) { ok in
                     Task { @MainActor in
                         self.statusLine = ok
