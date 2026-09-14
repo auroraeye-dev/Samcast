@@ -38,6 +38,12 @@ final class AppModel: ObservableObject {
     /// Ignore open/close gestures until this time, just after a screenshot, so
     /// hands returning to rest can't accidentally arm a cast.
     private var gestureSuppressUntil = Date.distantPast
+    /// When the current grab was made. A second fist cancels a grab, but hand
+    /// tracking flickers closed→none→closed, and that re-fire would cancel the
+    /// grab a moment after making it — putting the page straight back on this
+    /// machine. Cancelling is therefore only allowed after a deliberate pause.
+    private var armedAt = Date.distantPast
+    private let cancelGuard: TimeInterval = 5
 
     // MARK: Gesture timing
     /// When a hand was last seen, used to keep the indicator steady across
@@ -151,7 +157,14 @@ final class AppModel: ObservableObject {
                 fireScreenshot()
                 return
             }
+            // Don't let a flickering fist cancel the grab it just made.
+            if confirmed == .closedHand, coordinator.state == .armedSource,
+               Date().timeIntervalSince(armedAt) < cancelGuard {
+                return
+            }
+            let wasIdle = coordinator.state == .idle
             apply(coordinator.reduce(.localGesture(confirmed)))
+            if wasIdle, coordinator.state == .armedSource { armedAt = Date() }
         }
     }
 

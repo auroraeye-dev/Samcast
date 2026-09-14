@@ -87,6 +87,10 @@ final class ReceiverModel: ObservableObject {
     /// which bridges the gaps between detections.
     private var lastRealHand = Date.distantPast
     private let handGrace: TimeInterval = 0.5
+    /// Same reasoning as on the Mac: a flickering fist must not cancel the
+    /// grab it just made.
+    private var armedAt = Date.distantPast
+    private let cancelGuard: TimeInterval = 5
 
     /// On iPad we act on: open hand → receive; close hand (while receiving) →
     /// dismiss. The iPad is never a source.
@@ -99,7 +103,9 @@ final class ReceiverModel: ObservableObject {
         case (.idle, .closedHand):
             // Grab the clipboard link and offer it to other devices.
             apply(coordinator.reduce(.localGesture(.closedHand)))
+            armedAt = Date()
         case (.armedSource, .closedHand):
+            guard Date().timeIntervalSince(armedAt) >= cancelGuard else { return }
             apply(coordinator.reduce(.localGesture(.closedHand))) // cancel
         case (.receiving, .closedHand):
             apply(coordinator.reduce(.localGesture(.closedHand)))
