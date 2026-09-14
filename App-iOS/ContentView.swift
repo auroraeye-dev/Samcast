@@ -48,13 +48,26 @@ struct ContentView: View {
                     .foregroundStyle(.white)
             }
 
-            if model.availableSource != nil {
-                Button(action: { model.tapToReceive() }) {
-                    Label("Receive screen", systemImage: "tv")
-                        .font(.headline)
-                        .padding(.horizontal, 22).padding(.vertical, 12)
-                        .background(Capsule().fill(Color.blue))
-                        .foregroundStyle(.white)
+            if let source = model.availableSource {
+                if model.sourceIsKnown {
+                    // Already approved: your open hand is the way to take it.
+                    // A small tap fallback stays available in case the camera
+                    // can't see you, but it is no longer the main path.
+                    Button("or tap to take it") { model.tapToReceive() }
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                } else {
+                    // First time from this device — approve it once.
+                    Button(action: { model.tapToReceive() }) {
+                        Label("Allow “\(source.displayName)”", systemImage: "checkmark.shield")
+                            .font(.headline)
+                            .padding(.horizontal, 22).padding(.vertical, 12)
+                            .background(Capsule().fill(Color.blue))
+                            .foregroundStyle(.white)
+                    }
+                    Text("Approved once, then your open hand is enough")
+                        .font(.caption2)
+                        .foregroundStyle(.gray)
                 }
             }
 

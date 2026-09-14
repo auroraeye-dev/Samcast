@@ -38,8 +38,11 @@ final class ReceiverModel: ObservableObject {
     @Published private(set) var availableSource: Peer?
     /// Live: is a real hand in front of this device's camera?
     @Published private(set) var handDetected = false
-    /// Devices already accepted from; these are taken automatically.
+    /// Devices already accepted from, so they are not asked about again.
     @Published private(set) var trustedNames: [String] = []
+    /// True when the device offering something has been approved before, in
+    /// which case the gesture alone is enough and no button is shown.
+    @Published private(set) var sourceIsKnown = false
     /// Bumped to play the glow when something leaves or arrives.
     @Published private(set) var glowTrigger = 0
     @Published private(set) var glowDirection: GlowDirection = .inward
@@ -182,10 +185,13 @@ final class ReceiverModel: ObservableObject {
 
     private func updateStatus() {
         availableSource = coordinator.preferredSource
+        sourceIsKnown = coordinator.preferredSource.map { trust.isTrusted($0.id) } ?? false
         switch state {
         case .idle:
             if let src = coordinator.preferredSource {
-                statusLine = "🖐️ \(src.displayName) has something for you — open your hand here to take it"
+                statusLine = trust.isTrusted(src.id)
+                    ? "🖐️ \(src.displayName) has something for you — open your hand here to take it"
+                    : "\(src.displayName) wants to send you something — allow it once to continue"
             } else {
                 statusLine = peers.isEmpty ? "Looking for a Mac running QuackCast…"
                                            : "Connected — waiting for something to be grabbed"
