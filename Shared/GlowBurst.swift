@@ -99,6 +99,9 @@ struct GlowBurst: View {
         }
         .allowsHitTesting(false)   // purely decorative; never eat a click
         .onChange(of: trigger) { _ in play() }
+        // A freshly presented burst plays immediately, which is how the
+        // full-screen overlay window uses it.
+        .onAppear { play() }
     }
 
     private func play() {

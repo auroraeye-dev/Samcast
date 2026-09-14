@@ -27,6 +27,9 @@ final class AppModel: ObservableObject {
     let permissions = Permissions()
 
     private let trust = TrustStore()
+    /// Plays the glow over the whole screen, since the app window is usually
+    /// behind whatever you are grabbing from.
+    private let glowOverlay = GlowOverlay()
     /// This device's persistent QuackCast name — how other devices see it.
     let identity = DeviceIdentity.loadOrCreate(kind: .mac)
 
@@ -220,6 +223,7 @@ final class AppModel: ObservableObject {
                 scheduleHandoffRecovery(for: page)
                 castTarget = "\(page.browserName) — \(page.title)"
                 setStatus("Grabbed “\(page.title)” — now open your hand at the device you want it on")
+                pulseGlow(.outward)
                 return
             } catch {
                 // Say why the page couldn't be grabbed instead of silently
@@ -315,6 +319,7 @@ final class AppModel: ObservableObject {
     private func pulseGlow(_ direction: GlowDirection) {
         glowDirection = direction
         glowTrigger &+= 1
+        glowOverlay.flash(direction)
     }
 
     /// Show a message and protect it from being overwritten for a moment.
