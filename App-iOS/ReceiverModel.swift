@@ -111,14 +111,22 @@ extension ReceiverModel: PeerTransportDelegate {
         }
     }
 
-    nonisolated func transport(_ transport: PeerTransport, didReceive message: ControlMessage, from peer: Peer) {
+    nonisolated func transport(_ transport: PeerTransport, didReceive message: ControlMessage, payload: String?, from peer: Peer) {
         Task { @MainActor in
+            // A handed-over page opens in this device's own browser.
+            if message == .handoff {
+                guard let payload, let url = URL(string: payload) else { return }
+                UIApplication.shared.open(url)
+                self.statusLine = "Opened a page from \(peer.displayName)"
+                return
+            }
             let input: SessionInput
             switch message {
             case .sourceAvailable: input = .remoteSourceBecameAvailable(peer)
             case .sourceWithdrawn: input = .remoteSourceWithdrawn(peer)
             case .requestCast:     input = .remoteRequestedCast(peer)
             case .endCast:         input = .remoteEndedCast(peer)
+            case .handoff:         return
             }
             self.apply(self.coordinator.reduce(input))
         }

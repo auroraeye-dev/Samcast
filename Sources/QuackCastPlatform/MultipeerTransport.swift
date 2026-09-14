@@ -66,9 +66,10 @@ public final class MultipeerTransport: NSObject, PeerTransport {
         session.disconnect()
     }
 
-    public func send(_ message: ControlMessage, to peer: Peer) {
+    public func send(_ message: ControlMessage, payload: String?, to peer: Peer) {
         guard let mcID = mcID(for: peer) else { return }
-        guard let data = try? JSONEncoder().encode(ControlEnvelope(control: message)) else { return }
+        let envelope = ControlEnvelope(control: message, payload: payload)
+        guard let data = try? JSONEncoder().encode(envelope) else { return }
         try? session.send(data, toPeers: [mcID], with: .reliable)
     }
 
@@ -103,7 +104,10 @@ public final class MultipeerTransport: NSObject, PeerTransport {
         }
     }
 
-    private struct ControlEnvelope: Codable { let control: ControlMessage }
+    private struct ControlEnvelope: Codable {
+        let control: ControlMessage
+        var payload: String?
+    }
 }
 
 // MARK: - MCSessionDelegate
@@ -118,7 +122,7 @@ extension MultipeerTransport: MCSessionDelegate {
         if let envelope = try? JSONDecoder().decode(ControlEnvelope.self, from: data) {
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
-                self.delegate?.transport(self, didReceive: envelope.control, from: sender)
+                self.delegate?.transport(self, didReceive: envelope.control, payload: envelope.payload, from: sender)
             }
         } else {
             // Treat as an opaque screen frame.

@@ -74,8 +74,8 @@ struct ContentView: View {
                     .frame(maxWidth: 460)
             }
             VStack(spacing: 6) {
-                gestureHint("✊", "Close your hand", "share the window you're in")
-                gestureHint("🖐️", "Open your hand", "cast to a device in front of you")
+                gestureHint("✊", "Close your hand", "grab this page (or window)")
+                gestureHint("🖐️", "Open your hand", "drop it on the device in front of you")
                 gestureHint("✌️", "Peace sign", "screenshot to your Pictures")
             }
             .font(.callout)

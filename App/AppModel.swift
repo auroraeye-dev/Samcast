@@ -56,6 +56,10 @@ final class AppModel: ObservableObject {
     /// What is currently being cast, e.g. "Safari — Example Page".
     @Published private(set) var castTarget: String = ""
 
+    /// A page grabbed by the fist gesture, waiting to be dropped on another
+    /// device. When set, arming hands this over instead of streaming pixels.
+    private var pendingHandoff: BrowserLink.Page?
+
     func start() {
         transport.delegate = self
         transport.start()
@@ -168,12 +172,29 @@ final class AppModel: ObservableObject {
     private func perform(_ effect: SessionEffect) {
         switch effect {
         case .startScreenCapture:
+            // Prefer handing the *content* over to streaming a picture of it.
+            // A page travels as a URL: instant, pixel-perfect, and it opens in
+            // the other person's own browser without touching their tabs.
+            if let page = BrowserLink.frontmostPage() {
+                pendingHandoff = page
+                BrowserLink.closeFrontmostTab()
+                castTarget = "\(page.browserName) — \(page.title)"
+                statusLine = "Grabbed “\(page.title)” — open your hand at another device to drop it"
+                return
+            }
+            pendingHandoff = nil
             do {
                 try screenSource.startCapture()
             } catch {
                 statusLine = "Enable Screen Recording for QuackCast in System Settings ▸ Privacy & Security, then relaunch."
             }
         case .stopScreenCapture:
+            // Cancelled before dropping it — put the page back where it was.
+            if let page = pendingHandoff {
+                BrowserLink.open(page.url)
+                statusLine = "Put “\(page.title)” back"
+                pendingHandoff = nil
+            }
             screenSource.stopCapture()
         case .advertiseSourceAvailable:
             broadcast(.sourceAvailable)
@@ -182,6 +203,13 @@ final class AppModel: ObservableObject {
         case .requestCastFromPeer(let peer):
             transport.send(.requestCast, to: peer)
         case .startStreaming(let peer):
+            if let page = pendingHandoff {
+                transport.send(.handoff, payload: page.url.absoluteString, to: peer)
+                statusLine = "Handed “\(page.title)” to \(peer.displayName)"
+                pendingHandoff = nil
+                streamingTarget = nil
+                return
+            }
             streamingTarget = peer
         case .stopStreaming:
             streamingTarget = nil
@@ -253,14 +281,24 @@ extension AppModel: PeerTransportDelegate {
         }
     }
 
-    nonisolated func transport(_ transport: PeerTransport, didReceive message: ControlMessage, from peer: Peer) {
+    nonisolated func transport(_ transport: PeerTransport, didReceive message: ControlMessage, payload: String?, from peer: Peer) {
         Task { @MainActor in
+            // A handed-over page opens natively here; there is no session state
+            // to advance, the thing has simply arrived.
+            if message == .handoff {
+                guard let payload, let url = URL(string: payload) else { return }
+                BrowserLink.open(url)
+                self.statusLine = "📬 Opened a page from \(peer.displayName)"
+                self.apply(self.coordinator.reduce(.remoteEndedCast(peer)))
+                return
+            }
             let input: SessionInput
             switch message {
             case .sourceAvailable: input = .remoteSourceBecameAvailable(peer)
             case .sourceWithdrawn: input = .remoteSourceWithdrawn(peer)
             case .requestCast:     input = .remoteRequestedCast(peer)
             case .endCast:         input = .remoteEndedCast(peer)
+            case .handoff:         return
             }
             self.apply(self.coordinator.reduce(input))
         }

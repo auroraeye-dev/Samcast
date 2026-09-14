@@ -44,8 +44,9 @@ public protocol PeerTransport: AnyObject {
     func start()
     func stop()
 
-    /// Send a small control message (source-available, request-cast, etc.).
-    func send(_ message: ControlMessage, to peer: Peer)
+    /// Send a small control message, optionally carrying a payload (for
+    /// handoff this is the URL being moved).
+    func send(_ message: ControlMessage, payload: String?, to peer: Peer)
 
     /// Begin/stop streaming previously-captured screen frames to a peer. The
     /// concrete frame type flows through `ScreenSource.onFrame`.
@@ -60,11 +61,22 @@ public enum ControlMessage: String, Codable, Sendable {
     case sourceWithdrawn
     case requestCast
     case endCast
+    /// Hand the *content itself* to the peer — the payload carries a URL the
+    /// receiver opens natively. This is fundamentally different from casting:
+    /// nothing is streamed, the thing simply moves.
+    case handoff
+}
+
+public extension PeerTransport {
+    /// Convenience for the many messages that carry no payload.
+    func send(_ message: ControlMessage, to peer: Peer) {
+        send(message, payload: nil, to: peer)
+    }
 }
 
 public protocol PeerTransportDelegate: AnyObject {
     func transport(_ transport: PeerTransport, didUpdate peers: [Peer])
-    func transport(_ transport: PeerTransport, didReceive message: ControlMessage, from peer: Peer)
+    func transport(_ transport: PeerTransport, didReceive message: ControlMessage, payload: String?, from peer: Peer)
     /// A remote screen frame arrived (opaque platform type) for display.
     func transport(_ transport: PeerTransport, didReceiveFrame frame: Any, from peer: Peer)
 }

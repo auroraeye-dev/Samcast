@@ -72,12 +72,18 @@ final class ViewerReceiver: NSObject, PeerTransportDelegate, NSApplicationDelega
         }
     }
 
-    nonisolated func transport(_ transport: PeerTransport, didReceive message: ControlMessage, from peer: Peer) {
+    nonisolated func transport(_ transport: PeerTransport, didReceive message: ControlMessage, payload: String?, from peer: Peer) {
         Task { @MainActor in
             switch message {
             case .sourceAvailable:
                 setStatus("\(peer.displayName) is sharing — requesting…")
                 transport.send(.requestCast, to: peer)
+            case .handoff:
+                // A page was handed over: open it natively, nothing streams.
+                if let payload, let url = URL(string: payload) {
+                    NSWorkspace.shared.open(url)
+                    setStatus("Opened handed-over page from \(peer.displayName): \(url.absoluteString)")
+                }
             case .endCast, .sourceWithdrawn:
                 setStatus("Cast ended by \(peer.displayName)")
             case .requestCast:
