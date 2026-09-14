@@ -65,8 +65,16 @@ struct ContentView: View {
             Text(stateHeadline)
                 .font(.title2).bold()
                 .foregroundStyle(.primary)
+            if !model.castTarget.isEmpty, model.state != .idle {
+                Text(model.castTarget)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .frame(maxWidth: 460)
+            }
             VStack(spacing: 6) {
-                gestureHint("✊", "Close your hand", "share this screen")
+                gestureHint("✊", "Close your hand", "share the window you're in")
                 gestureHint("🖐️", "Open your hand", "cast to a device in front of you")
                 gestureHint("✌️", "Peace sign", "screenshot to your Pictures")
             }

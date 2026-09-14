@@ -5,6 +5,7 @@ import CoreMedia
 import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
+import AppKit
 import QuackCastCore
 
 /// Apple adapter for `ScreenSource`, backed by ScreenCaptureKit for the live
@@ -14,6 +15,10 @@ import QuackCastCore
 @available(macOS 12.3, *)
 public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutput, SCStreamDelegate {
     public var onFrame: ((Any, TimeInterval) -> Void)?
+
+    /// Reports what is being cast, e.g. "Safari — Example Page", so the user
+    /// can see exactly which window left their screen.
+    public var onCaptureTarget: ((String) -> Void)?
 
     /// Reports why capture could not start. Without this the failure is
     /// invisible: SCShareableContent simply returns an error and the stream
@@ -57,19 +62,41 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
                 self.report("Screen capture blocked: \(error.localizedDescription). Enable Screen Recording for QuackCast in System Settings ▸ Privacy & Security, then reopen the app.")
                 return
             }
-            guard let display = content?.displays.first else {
+            guard let content, let display = content.displays.first else {
                 self.isRunning = false
                 self.report("Screen capture failed: no display available.")
                 return
             }
-            let filter = SCContentFilter(display: display, excludingWindows: [])
+
+            // Cast the window the user is actually working in, not the whole
+            // desktop. Falls back to the full display if no suitable window is
+            // found (e.g. only the Finder desktop is frontmost).
+            let filter: SCContentFilter
+            let sourceWidth: Int
+            let sourceHeight: Int
+            if let window = self.frontmostWindow(in: content) {
+                filter = SCContentFilter(desktopIndependentWindow: window)
+                sourceWidth = Int(window.frame.width)
+                sourceHeight = Int(window.frame.height)
+                let app = window.owningApplication?.applicationName ?? "Window"
+                let title = window.title ?? ""
+                let label = title.isEmpty ? app : "\(app) — \(title)"
+                let handler = self.onCaptureTarget
+                DispatchQueue.main.async { handler?(label) }
+            } else {
+                filter = SCContentFilter(display: display, excludingWindows: [])
+                sourceWidth = display.width
+                sourceHeight = display.height
+                let handler = self.onCaptureTarget
+                DispatchQueue.main.async { handler?("Whole screen") }
+            }
 
             let config = SCStreamConfiguration()
             // Downscale, preserving aspect ratio, to keep frames small enough
             // to actually stream. Dimensions are kept even for the encoder.
-            let scale = min(1.0, Double(self.maxCaptureWidth) / Double(display.width))
-            config.width = (Int(Double(display.width) * scale) / 2) * 2
-            config.height = (Int(Double(display.height) * scale) / 2) * 2
+            let scale = min(1.0, Double(self.maxCaptureWidth) / Double(max(sourceWidth, 1)))
+            config.width = max(2, (Int(Double(sourceWidth) * scale) / 2) * 2)
+            config.height = max(2, (Int(Double(sourceHeight) * scale) / 2) * 2)
             config.pixelFormat = kCVPixelFormatType_32BGRA
             config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(self.framesPerSecond))
             // Shallow queue: for live sharing a fresh frame beats a backlog.
@@ -90,6 +117,22 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
                 self.report("Screen capture could not start: \(error.localizedDescription)")
             }
         }
+    }
+
+    /// The frontmost app's largest on-screen window, excluding our own.
+    /// Chosen by owning application rather than list order, which is not a
+    /// documented z-order.
+    private func frontmostWindow(in content: SCShareableContent) -> SCWindow? {
+        let myPID = ProcessInfo.processInfo.processIdentifier
+        guard let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier,
+              frontPID != myPID else { return nil }
+        return content.windows
+            .filter { window in
+                window.isOnScreen
+                    && window.owningApplication?.processID == frontPID
+                    && window.frame.width > 120 && window.frame.height > 120
+            }
+            .max { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height }
     }
 
     private func report(_ message: String) {

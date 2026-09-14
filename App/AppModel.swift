@@ -53,6 +53,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var receivedImage: NSImage?
     @Published private(set) var lastScreenshot: URL?
     @Published private(set) var statusLine: String = "Starting…"
+    /// What is currently being cast, e.g. "Safari — Example Page".
+    @Published private(set) var castTarget: String = ""
 
     func start() {
         transport.delegate = self
@@ -69,6 +71,10 @@ final class AppModel: ObservableObject {
         }
         do { try handTracker.start() } catch { statusLine = "Camera error: \(error)" }
 
+
+        screenSource.onCaptureTarget = { [weak self] label in
+            self?.castTarget = label
+        }
 
         screenSource.onCaptureError = { [weak self] message in
             guard let self else { return }
