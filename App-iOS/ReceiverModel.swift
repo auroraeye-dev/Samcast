@@ -4,13 +4,6 @@ import UIKit
 import QuackCastCore
 import QuackCastPlatform
 
-/// A received page, wrapped so SwiftUI can present it by identity.
-struct ReceivedPage: Identifiable {
-    let id = UUID()
-    let url: URL
-    let from: String
-}
-
 /// iOS/iPadOS peer. Works in both directions:
 ///
 /// * **Receiving** — open your hand here to take a page or screen that another
@@ -59,7 +52,8 @@ final class ReceiverModel: ObservableObject {
     /// suspends its networking and camera — so the device silently stops being
     /// able to receive anything until you switch back. Keeping the page inside
     /// the app keeps the connection and the gesture camera alive.
-    @Published var receivedPage: ReceivedPage?
+    /// The last page received, kept so it can be reopened from the UI.
+    @Published private(set) var lastReceivedURL: URL?
     /// Kept after the browser is dismissed, so there is always evidence of
     /// what this device received and from whom.
     @Published private(set) var lastReceived: String?
@@ -150,6 +144,12 @@ final class ReceiverModel: ObservableObject {
         }
     }
 
+    /// Reopen the most recent page, e.g. after closing the browser.
+    func reopenLastPage() {
+        guard let url = lastReceivedURL else { return }
+        PagePresenter.show(url)
+    }
+
     /// Touch fallback so it works on a device with no usable camera (e.g. the
     /// Simulator) and as a convenience.
     func tapToReceive() { requestReceive() }
@@ -204,23 +204,12 @@ final class ReceiverModel: ObservableObject {
         requestTimeout = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(5 * 1_000_000_000))
             guard let self, !Task.isCancelled else { return }
-            guard self.receivedPage == nil else { return }
+            guard self.lastReceivedURL == nil || self.state != .idle else { return }
             if case .receiving(let peer) = self.state {
                 self.apply(self.coordinator.reduce(.remoteEndedCast(peer)))
             }
             self.statusLine = "Nothing arrived — open your hand again to retry"
             print("QC: request timed out, back to \(self.state)")
-        }
-    }
-
-    /// Swap the page shown in the in-app browser. Assigning a new value while
-    /// one is already presented does not re-present, so dismiss first.
-    private func present(_ page: ReceivedPage) {
-        if receivedPage != nil {
-            receivedPage = nil
-            DispatchQueue.main.async { [weak self] in self?.receivedPage = page }
-        } else {
-            receivedPage = page
         }
     }
 
@@ -323,7 +312,8 @@ extension ReceiverModel: PeerTransportDelegate {
                 print("QC: HANDOFF received \(url.absoluteString)")
                 self.requestTimeout?.cancel()
                 self.lastReceived = "\(url.host ?? url.absoluteString) — from \(peer.displayName)"
-                self.present(ReceivedPage(url: url, from: peer.displayName))
+                self.lastReceivedURL = url
+                PagePresenter.show(url)
                 // A handoff is complete the moment it arrives. Without this the
                 // session stayed in "receiving" and every later attempt was
                 // refused, so only the first handoff of a session ever worked.
