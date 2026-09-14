@@ -68,6 +68,7 @@ final class ReceiverModel: ObservableObject {
     @Published private(set) var glowDirection: GlowDirection = .inward
 
     func start() {
+        print("QC: started as \(identity.name)")
         transport.delegate = self
         transport.start()
 
@@ -126,6 +127,7 @@ final class ReceiverModel: ObservableObject {
     /// dismiss. The iPad is never a source.
     private func handleGesture(_ raw: HandGesture, at time: TimeInterval) {
         guard let confirmed = debouncer.update(raw, at: time) else { return }
+        print("QC: gesture \(confirmed.rawValue) | state=\(state) | source=\(coordinator.preferredSource?.displayName ?? "none")")
         currentGesture = confirmed
         switch (state, confirmed) {
         case (.idle, .openHand):
@@ -183,6 +185,7 @@ final class ReceiverModel: ObservableObject {
             statusLine = "No devices nearby to take anything from"
             return
         }
+        print("QC: -> requestCast to \(candidates.map(\.displayName))")
         statusLine = "Asking \(candidates.map(\.displayName).joined(separator: ", "))…"
         for peer in candidates {
             transport.send(.requestCast, to: peer)
@@ -266,6 +269,7 @@ final class ReceiverModel: ObservableObject {
 extension ReceiverModel: PeerTransportDelegate {
     nonisolated func transport(_ transport: PeerTransport, didUpdate peers: [Peer]) {
         Task { @MainActor in
+            print("QC: peers now \(peers.map(\.displayName))")
             self.peers = peers
             self.updateStatus()
         }
@@ -273,6 +277,7 @@ extension ReceiverModel: PeerTransportDelegate {
 
     nonisolated func transport(_ transport: PeerTransport, didReceive message: ControlMessage, payload: String?, from peer: Peer) {
         Task { @MainActor in
+            print("QC: <- \(message.rawValue) from \(peer.displayName)\(payload.map { " payload=\($0)" } ?? "")")
             // A handed-over page opens in this device's own browser.
             if message == .handoff {
                 guard let payload, let url = URL(string: payload) else {
@@ -283,6 +288,7 @@ extension ReceiverModel: PeerTransportDelegate {
                 self.trustedNames = Array(self.trust.trusted.values).sorted()
                 self.pulseGlow(.inward)
                 self.statusLine = "📬 Received \(url.host ?? url.absoluteString) from \(peer.displayName)"
+                print("QC: HANDOFF received \(url.absoluteString)")
                 self.lastReceived = "\(url.host ?? url.absoluteString) — from \(peer.displayName)"
                 self.receivedPage = ReceivedPage(url: url, from: peer.displayName)
                 return

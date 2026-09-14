@@ -33,6 +33,11 @@ public final class MultipeerTransport: NSObject, PeerTransport {
     private let browser: MCNearbyServiceBrowser
 
     private var peersByMCID: [MCPeerID: Peer] = [:]
+    /// Peers we have an invitation outstanding to. Browsing reports the same
+    /// peer repeatedly, and inviting again each time builds overlapping
+    /// sessions that tear each other down — the connection then survives only
+    /// a few seconds at a time.
+    private var pendingInvites: Set<MCPeerID> = []
 
     public init(displayName: String? = nil, kind: Peer.Kind = .mac) {
         self.localKind = kind
@@ -94,7 +99,13 @@ public final class MultipeerTransport: NSObject, PeerTransport {
 
     private func invite(_ peerID: MCPeerID) {
         guard !session.connectedPeers.contains(peerID) else { return }
+        guard !pendingInvites.contains(peerID) else { return }   // one at a time
+        pendingInvites.insert(peerID)
         browser.invitePeer(peerID, to: session, withContext: nil, timeout: 15)
+        // Allow a retry once the invitation can no longer be accepted.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 16) { [weak self] in
+            self?.pendingInvites.remove(peerID)
+        }
     }
 
     private func mcID(for peer: Peer) -> MCPeerID? {
@@ -129,12 +140,14 @@ extension MultipeerTransport: MCSessionDelegate {
         if state == .connected {
             // Make sure the peer is known, so it shows up as nearby.
             _ = peer(for: peerID)
+            pendingInvites.remove(peerID)
         }
         if state == .notConnected {
             // Forget the peer so a later discovery is treated as fresh. Holding
             // a stale entry made us refuse the reconnect invitation, which is
             // why restarting one side left both stuck on "no nearby devices".
             peersByMCID.removeValue(forKey: peerID)
+            pendingInvites.remove(peerID)
             // Only the designated initiator retries, for the same reason it is
             // the only one that invites in the first place.
             if shouldInitiate(to: peerID) {
