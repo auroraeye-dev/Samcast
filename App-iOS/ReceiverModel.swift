@@ -131,10 +131,18 @@ final class ReceiverModel: ObservableObject {
         print("QC: gesture \(confirmed.rawValue) | state=\(state) | source=\(coordinator.preferredSource?.displayName ?? "none")")
         currentGesture = confirmed
         switch (state, confirmed) {
-        case (.idle, .openHand):
+        case (.idle, .openHand), (.armedSource, .openHand):
             requestReceive()
         case (.idle, .closedHand):
-            // Grab the clipboard link and offer it to other devices.
+            // Only become a sender if there is actually something to send.
+            // Arming with nothing made this device refuse incoming handoffs —
+            // a fist caught from across the room silently stopped it being
+            // able to receive at all.
+            guard clipboardURL() != nil else {
+                statusLine = "Copy a link first, then close your hand to send it"
+                print("QC: fist ignored — nothing on the clipboard to send")
+                return
+            }
             apply(coordinator.reduce(.localGesture(.closedHand)))
             armedAt = Date()
         case (.armedSource, .closedHand):
@@ -175,7 +183,15 @@ final class ReceiverModel: ObservableObject {
     }
 
     private func requestReceive() {
-        guard case .idle = state else { return }
+        // Armed with nothing to send? Then an open hand plainly means
+        // "receive", so step out of sender mode rather than ignoring it.
+        if case .armedSource = state, pendingHandoff == nil {
+            apply(coordinator.reduce(.localGesture(.closedHand)))
+        }
+        guard case .idle = state else {
+            print("QC: ignoring open hand — busy in state \(state)")
+            return
+        }
 
         if let source = coordinator.preferredSource {
             // Accepting from a device is what establishes trust with it.
