@@ -60,6 +60,9 @@ final class ReceiverModel: ObservableObject {
     /// able to receive anything until you switch back. Keeping the page inside
     /// the app keeps the connection and the gesture camera alive.
     @Published var receivedPage: ReceivedPage?
+    /// Kept after the browser is dismissed, so there is always evidence of
+    /// what this device received and from whom.
+    @Published private(set) var lastReceived: String?
     /// Bumped to play the glow when something leaves or arrives.
     @Published private(set) var glowTrigger = 0
     @Published private(set) var glowDirection: GlowDirection = .inward
@@ -280,6 +283,7 @@ extension ReceiverModel: PeerTransportDelegate {
                 self.trustedNames = Array(self.trust.trusted.values).sorted()
                 self.pulseGlow(.inward)
                 self.statusLine = "📬 Received \(url.host ?? url.absoluteString) from \(peer.displayName)"
+                self.lastReceived = "\(url.host ?? url.absoluteString) — from \(peer.displayName)"
                 self.receivedPage = ReceivedPage(url: url, from: peer.displayName)
                 return
             }

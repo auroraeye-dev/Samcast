@@ -53,6 +53,24 @@ struct ContentView: View {
                 .font(.system(.caption2, design: .monospaced))
                 .foregroundStyle(.gray)
 
+            if let last = model.lastReceived {
+                VStack(spacing: 6) {
+                    Text("📬 Last received")
+                        .font(.caption).foregroundStyle(.gray)
+                    Text(last)
+                        .font(.callout).foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                    if let page = model.receivedPage {
+                        Button("Open again") { model.receivedPage = page }
+                            .font(.caption)
+                    }
+                }
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.08)))
+                .padding(.horizontal)
+            }
+
             Text("This device: \(model.identity.name)")
                 .font(.caption)
                 .foregroundStyle(.gray)

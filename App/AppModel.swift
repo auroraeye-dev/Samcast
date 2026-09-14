@@ -317,6 +317,15 @@ final class AppModel: ObservableObject {
                 pulseGlow(.outward, message: "Sent to \(peer.displayName)")
                 pendingHandoff = nil
                 streamingTarget = nil
+                // A handoff completes instantly — nothing is being streamed —
+                // so the session must not stay in "casting". It previously
+                // did, and every later request was then ignored, so a second
+                // handoff silently did nothing.
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.apply(self.coordinator.reduce(.remoteEndedCast(peer)))
+                    QCLog.write("handoff complete, back to \(self.coordinator.state)")
+                }
                 return
             }
             // No held page: stream instead. Capture may not be running (the
