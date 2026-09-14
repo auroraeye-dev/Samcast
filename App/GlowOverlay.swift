@@ -20,7 +20,10 @@ final class GlowOverlay {
     private let stagger: CFTimeInterval = 0.16
     private let ringCount = 5
 
-    func flash(_ direction: GlowDirection) {
+    /// - Parameter message: shown with the glow. The app window is usually
+    ///   behind whatever you are working in, so without this the user has no
+    ///   idea whether a page was grabbed, delivered or put back.
+    func flash(_ direction: GlowDirection, message: String? = nil) {
         guard let screen = NSScreen.main else { return }
         hideTask?.cancel()
 
@@ -32,6 +35,7 @@ final class GlowOverlay {
         guard let host = overlay.contentView else { return }
         host.layer?.sublayers?.forEach { $0.removeFromSuperlayer() }
         addGlowLayers(to: host, direction: direction)
+        if let message { addLabel(message, to: host, direction: direction) }
 
         hideTask = Task { @MainActor [weak overlay] in
             let total = duration + stagger * Double(ringCount) + 0.2
@@ -82,6 +86,41 @@ final class GlowOverlay {
             view.layer?.addSublayer(ring)
             animate(ring, direction: direction, delay: Double(index) * stagger)
         }
+    }
+
+    /// A short caption under the glow saying what just happened.
+    private func addLabel(_ text: String, to view: NSView, direction: GlowDirection) {
+        let bounds = view.bounds
+        let radius = min(bounds.width, bounds.height) * 0.26
+
+        let label = CATextLayer()
+        label.string = text
+        label.font = NSFont.systemFont(ofSize: 22, weight: .semibold)
+        label.fontSize = 22
+        label.alignmentMode = .center
+        label.truncationMode = .middle
+        label.foregroundColor = NSColor.white.cgColor
+        label.shadowColor = NSColor.black.cgColor
+        label.shadowOpacity = 0.85
+        label.shadowRadius = 8
+        label.shadowOffset = .zero
+        label.contentsScale = view.window?.backingScaleFactor ?? 2
+        let width = min(bounds.width * 0.7, 760)
+        label.frame = CGRect(x: bounds.midX - width / 2,
+                             y: bounds.midY - radius - 64,
+                             width: width,
+                             height: 34)
+        label.opacity = 0
+        view.layer?.addSublayer(label)
+
+        // Lingers a little longer than the rings so it stays readable.
+        let fade = CAKeyframeAnimation(keyPath: "opacity")
+        fade.values = [0.0, 1.0, 1.0, 0.0]
+        fade.keyTimes = [0.0, 0.08, 0.72, 1.0]
+        fade.duration = duration + 0.5
+        fade.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        fade.fillMode = .backwards
+        label.add(fade, forKey: "caption")
     }
 
     private func animate(_ layer: CALayer, direction: GlowDirection, delay: CFTimeInterval) {

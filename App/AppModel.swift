@@ -210,6 +210,7 @@ final class AppModel: ObservableObject {
                 self.apply(self.coordinator.reduce(.localGesture(.closedHand)))
             }
             self.setStatus("Nobody took “\(pending.title)” — put it back")
+            self.pulseGlow(.inward, message: "Put back — nobody took it")
         }
     }
 
@@ -236,7 +237,7 @@ final class AppModel: ObservableObject {
                 scheduleHandoffRecovery(for: page)
                 castTarget = "\(page.browserName) — \(page.title)"
                 setStatus("Grabbed “\(page.title)” — now open your hand at the device you want it on")
-                pulseGlow(.outward)
+                pulseGlow(.outward, message: "Grabbed — open your hand at another device")
                 return
             } catch {
                 // Say why the page couldn't be grabbed instead of silently
@@ -254,6 +255,7 @@ final class AppModel: ObservableObject {
             if let page = pendingHandoff {
                 BrowserLink.open(page.url)
                 setStatus("Put “\(page.title)” back")
+                pulseGlow(.inward, message: "Put back — nothing took it")
                 pendingHandoff = nil
             }
             screenSource.stopCapture()
@@ -269,7 +271,7 @@ final class AppModel: ObservableObject {
             if let page = pendingHandoff {
                 transport.send(.handoff, payload: page.url.absoluteString, to: peer)
                 setStatus("✅ Handed “\(page.title)” to \(peer.displayName)")
-                pulseGlow(.outward)
+                pulseGlow(.outward, message: "Sent to \(peer.displayName)")
                 pendingHandoff = nil
                 streamingTarget = nil
                 return
@@ -329,10 +331,10 @@ final class AppModel: ObservableObject {
     }
 
     /// Play the glow for something leaving or arriving.
-    private func pulseGlow(_ direction: GlowDirection) {
+    private func pulseGlow(_ direction: GlowDirection, message: String? = nil) {
         glowDirection = direction
         glowTrigger &+= 1
-        glowOverlay.flash(direction)
+        glowOverlay.flash(direction, message: message)
     }
 
     /// Show a message and protect it from being overwritten for a moment.
@@ -376,7 +378,7 @@ extension AppModel: PeerTransportDelegate {
                 guard let payload, let url = URL(string: payload) else { return }
                 BrowserLink.open(url)
                 self.setStatus("📬 Opened a page from \(peer.displayName)")
-                self.pulseGlow(.inward)
+                self.pulseGlow(.inward, message: "Received from \(peer.displayName)")
                 self.apply(self.coordinator.reduce(.remoteEndedCast(peer)))
                 return
             }
