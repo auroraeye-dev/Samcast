@@ -20,7 +20,17 @@ final class ReceiverModel: ObservableObject {
     private var debouncer = GestureDebouncer(holdDuration: 0.6)
 
     let handTracker = VisionHandTracker()
-    private let transport = MultipeerTransport(kind: .iPad)
+    /// What this device calls itself to peers.
+    ///
+    /// Hardcoded to .iPad until now, which was harmless while an iPad was the
+    /// only iOS device this had ever run on — but an iPhone would introduce
+    /// itself as an iPad, and the point of the device list is to tell you
+    /// which machine you are about to throw a page at.
+    private static var deviceKind: Peer.Kind {
+        UIDevice.current.userInterfaceIdiom == .phone ? .iPhone : .iPad
+    }
+
+    private let transport = MultipeerTransport(kind: ReceiverModel.deviceKind)
     private let trust = TrustStore()
 
     /// A link grabbed here, waiting to be dropped on another device.
@@ -28,7 +38,7 @@ final class ReceiverModel: ObservableObject {
 
     /// This device's persistent Samcast name, shown so you know what to look
     /// for on the other device.
-    let identity = DeviceIdentity.loadOrCreate(kind: .iPad)
+    let identity = DeviceIdentity.loadOrCreate(kind: ReceiverModel.deviceKind)
 
     @Published private(set) var state: SessionState = .idle
     @Published private(set) var peers: [Peer] = []
