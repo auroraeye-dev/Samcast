@@ -480,6 +480,13 @@ final class AppModel: ObservableObject {
                     QCLog.write("STREAM STALLED: 3s after start, no frame has been captured")
                     self.setStatus("Nothing captured — bring the window you want to share to the front, then try again", hold: 10)
                 }
+
+                // Answer immediately with the last frame we already have,
+                // rather than waiting for the shared window to change.
+                if let cached = lastCapturedFrame {
+                    QCLog.write("priming stream with the last captured frame")
+                    encoder.encode(cached, at: 0)
+                }
             } catch {
                 setStatus("Couldn't start streaming: \(error.localizedDescription)")
             }
@@ -569,6 +576,18 @@ final class AppModel: ObservableObject {
     /// traded against each other at all.
     private let encoder = H264Encoder()
     private var usingH264 = true
+
+    /// The most recent frame captured, kept even when nobody is watching.
+    ///
+    /// ScreenCaptureKit only delivers a frame when the screen actually
+    /// changes — unchanged ones are marked idle and skipped, which is what
+    /// makes a still window nearly free. But it also means that when someone
+    /// finally opens their hand, there may be nothing to send: capture began
+    /// at the fist, its first frame was discarded because no one had asked
+    /// yet, and a static window produces nothing after that. The receiver
+    /// then waits, sometimes ten seconds, for the sender to happen to move
+    /// something. Holding the last frame lets the answer be immediate.
+    private var lastCapturedFrame: CVPixelBuffer?
     /// Frames sent since this stream began. Distinct from `framesSent`, which
     /// is a per-second rate window and resets constantly — reading that for
     /// "has anything been sent?" made STREAM START repeat every second and
@@ -578,6 +597,10 @@ final class AppModel: ObservableObject {
     private var rateWindowStart = Date()
 
     private func forwardFrame(_ pixelBuffer: CVPixelBuffer) {
+        // Kept before the guard below, precisely so there is something to
+        // send the instant a receiver appears.
+        lastCapturedFrame = pixelBuffer
+
         guard let target = streamingTarget else {
             // Capture is running but nobody has asked for it yet. Worth
             // saying once, because "capturing" and "sending" look identical
