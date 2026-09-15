@@ -19,8 +19,28 @@ final class Permissions: ObservableObject {
     /// than the preflight check (that can misreport inside a sandbox).
     @Published var screenRecordingFailed = false
 
+    /// Enough to use the app at all.
+    ///
+    /// Only the camera is essential — without it there are no gestures and
+    /// nothing works. Screen Recording is needed solely to share a window or
+    /// take a screenshot, and requiring it hid the whole interface from a
+    /// machine that only wanted to pass links. That matters most on a Mac
+    /// that is not yours to configure: privacy permissions are tied to an
+    /// app's signature, so every rebuild of an ad-hoc signed build asks
+    /// again, and there is no reason to ask for something the user is not
+    /// going to use.
+    var essentialGranted: Bool {
+        camera == .granted
+    }
+
+    /// Everything, including the optional capture permission.
     var allGranted: Bool {
-        camera == .granted && screenRecording == .granted && !screenRecordingFailed
+        essentialGranted && screenRecording == .granted && !screenRecordingFailed
+    }
+
+    /// True when links work but sharing a window does not.
+    var canShareWindows: Bool {
+        screenRecording == .granted && !screenRecordingFailed
     }
 
     init() { refresh() }

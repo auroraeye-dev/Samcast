@@ -44,8 +44,11 @@ struct ContentView: View {
                 Image(nsImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-            } else if !model.permissions.allGranted {
-                // Guide setup instead of silently doing nothing.
+            } else if !model.permissions.essentialGranted {
+                // Only the camera blocks the app. Screen Recording is
+                // optional and is offered from the idle screen instead, so a
+                // Mac that only passes links is never held at a setup wall
+                // for a permission it does not need.
                 PermissionsView(permissions: model.permissions)
             } else {
                 // No live camera preview — it feels awkward and isn't needed.

@@ -27,8 +27,8 @@ struct PermissionsView: View {
                             : permissions.openCameraSettings()
                     }
 
-                row(title: "Screen Recording",
-                    reason: "Captures the screen to share and to take screenshots.",
+                row(title: "Screen Recording  (optional)",
+                    reason: "Only needed to share a window or take a screenshot. Links work without it.",
                     state: permissions.screenRecordingFailed ? .denied : permissions.screenRecording,
                     action: "Open Settings") {
                         permissions.requestScreenRecording()
@@ -37,7 +37,7 @@ struct PermissionsView: View {
             .frame(maxWidth: 520)
 
             VStack(spacing: 6) {
-                Text("After enabling Screen Recording, macOS requires a restart of the app.")
+                Text("Camera is required. Screen Recording is optional — grant it only if you want to share windows. macOS requires a restart of the app after enabling it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 HStack(spacing: 10) {
