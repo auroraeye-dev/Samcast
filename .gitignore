@@ -18,3 +18,7 @@ Samcast.xcodeproj/
 
 # Misc
 *.log
+
+# Generated from the source artwork by scripts/make-icons.swift.
+# The Contents.json is tracked; the PNGs are build output.
+Assets.xcassets/**/*.png
