@@ -446,6 +446,7 @@ final class AppModel: ObservableObject {
                 // A stream that starts and then produces nothing looks
                 // identical to one that was never asked for. Say so.
                 framesThisStream = 0
+                resetEncoding()
                 streamWatchdog?.cancel()
                 streamWatchdog = Task { @MainActor [weak self] in
                     try? await Task.sleep(nanoseconds: 3_000_000_000)
@@ -493,6 +494,27 @@ final class AppModel: ObservableObject {
 
     // MARK: Streaming
 
+    // MARK: Adaptive encoding
+    //
+    // A fixed quality cannot work: the same settings that give a 90 KB frame
+    // for a Keynote slide give 357 KB for a text-heavy window, and at 10 fps
+    // that is 3.2 MB/s — far past what MultipeerConnectivity will carry to an
+    // iPad. Reliable delivery makes overshooting worse, not better: nothing is
+    // dropped, so it queues, latency grows, and the session collapses.
+    //
+    // So aim at a byte budget instead, and let quality and scale float to
+    // meet it. A softer picture that arrives beats a sharp one that kills the
+    // stream.
+
+    /// Roughly 6 Mbit/s — comfortable for peer-to-peer Wi-Fi with headroom.
+    private let targetBytesPerSecond = 750 * 1024
+
+    private var jpegQuality: CGFloat = 0.75
+    private var encodeScale: CGFloat = 1.0
+    private var budgetBytes = 0
+    private var budgetStart = Date()
+    private var framesSkipped = 0
+
     private var framesSent = 0
     private var bytesSent = 0
     private var loggedIdleCapture = false
@@ -516,10 +538,25 @@ final class AppModel: ObservableObject {
             return
         }
         loggedIdleCapture = false
-        guard let data = jpeg(from: pixelBuffer) else {
+
+        // Shed load rather than queue it. Skipping a frame costs one stale
+        // picture; queueing past the link's capacity costs the whole session.
+        let now = Date()
+        if now.timeIntervalSince(budgetStart) >= 1 {
+            budgetBytes = 0
+            budgetStart = now
+        }
+        guard budgetBytes < targetBytesPerSecond else {
+            framesSkipped += 1
+            return
+        }
+
+        guard let data = jpeg(from: pixelBuffer, quality: jpegQuality, scale: encodeScale) else {
             QCLog.write("frame dropped: JPEG encode failed")
             return
         }
+        budgetBytes += data.count
+        adaptEncoding(lastFrameBytes: data.count)
         if framesThisStream == 0 {
             QCLog.write("STREAM START -> \(target.displayName), first frame \(data.count / 1024) KB")
         }
@@ -530,20 +567,57 @@ final class AppModel: ObservableObject {
         bytesSent += data.count
         let elapsed = Date().timeIntervalSince(rateWindowStart)
         if elapsed >= 1 {
-            QCLog.write(String(format: "stream %.1f fps, %.0f KB/s, avg frame %.0f KB",
+            QCLog.write(String(format: "stream %.1f fps, %.0f KB/s, avg frame %.0f KB, q%.2f scale %.0f%%, %d skipped",
                                Double(framesSent) / elapsed,
                                Double(bytesSent) / 1024 / elapsed,
-                               Double(bytesSent) / 1024 / Double(max(framesSent, 1))))
-            framesSent = 0; bytesSent = 0; rateWindowStart = Date()
+                               Double(bytesSent) / 1024 / Double(max(framesSent, 1)),
+                               jpegQuality, encodeScale * 100, framesSkipped))
+            framesSent = 0; bytesSent = 0; framesSkipped = 0; rateWindowStart = Date()
         }
     }
 
-    /// 0.8 rather than 0.55. At the old setting JPEG's ringing around thin
-    /// strokes made small text genuinely hard to read, which defeats the
-    /// purpose of sharing a document at all. The bandwidth for it comes from
-    /// no longer re-sending unchanged frames.
-    private func jpeg(from pixelBuffer: CVPixelBuffer, quality: CGFloat = 0.8) -> Data? {
-        let image = CIImage(cvPixelBuffer: pixelBuffer)
+    /// Steer quality and scale toward the byte budget.
+    ///
+    /// Quality is spent first and scale only once quality bottoms out, because
+    /// a slightly soft full-size window stays readable while a shrunken one
+    /// does not. Recovery is deliberately slower than backing off — climbing
+    /// as eagerly as we retreat just oscillates.
+    private func adaptEncoding(lastFrameBytes: Int) {
+        let targetFrame = targetBytesPerSecond / max(screenSource.framesPerSecond, 1)
+        if lastFrameBytes > targetFrame * 6 / 5 {
+            if jpegQuality > 0.40 {
+                jpegQuality -= 0.05
+            } else if encodeScale > 0.60 {
+                encodeScale -= 0.05
+            }
+        } else if lastFrameBytes < targetFrame * 3 / 5 {
+            if encodeScale < 1.0 {
+                encodeScale = min(1.0, encodeScale + 0.05)
+            } else if jpegQuality < 0.82 {
+                jpegQuality += 0.02
+            }
+        }
+    }
+
+    private func resetEncoding() {
+        jpegQuality = 0.75
+        encodeScale = 1.0
+        budgetBytes = 0
+        budgetStart = Date()
+        framesSkipped = 0
+    }
+
+    private func jpeg(from pixelBuffer: CVPixelBuffer, quality: CGFloat, scale: CGFloat) -> Data? {
+        var image = CIImage(cvPixelBuffer: pixelBuffer)
+        if scale < 0.999 {
+            // Lanczos rather than an affine transform: downscaling text with
+            // a cheap filter is what makes a shrunken window unreadable.
+            let filter = CIFilter(name: "CILanczosScaleTransform")
+            filter?.setValue(image, forKey: kCIInputImageKey)
+            filter?.setValue(scale, forKey: kCIInputScaleKey)
+            filter?.setValue(1.0, forKey: kCIInputAspectRatioKey)
+            if let output = filter?.outputImage { image = output }
+        }
         let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
         return ciContext.jpegRepresentation(of: image, colorSpace: colorSpace,
                                              options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: quality])

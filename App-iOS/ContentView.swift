@@ -12,8 +12,18 @@ struct ContentView: View {
                 // A live window from another device takes over the screen.
                 VStack(spacing: 0) {
                     HStack {
-                        Text(model.statusLine)
-                            .font(.caption).foregroundStyle(.gray).lineLimit(1)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(model.statusLine)
+                                .font(.caption).foregroundStyle(.gray).lineLimit(1)
+                            // Without this, a frozen picture and a healthy one
+                            // look identical from across the room.
+                            if !model.streamStats.isEmpty {
+                                Text(model.streamStats)
+                                    .font(.caption2.monospaced())
+                                    .foregroundStyle(.gray.opacity(0.7))
+                                    .lineLimit(1)
+                            }
+                        }
                         Spacer()
                         Button("Stop") { model.stopWatching() }
                             .font(.callout)

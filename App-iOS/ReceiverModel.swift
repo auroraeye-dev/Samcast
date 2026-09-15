@@ -34,6 +34,69 @@ final class ReceiverModel: ObservableObject {
     @Published private(set) var peers: [Peer] = []
     @Published private(set) var currentGesture: HandGesture = .none
     @Published private(set) var receivedImage: UIImage?
+
+    /// Live stream health, shown on screen. The Mac writes its side to a log
+    /// file; the iPad had no equivalent, so "it stopped" could not be told
+    /// apart from "it never started" or "it is still arriving but frozen".
+    @Published private(set) var streamStats: String = ""
+
+    /// Frames arrive on a network thread and must reach SwiftUI on the main
+    /// one. Reliable delivery applies no backpressure, so queueing a
+    /// main-actor hop per frame lets that queue grow without bound the moment
+    /// decoding falls behind — and the picture simply freezes. Keeping only
+    /// the newest frame bounds the work: a frame already superseded by a newer
+    /// one is worth nothing.
+    ///
+    /// Its own class because the model is `@MainActor`, and this state is
+    /// touched from the network thread; the lock is what makes that safe.
+    private final class FrameInbox: @unchecked Sendable {
+        private let lock = NSLock()
+        private var latest: UIImage?
+        private var scheduled = false
+        private var received = 0
+        private var dropped = 0
+        private var bytes = 0
+        private var lastArrival = Date()
+
+        /// Store a frame. Returns true when the caller should schedule a
+        /// drain — false means one is already pending and will pick this up.
+        func offer(_ image: UIImage, bytes byteCount: Int) -> Bool {
+            lock.lock(); defer { lock.unlock() }
+            latest = image
+            received += 1
+            bytes += byteCount
+            lastArrival = Date()
+            if scheduled {
+                dropped += 1
+                return false
+            }
+            scheduled = true
+            return true
+        }
+
+        func take() -> UIImage? {
+            lock.lock(); defer { lock.unlock() }
+            let image = latest
+            latest = nil
+            scheduled = false
+            return image
+        }
+
+        func drainCounters() -> (received: Int, dropped: Int, bytes: Int) {
+            lock.lock(); defer { lock.unlock() }
+            let snapshot = (received, dropped, bytes)
+            received = 0; dropped = 0; bytes = 0
+            return snapshot
+        }
+
+        var secondsSinceLastFrame: TimeInterval {
+            lock.lock(); defer { lock.unlock() }
+            return Date().timeIntervalSince(lastArrival)
+        }
+    }
+
+    private nonisolated let inbox = FrameInbox()
+    private var statsWindow = Date()
     /// True while a live window is being streamed here. Apps can't be handed
     /// over the way a link can — a running process stays on its own machine —
     /// so what arrives is a live picture of that window instead.
@@ -430,11 +493,20 @@ extension ReceiverModel: PeerTransportDelegate {
             print("QC: frame from \(peer.displayName) was not Data")
             return
         }
-        guard let image = UIImage(data: data) else {
+        guard let decoded = UIImage(data: data) else {
             print("QC: frame of \(data.count / 1024) KB from \(peer.displayName) failed to decode")
             return
         }
+        // `UIImage(data:)` defers the actual decode until the image is drawn,
+        // which would put it on the main thread at display time. Forcing it
+        // here keeps that cost on the network thread, where there is slack.
+        let image = decoded.preparingForDisplay() ?? decoded
+
+        guard inbox.offer(image, bytes: data.count) else { return }
+
         Task { @MainActor in
+            guard let next = self.inbox.take() else { return }
+
             // Frames only arrive because this device asked for them, and the
             // session may already have settled back to idle, so don't require
             // an exact state match — that silently discarded valid frames.
@@ -444,9 +516,29 @@ extension ReceiverModel: PeerTransportDelegate {
                 self.currentPage = nil          // a live window takes over
                 self.statusLine = "Watching \(peer.displayName)'s window"
                 self.pulseGlow(.inward)
-                print("QC: stream started from \(peer.displayName)")
             }
-            self.receivedImage = image
+            self.receivedImage = next
+            self.updateStreamStats()
         }
+    }
+
+    /// Refresh the on-screen counters about once a second.
+    @MainActor
+    private func updateStreamStats() {
+        let elapsed = Date().timeIntervalSince(statsWindow)
+        guard elapsed >= 1 else { return }
+        let (received, dropped, bytes) = inbox.drainCounters()
+        statsWindow = Date()
+        streamStats = String(format: "%.0f fps · %.0f KB/s · %d KB/frame · %d skipped",
+                             Double(received) / elapsed,
+                             Double(bytes) / 1024 / elapsed,
+                             Double(bytes) / 1024 / Double(max(received, 1)),
+                             dropped)
+    }
+
+    /// True when we believe we are watching but nothing has arrived recently.
+    @MainActor
+    var streamIsStalled: Bool {
+        isReceivingStream && inbox.secondsSinceLastFrame > 2
     }
 }
