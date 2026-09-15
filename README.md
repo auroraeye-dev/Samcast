@@ -1,185 +1,217 @@
 <div align="center">
 
+<img src="App-iOS/Resources/Assets.xcassets/AppIcon.appiconset/icon_1024.png" width="128" alt="Samcast">
+
 # Samcast
 
-### Move what you're working on to another device — with a wave of your hand.
+### Move what you're working on to another device with a hand gesture.
 
-<img src="docs/hero.svg" width="840" alt="A page is grabbed from a Mac with a closed hand, travels, and lands on an iPad with an open hand">
+[![Download](https://img.shields.io/badge/Download%20for%20macOS-.dmg-1f6feb?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/auroraeye-dev/Samcast/releases/latest)
 
-![Platform](https://img.shields.io/badge/macOS-13%2B-1f6feb?style=flat-square&logo=apple&logoColor=white)
-![Platform](https://img.shields.io/badge/iPadOS-16%2B-1f6feb?style=flat-square&logo=apple&logoColor=white)
-![Swift](https://img.shields.io/badge/Swift-5.9-f05138?style=flat-square&logo=swift&logoColor=white)
-![Tests](https://img.shields.io/badge/core%20tests-75%20passing-2da44e?style=flat-square)
+![macOS](https://img.shields.io/badge/macOS-13%2B-1f6feb?style=flat-square&logo=apple&logoColor=white)
+![iPadOS](https://img.shields.io/badge/iPadOS-16%2B-1f6feb?style=flat-square)
+![iOS](https://img.shields.io/badge/iOS-16%2B-1f6feb?style=flat-square)
+![Tests](https://img.shields.io/badge/core%20checks-81%20passing-2da44e?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-8250df?style=flat-square)
 
 </div>
 
 ---
 
-## The gestures
+## What it does
 
 | | Gesture | What happens |
 |:--:|---|---|
-| ✊ | **Close your hand** | Grabs the page — or window — you're looking at |
+| ✊ | **Close your hand** | Offers the page or window you're in |
 | 🖐️ | **Open your hand** *at another device* | It lands **there** |
 | ✌️ | **Peace sign** | Screenshot, saved to your Desktop |
 
 No clicking, no menus, no picking a device from a list. **The device you walk
-up to is the one that receives it** — because it's the one that can see your hand.
+up to is the one that receives it** — because it's the one that can see your
+hand.
 
-### Except when it would cost you something
+### A link doesn't get streamed. It moves.
 
-Hand tracking is never perfect — a hand closing around a mug looks a lot like
-a deliberate fist. On an ordinary page a misread costs you a reopened tab. On
-a **live Google Meet, Zoom, Teams or Webex call** it drops you out of the
-meeting in front of everyone.
-
-So those get asked about first, in a prompt over whatever app you're actually
-looking at:
-
-> **Move this Google Meet to another device?**
-> Google Meet · abc-defg-hij will close on this Mac, and you'll leave the call here.
-> `Stay here` `Move the call`
-
-Nothing is closed, announced or timed until you answer — and **doing nothing
-means no**, because someone who didn't mean to make that gesture won't reach
-for a button. Moving a call to another device is a perfectly good thing to
-want, so it's never blocked; it just has to be meant.
-
-The rule lives in `SamcastCore` and is shared by the Mac, iOS and Windows
-builds, with `docs/meeting-vectors.json` pinning all three to the same answer
-— including the negative cases. A prompt people learn to dismiss unread
-protects nobody, so `meet.google.com` on its own, Zoom's pricing page and the
-like must stay silent, and there are tests for each.
-
----
-
-## A link doesn't get streamed. It *moves*.
-
-This is the part that makes Samcast different from screen sharing:
-
-```mermaid
-sequenceDiagram
-    participant M as 💻 Mac
-    participant P as 📱 iPad
-    M->>M: ✊ the tab closes here
-    M-->>P: offers the page
-    Note over P: 🖐️ open your hand
-    P->>M: I'll take it
-    M->>P: the URL itself — a few bytes
-    Note over P: the real page opens,<br/>fully usable, other tabs untouched
-```
-
-Grab a web page and **the tab closes on your Mac**. Open your hand at your
-iPad and the *actual page* opens in its browser — instantly, at full fidelity,
-scrollable and clickable, leaving its other tabs alone.
+Grab a web page and **the tab closes on your Mac**. Open your hand at another
+device and the *real page* opens in its browser — instantly, at full
+resolution, in that machine's own browser, logged into its own accounts.
 
 **Apps can't move like that.** A running process can't leave its machine, so a
-non-browser window is sent as a **live picture** instead, while the app keeps
-running on the original device. Samcast picks the right mechanism for you.
+non-browser window is **mirrored** instead: the app keeps running where it is,
+and only its picture travels (H.264, full resolution, ~15 fps).
+
+### It asks before handing over a live call
+
+Hand tracking is never perfect, and a hand closing around a mug looks like a
+fist. On an ordinary page a misread costs a reopened tab. On a **Google Meet,
+Zoom, Teams or Webex call** it drops you out of the meeting.
+
+So those get a prompt — over your browser, where you're actually looking —
+and **doing nothing means no**. Moving a call to another device is a
+perfectly good thing to want; it just has to be meant.
 
 ---
 
-## Get it
+## Install
 
-| Platform | How | State |
-|---|---|---|
-| **macOS 13+** | [Download the `.dmg`](https://github.com/auroraeye-dev/Samcast/releases/latest) | Sends and receives |
-| **iPadOS / iOS 16+** | Build from source — **Apple allows no download** | Receives; sends links |
-| **Windows 10+** | [Source zip](https://github.com/auroraeye-dev/Samcast/releases/latest) | Experimental, never run on Windows |
+### macOS — download
 
-### macOS
+**[Download Samcast.dmg](https://github.com/auroraeye-dev/Samcast/releases/latest)**, open it, drag Samcast to Applications.
 
-Open the `.dmg` and drag Samcast to Applications. It is signed but **not
-notarized** — that needs a paid Apple Developer membership — so macOS warns
-on first open: **right-click ▸ Open ▸ Open**.
+macOS will refuse to open it on the first try, because the app is **not
+notarized** — that needs a paid Apple Developer membership. Get past it with:
 
-Building from source skips the warning entirely, because macOS only
-quarantines apps that were downloaded:
+**Right-click the app ▸ Open ▸ Open.** Once only.
+
+<details>
+<summary>Or build it yourself — no warning at all</summary>
+
+<br>
+
+macOS only quarantines *downloaded* apps, so one you build opens normally:
 
 ```bash
 git clone https://github.com/auroraeye-dev/Samcast.git
 cd Samcast
-brew install xcodegen           # one-time
-./scripts/package.sh --run      # build, install to /Applications, launch
+brew install xcodegen          # one-time
+./scripts/package.sh --run     # build, install to /Applications, launch
 ```
 
-Requires Xcode from the App Store.
+Needs Xcode from the App Store.
 
-### iPad and iPhone
+</details>
 
-**There is no download, and there cannot be one.** Apple provides no way to
-install an iOS app from a website or a release page — an `.ipa` file here
-would be inert. The only routes are the App Store or TestFlight, both of
-which require the paid Apple Developer Program, or building it yourself:
+**First run** asks for **Camera** — required, it's how gestures work.
+**Screen Recording** is optional: it's only needed to share a window or take
+a screenshot, and links work fine without it. macOS requires one relaunch
+after Screen Recording is granted; there's a button for that.
+
+### iPhone and iPad — build it, there is no download
+
+**Apple provides no way to install an iOS app from a website or a release
+page.** An `.ipa` file here would be inert. That is a platform rule, not a
+missing feature. The routes are:
+
+<table>
+<tr><th>Route</th><th>Needs</th><th>Lasts</th></tr>
+<tr>
+  <td><b>Xcode, free account</b></td>
+  <td>A Mac with Xcode, the device plugged in</td>
+  <td><b>7 days</b>, then rebuild</td>
+</tr>
+<tr>
+  <td><b>TestFlight</b></td>
+  <td>Apple Developer Program ($99/yr)</td>
+  <td>90 days, installs over the air</td>
+</tr>
+</table>
+
+To build it yourself:
 
 ```bash
+git clone https://github.com/auroraeye-dev/Samcast.git
+cd Samcast
 brew install xcodegen && xcodegen generate
-open Samcast.xcodeproj        # SamcastiOS scheme, pick your device
+open Samcast.xcodeproj
 ```
 
-With a free Apple account the app stops working after 7 days and has to be
-rebuilt. The build is universal, so the same one runs on iPhone and iPad.
+Pick the **SamcastiOS** scheme, choose your connected device, and run. On the
+device, trust the developer certificate under **Settings ▸ General ▸ VPN &
+Device Management**.
 
-### Windows
-
-Experimental, and the honest state is in
-[the bridge repo](../Samcast-Bridge): the protocol underneath is tested,
-but the Windows-only parts have only ever been compiled, never run on
-Windows. It also cannot talk to the macOS **app** — only to the headless
-`BridgeCLI`, because the app speaks Apple-only MultipeerConnectivity.
-
-### First run
-
-Samcast asks for **Camera** (to read gestures) and **Screen Recording** (to
-grab windows and take screenshots). Its setup screen links straight to the
-right System Settings pane, and offers a relaunch — macOS requires one after
-granting Screen Recording.
-
-## Devices and trust
-
-Every install picks a permanent, friendly name like `swift-heron-3172` and is
-discovered by that, rather than an OS device name that can change or collide.
-
-> **Trust decides *whether* a device may hand you things. Your hand decides
-> *where* they go.** A device is approved once, with a button, the first time
-> it offers you something. After that it's remembered and your open hand is
-> enough — but taking something *always* needs the gesture at the destination.
-
-Devices find each other over Apple's peer-to-peer Wi-Fi — the same mechanism
-AirDrop uses, with Bluetooth assisting discovery. No network setup, no pairing,
-no internet, and nothing leaves your local network.
+One build serves both — it's universal, so the same app runs on iPhone and
+iPad.
 
 ---
 
-## Platforms
+## What works
 
-| Platform | Status | Notes |
-|---|---|---|
-| **macOS 13+** | ✅ Sends and receives | Grabs the page you're in, or streams the focused window |
-| **iPadOS / iOS 16+** | ✅ Receives · ⚠️ sends deliberately | See below |
-| **Windows** | 🔭 Planned, separate build | MultipeerConnectivity is Apple-only |
+Verified on real hardware, not simulated:
+
+| Path | Links | Live window |
+|---|:--:|:--:|
+| Mac → Mac | ✅ | ⚠️ untested |
+| Mac → iPad | ✅ | ✅ |
+| iPad → Mac | ✅ | — *(iOS can't capture other apps)* |
+| iPhone | ✅ *(same build as iPad)* | — |
+
+Mirroring runs at full capture resolution (1600 px) and about 15 fps. A window
+nobody is touching costs almost nothing, because unchanged frames are never
+sent.
 
 <details>
-<summary><b>⚠️ Why the iPad is a better receiver than a sender</b></summary>
+<summary><b>What the iPhone and iPad can't do, and why</b></summary>
 
 <br>
 
 Two iOS rules shape this, and neither can be engineered around:
 
 - **No background operation.** iOS suspends a backgrounded app's camera and
-  networking, so Samcast must be open and in front on the iPad to take part
-  at all. macOS has no such rule, which is why a Mac can sit idle and still
-  participate. The app holds the iPad awake while it's in front, so auto-lock
-  can't quietly end a session.
+  networking, so Samcast must be open and in front on an iPhone or iPad to
+  take part. A Mac can sit idle and still participate. The app holds the
+  device awake while it's in front so auto-lock can't quietly end a session.
 - **No reading another app's content.** There's no AppleScript on iOS, so the
-  app can't read Safari's open tab. A link leaves an iPad via the clipboard
-  (copy it, then make a fist) or handed in through `quackcast://send?url=…`,
-  which a Shortcut or share action can use.
+  app can't read Safari's open tab. A link leaves an iPhone or iPad via the
+  clipboard — copy it, then make a fist — or through `quackcast://send?url=…`,
+  which a Shortcut can call.
 
-No iOS app can launch itself on unlock or boot. The nearest equivalent is a
-Shortcuts personal automation — *when joining your home Wi-Fi → open
-Samcast* — which on iPadOS 17+ can run without a prompt.
+Neither can an iOS app launch itself on unlock. The nearest thing is a
+Shortcuts automation — *when joining your home Wi-Fi → open Samcast*.
+
+</details>
+
+---
+
+## How devices find each other
+
+Bonjour over your local Wi-Fi — the same mechanism AirDrop and printers use,
+with no router configuration, no pairing codes, no account, and no internet
+connection. **Both devices must be on the same Wi-Fi network.**
+
+There is **no Bluetooth** anywhere in this app, despite what the gesture
+suggests.
+
+Every install invents a permanent name like `swift-heron-3172` and is
+discovered by that, rather than by a device name that can change or collide.
+Your real device name is never broadcast.
+
+> **Trust decides *whether* a device may hand you things. Your hand decides
+> *where* they go.** An unknown device is approved once, by you. After that
+> it's remembered — but taking something always needs the gesture at the
+> destination. Nothing can be pushed onto you.
+
+If nobody catches a handoff, the page comes back on its own after 20 seconds.
+And Samcast refuses to grab at all when there's no device nearby to send to.
+
+---
+
+## Privacy
+
+- **The camera feed never leaves your device.** Hand tracking runs on-device
+  through Apple's Vision framework. Frames are analysed in memory and
+  discarded — never recorded, stored, or transmitted. What travels is the
+  outcome: "a hand with four fingers extended was seen."
+- **No accounts, no telemetry, no analytics, no outbound internet
+  connection.** Traffic goes directly between your devices; there is no
+  server in the path because there is no server.
+- **Connections are encrypted.** macOS refuses to form an unencrypted peer
+  session.
+- **Nothing is installed or elevated.** No daemon, no login item, no admin
+  rights. State is a preferences file and a log in your own profile.
+  Uninstalling is dragging the app to the Trash.
+
+<details>
+<summary><b>The trade-off worth knowing about</b></summary>
+
+<br>
+
+Reading the frontmost browser tab needs **Apple Events**, which the App
+Sandbox blocks for directly distributed apps — so Samcast runs unsandboxed.
+That is a real trade, and it is why the source is here: you can read exactly
+what it does with that freedom, and build it yourself in two commands.
+
+macOS still gates Camera, Screen Recording and Automation individually, and
+asks you for each.
 
 </details>
 
@@ -190,64 +222,48 @@ Samcast* — which on iPadOS 17+ can run without a prompt.
 Ports and adapters, so the decision-making stays portable and testable:
 
 ```
-SamcastCore ······ pure Swift, Foundation only, zero platform imports
+SamcastCore ········ pure Swift, Foundation only, zero platform imports
 ├── Gesture/ ······· HandLandmarks · GestureClassifier · GestureDebouncer
 ├── Session/ ······· SessionCoordinator · DeviceIdentity · TrustStore
+│                    PageRisk (live-meeting detection)
 └── Ports/ ········· HandTracker · ScreenSource · PeerTransport
 
-Adapters ·········· VisionHandTracker · ScreenCaptureKitSource (macOS)
-                    MultipeerTransport · BrowserLink (macOS)
+SamcastPlatform ···· VisionHandTracker · ScreenCaptureKitSource
+                     H264Encoder · H264DisplayLayer
+                     MultipeerTransport · BrowserLink
 ```
 
-`SamcastCore` holds the gesture maths and the session state machine with no
-Apple frameworks attached, so it runs on any Swift toolchain — and a future
-Windows port would reimplement only the three `Ports` protocols.
-
-## Building & testing
+`SamcastCore` holds the gesture maths, the session state machine and the
+meeting detector with no Apple frameworks attached, so it runs on any Swift
+toolchain.
 
 ```bash
-swift run CoreCheck   # smoke test — works with Command Line Tools alone
-swift test            # full XCTest suite (needs Xcode)
-swift run CastPeer    # a second peer, so casting is testable on one Mac
+swift run CoreCheck   # 81 checks, works with Command Line Tools alone
+swift run CastPeer    # a second peer, to test casting with one Mac
 ```
 
-`CastPeer` is worth knowing about: it joins the same service as the app, shows
-the incoming window live, and reports the frame rate and bandwidth actually
-achieved. It's how the connection-flapping bug was found.
-
-Pushing a `vX.Y.Z` tag runs [`release.yml`](.github/workflows/release.yml),
-which builds a universal app and attaches the DMG and zip to a GitHub Release.
-
-<details>
-<summary><b>Design notes — the non-obvious decisions</b></summary>
-
-<br>
-
-- **Gestures are separated by extended-finger count**, the most reliable thing
-  hand tracking reports: fist (0) grabs, peace (2) screenshots, open palm (4)
-  receives. Earlier designs using a finger snap and a two-handed "T" were
-  dropped — any sharp noise imitated a snap, and hand tracking degrades badly
-  when two hands overlap.
-- **The app is not sandboxed.** Reading the frontmost browser tab needs Apple
-  Events, which the sandbox blocks for directly distributed apps. macOS still
-  gates Camera, Screen Recording and Automation individually. Hardened Runtime
-  *additionally* requires `com.apple.security.automation.apple-events` —
-  without it Apple Events fail silently, with no permission prompt at all.
-- **A stable signing identity is pinned in `project.yml`.** macOS ties privacy
-  permissions to an app's signature, so an ad-hoc signed app (whose signature
-  changes every build) forces users to re-grant Screen Recording after every
-  update.
-- **Streaming is mirroring, not an extended display** — a third-party app
-  cannot become a real external display. Frames are JPEG at 1600px/10fps,
-  and ScreenCaptureKit's `.idle` frames are skipped, so a window nobody is
-  touching costs ~20 KB/s instead of 1.5 MB/s. That saving is what pays for
-  the resolution. H.264 remains the main outstanding work: roughly 10× less
-  bandwidth again, and sharper text while moving.
-
-</details>
+`docs/meeting-vectors.json` pins the live-meeting rule — including the cases
+that must **not** prompt, because a prompt people learn to dismiss unread
+protects nobody.
 
 ---
 
+## Windows
+
+Experimental, and in a separate repository:
+**[Samcast-Bridge](https://github.com/auroraeye-dev/Samcast-Bridge)**.
+
+It replaces MultipeerConnectivity — a closed Apple framework Windows cannot
+speak — with plain UDP and TCP. The protocol is tested in both directions;
+the Windows-specific parts have never been run on Windows. It does not talk
+to this app, only to a headless peer.
+
+---
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
 <div align="center">
-<sub>MIT licensed · built with Swift, Vision, ScreenCaptureKit and MultipeerConnectivity</sub>
+<sub>Built by Satvik Mishra · Swift · Vision · ScreenCaptureKit · VideoToolbox · MultipeerConnectivity</sub>
 </div>
