@@ -11,7 +11,7 @@
 ![macOS](https://img.shields.io/badge/macOS-13%2B-1f6feb?style=flat-square&logo=apple&logoColor=white)
 ![iPadOS](https://img.shields.io/badge/iPadOS-16%2B-1f6feb?style=flat-square)
 ![iOS](https://img.shields.io/badge/iOS-16%2B-1f6feb?style=flat-square)
-![Tests](https://img.shields.io/badge/core%20checks-81%20passing-2da44e?style=flat-square)
+![Tests](https://img.shields.io/badge/core%20checks-93%20passing-2da44e?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-8250df?style=flat-square)
 
 </div>
@@ -85,6 +85,9 @@ Needs Xcode from the App Store.
 **Screen Recording** is optional: it's only needed to share a window or take
 a screenshot, and links work fine without it. macOS requires one relaunch
 after Screen Recording is granted; there's a button for that.
+
+If the peace sign appears to do nothing, that's why — a screenshot needs
+Screen Recording, and the app will say so on screen.
 
 ### iPhone and iPad — build it, there is no download
 
@@ -238,7 +241,7 @@ meeting detector with no Apple frameworks attached, so it runs on any Swift
 toolchain.
 
 ```bash
-swift run CoreCheck   # 81 checks, works with Command Line Tools alone
+swift run CoreCheck   # 93 checks, works with Command Line Tools alone
 swift run CastPeer    # a second peer, to test casting with one Mac
 ```
 
@@ -250,8 +253,13 @@ protects nobody.
 
 ## Windows
 
-Experimental, and in a separate repository:
+Experimental. Download **`Samcast-Windows.zip`** from the
+[latest release](https://github.com/auroraeye-dev/Samcast/releases/latest)
+and read `START-HERE.txt`, or clone
 **[Samcast-Bridge](https://github.com/auroraeye-dev/Samcast-Bridge)**.
+
+Step 1 needs **no `pip install` at all** — the headless peer is pure standard
+library, so you can prove the network works before touching dependencies.
 
 It replaces MultipeerConnectivity — a closed Apple framework Windows cannot
 speak — with plain UDP and TCP. The protocol is tested in both directions;
@@ -259,6 +267,14 @@ the Windows-specific parts have never been run on Windows. It does not talk
 to this app, only to a headless peer.
 
 ---
+
+## Documentation
+
+**[Complete technical documentation](docs/Samcast-Technical-Documentation.pdf)**
+— 38 pages covering the idea and the two assumptions in it that were wrong,
+the architecture, gesture recognition, both networking stacks with real ports,
+the codec work, the safety model, every bug and its cause, and what is still
+open. The source HTML sits beside it so it can be regenerated.
 
 ## License
 
