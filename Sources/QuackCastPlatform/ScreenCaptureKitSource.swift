@@ -20,21 +20,40 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
     /// can see exactly which window left their screen.
     public var onCaptureTarget: ((String) -> Void)?
 
+    /// The pixel dimensions capture actually settled on. Worth reporting on
+    /// its own: "it looks blurry" is unanswerable without knowing whether the
+    /// problem is the capture size or the encoder.
+    public var onCaptureSize: ((Int, Int) -> Void)?
+
     /// Reports why capture could not start. Without this the failure is
     /// invisible: SCShareableContent simply returns an error and the stream
     /// never produces a frame.
-    public var onCaptureError: ((String) -> Void)?
+    ///
+    /// The flag says whether this looks like a *permission* problem. Not every
+    /// capture failure is one — "nothing suitable to capture" is the common
+    /// case — and treating them alike sends the user off to fix a permission
+    /// that was never the problem.
+    public var onCaptureError: ((String, Bool) -> Void)?
 
     /// Target capture frame rate. Low on purpose: this stream crosses a
     /// peer-to-peer Wi-Fi link to a tablet, and a fresh readable frame matters
     /// far more than smooth motion.
-    public var framesPerSecond: Int = 12
+    ///
+    /// Lowered to 10 alongside the resolution increase. What is actually being
+    /// shared is nearly always a document, a design or a slide — legible text
+    /// is worth far more than fluid motion, and unchanged frames are skipped
+    /// entirely, so a still window costs nothing at any rate.
+    public var framesPerSecond: Int = 10
 
-    /// Capture is downscaled to at most this width before encoding. A Retina
-    /// display is far too large to push over a peer-to-peer link frame by
-    /// frame; scaling here (rather than after capture) also saves the encode
-    /// and copy cost of the full-size image.
-    public var maxCaptureWidth: Int = 1100
+    /// Capture is downscaled to at most this width, **in real pixels**,
+    /// before encoding.
+    ///
+    /// This used to be compared against the window's width in *points*, which
+    /// quietly halved the resolution again on any Retina display: a 1400pt
+    /// window is 2800 physical pixels, so asking for 1100 was a 2.5x
+    /// reduction and text arrived unreadable. Comparing pixels to pixels, and
+    /// raising the cap, is most of the sharpness back.
+    public var maxCaptureWidth: Int = 1600
 
     private var stream: SCStream?
     private var isRunning = false
@@ -56,7 +75,8 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
             guard let self else { return }
             if let error {
                 self.isRunning = false
-                self.report("Screen capture blocked: \(error.localizedDescription). Enable Screen Recording for QuackCast in System Settings ▸ Privacy & Security, then reopen the app.")
+                self.report("Screen capture blocked: \(error.localizedDescription). Enable Screen Recording for QuackCast in System Settings ▸ Privacy & Security, then reopen the app.",
+                            isPermissionIssue: true)
                 return
             }
             guard let content, !content.displays.isEmpty else {
@@ -74,8 +94,12 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
                 return
             }
             let filter = SCContentFilter(desktopIndependentWindow: window)
-            let sourceWidth = Int(window.frame.width)
-            let sourceHeight = Int(window.frame.height)
+            // SCWindow.frame is in points; the capture config is in pixels.
+            // Multiplying by the backing scale is what makes a Retina window
+            // arrive sharp rather than softened twice over.
+            let backingScale = NSScreen.main?.backingScaleFactor ?? 2.0
+            let sourceWidth = Int(window.frame.width * backingScale)
+            let sourceHeight = Int(window.frame.height * backingScale)
             let app = window.owningApplication?.applicationName ?? "Window"
             let title = window.title ?? ""
             let label = title.isEmpty ? app : "\(app) — \(title)"
@@ -92,6 +116,14 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
             config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(self.framesPerSecond))
             // Shallow queue: for live sharing a fresh frame beats a backlog.
             config.queueDepth = 3
+            config.showsCursor = true          // pointing at something is half of showing it
+            if #available(macOS 14.0, *) {
+                config.captureResolution = .best
+            }
+
+            let sizeHandler = self.onCaptureSize
+            let capturedWidth = config.width, capturedHeight = config.height
+            DispatchQueue.main.async { sizeHandler?(capturedWidth, capturedHeight) }
 
             let stream = SCStream(filter: filter, configuration: config, delegate: self)
             do {
@@ -146,9 +178,9 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
         return nil
     }
 
-    private func report(_ message: String) {
+    private func report(_ message: String, isPermissionIssue: Bool = false) {
         let handler = onCaptureError
-        DispatchQueue.main.async { handler?(message) }
+        DispatchQueue.main.async { handler?(message, isPermissionIssue) }
     }
 
     public func stopCapture() {
@@ -209,6 +241,20 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
     public func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
         guard type == .screen, CMSampleBufferIsValid(sampleBuffer),
               let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+
+        // ScreenCaptureKit marks a frame `.idle` when nothing on screen
+        // changed, and delivers it anyway. Forwarding those meant a Keynote
+        // slide nobody was touching cost the same 1.5 MB/s as a video — the
+        // bandwidth that should be paying for resolution. Skipping them makes
+        // a still window free, which is what funds the higher quality above.
+        guard let attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: false)
+                as? [[SCStreamFrameInfo: Any]],
+              let info = attachments.first,
+              let rawStatus = info[.status] as? Int,
+              let status = SCFrameStatus(rawValue: rawStatus),
+              status == .complete
+        else { return }
+
         let time = CMSampleBufferGetPresentationTimeStamp(sampleBuffer).seconds
         onFrame?(pixelBuffer, time)
     }

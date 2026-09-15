@@ -227,9 +227,11 @@ which builds a universal app and attaches the DMG and zip to a GitHub Release.
   changes every build) forces users to re-grant Screen Recording after every
   update.
 - **Streaming is mirroring, not an extended display** — a third-party app
-  cannot become a real external display. Frames are JPEG at 1100px/12fps,
-  sized for a wireless link. H.264 is the main outstanding work: roughly 10×
-  less bandwidth and sharper text.
+  cannot become a real external display. Frames are JPEG at 1600px/10fps,
+  and ScreenCaptureKit's `.idle` frames are skipped, so a window nobody is
+  touching costs ~20 KB/s instead of 1.5 MB/s. That saving is what pays for
+  the resolution. H.264 remains the main outstanding work: roughly 10× less
+  bandwidth again, and sharper text while moving.
 
 </details>
 

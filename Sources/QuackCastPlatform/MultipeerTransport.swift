@@ -24,6 +24,17 @@ private func quackCastName() -> String {
 public final class MultipeerTransport: NSObject, PeerTransport {
     public weak var delegate: PeerTransportDelegate?
 
+    /// Where this transport's diagnostics go. The app points it at its log
+    /// file; without it these messages went to stdout, which is nowhere at
+    /// all for an app launched from Finder — so network faults were invisible
+    /// exactly when they mattered.
+    public static var log: ((String) -> Void)?
+
+    private func note(_ message: String) {
+        Self.log?(message)
+        print(message)
+    }
+
     private static let serviceType = "quackcast" // 1–15 chars, [a-z0-9-]
 
     private let localKind: Peer.Kind
@@ -76,30 +87,53 @@ public final class MultipeerTransport: NSObject, PeerTransport {
         // Failures here were swallowed, which hid a one-directional link: the
         // other side's messages arrived while ours silently went nowhere.
         guard let mcID = mcID(for: peer) else {
-            print("QC-net: send \(message.rawValue) FAILED — no peer id for \(peer.displayName)")
+            note("QC-net: send \(message.rawValue) FAILED — no peer id for \(peer.displayName)")
             return
         }
         guard session.connectedPeers.contains(where: { $0.displayName == mcID.displayName }) else {
-            print("QC-net: send \(message.rawValue) FAILED — \(peer.displayName) not in session (connected: \(session.connectedPeers.map(\.displayName)))")
+            note("QC-net: send \(message.rawValue) FAILED — \(peer.displayName) not in session (connected: \(session.connectedPeers.map(\.displayName)))")
             return
         }
         let envelope = ControlEnvelope(control: message, payload: payload)
         guard let data = try? JSONEncoder().encode(envelope) else { return }
         do {
             try session.send(data, toPeers: [mcID], with: .reliable)
-            print("QC-net: sent \(message.rawValue) to \(peer.displayName)")
+            note("QC-net: sent \(message.rawValue) to \(peer.displayName)")
         } catch {
-            print("QC-net: send \(message.rawValue) to \(peer.displayName) THREW \(error.localizedDescription)")
+            note("QC-net: send \(message.rawValue) to \(peer.displayName) THREW \(error.localizedDescription)")
         }
     }
 
-    /// Send an encoded screen frame (e.g. JPEG) to a peer. Unreliable so a
-    /// dropped frame is simply skipped rather than delaying the stream.
+    /// Send an encoded screen frame (e.g. JPEG) to a peer.
+    ///
+    /// Sent **reliably**, despite a stale frame being worth little. Unreliable
+    /// mode is datagram-based and silently refuses payloads past a size
+    /// ceiling, and a JPEG of a window is easily 100–300 KB — so every frame
+    /// disappeared with no error anywhere. A dropped frame you can see beats a
+    /// fast one you cannot.
+    ///
+    /// Failures are reported rather than swallowed, but only once a second:
+    /// at twelve frames a second a broken stream would otherwise bury every
+    /// other line in the log.
     public func sendFrameData(_ frame: Data, to peer: Peer) {
         guard let mcID = mcID(for: peer),
               session.connectedPeers.contains(where: { $0.displayName == mcID.displayName })
-        else { return }
-        try? session.send(frame, toPeers: [mcID], with: .unreliable)
+        else {
+            throttledFrameNote("QC-net: frame dropped — \(peer.displayName) not connected")
+            return
+        }
+        do {
+            try session.send(frame, toPeers: [mcID], with: .reliable)
+        } catch {
+            throttledFrameNote("QC-net: frame of \(frame.count / 1024) KB FAILED — \(error.localizedDescription)")
+        }
+    }
+
+    private var lastFrameNote = Date.distantPast
+    private func throttledFrameNote(_ message: String) {
+        guard Date().timeIntervalSince(lastFrameNote) >= 1 else { return }
+        lastFrameNote = Date()
+        note(message)
     }
 
     public func startStreaming(to peer: Peer) { /* streaming is push-driven via sendFrameData */ }

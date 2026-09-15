@@ -423,7 +423,17 @@ extension ReceiverModel: PeerTransportDelegate {
     }
 
     nonisolated func transport(_ transport: PeerTransport, didReceiveFrame frame: Any, from peer: Peer) {
-        guard let data = frame as? Data, let image = UIImage(data: data) else { return }
+        // Both failures below used to return silently, which made "frames are
+        // not arriving" and "frames arrive but won't decode" look identical
+        // from the iPad — two very different bugs.
+        guard let data = frame as? Data else {
+            print("QC: frame from \(peer.displayName) was not Data")
+            return
+        }
+        guard let image = UIImage(data: data) else {
+            print("QC: frame of \(data.count / 1024) KB from \(peer.displayName) failed to decode")
+            return
+        }
         Task { @MainActor in
             // Frames only arrive because this device asked for them, and the
             // session may already have settled back to idle, so don't require

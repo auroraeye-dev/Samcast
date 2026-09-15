@@ -116,15 +116,32 @@ final class AppModel: ObservableObject {
 
 
         screenSource.onCaptureTarget = { [weak self] label in
+            // Which window was chosen is the first thing you need when a
+            // stream produces nothing, and it was only ever shown in the UI.
+            QCLog.write("capture target: \(label)")
             self?.castTarget = label
         }
 
-        screenSource.onCaptureError = { [weak self] message in
-            guard let self else { return }
-            self.setStatus(message, hold: 12)
-            self.permissions.screenRecordingFailed = true
-            self.permissions.refresh()
+        screenSource.onCaptureSize = { width, height in
+            QCLog.write("capture size: \(width)×\(height) px")
         }
+
+        screenSource.onCaptureError = { [weak self] message, isPermissionIssue in
+            guard let self else { return }
+            QCLog.write("CAPTURE ERROR\(isPermissionIssue ? " (permission)" : ""): \(message)")
+            self.setStatus(message, hold: 12)
+            // Only a genuine permission failure should send the user to
+            // System Settings. "Nothing to cast" is not a permission problem,
+            // and saying it is wastes their time on the wrong fix.
+            if isPermissionIssue {
+                self.permissions.screenRecordingFailed = true
+                self.permissions.refresh()
+            }
+        }
+
+        // Network faults used to print to stdout, which is nowhere for an
+        // app launched from Finder. Send them to the log the user can tail.
+        MultipeerTransport.log = { QCLog.write($0) }
 
         screenSource.onFrame = { [weak self] frame, _ in
             guard let self else { return }
@@ -426,11 +443,24 @@ final class AppModel: ObservableObject {
             do {
                 try screenSource.startCapture()
                 setStatus("Streaming to \(peer.displayName)")
+                // A stream that starts and then produces nothing looks
+                // identical to one that was never asked for. Say so.
+                framesThisStream = 0
+                streamWatchdog?.cancel()
+                streamWatchdog = Task { @MainActor [weak self] in
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    guard let self, !Task.isCancelled, self.streamingTarget != nil,
+                          self.framesThisStream == 0 else { return }
+                    QCLog.write("STREAM STALLED: 3s after start, no frame has been captured")
+                    self.setStatus("Nothing captured — bring the window you want to share to the front, then try again", hold: 10)
+                }
             } catch {
                 setStatus("Couldn't start streaming: \(error.localizedDescription)")
             }
         case .stopStreaming:
             streamingTarget = nil
+            streamWatchdog?.cancel()
+            streamWatchdog = nil
         case .showRemoteScreen:
             receivedImage = nil // frames will populate it
             pulseGlow(.inward)
@@ -465,11 +495,35 @@ final class AppModel: ObservableObject {
 
     private var framesSent = 0
     private var bytesSent = 0
+    private var loggedIdleCapture = false
+    /// Frames sent since this stream began. Distinct from `framesSent`, which
+    /// is a per-second rate window and resets constantly — reading that for
+    /// "has anything been sent?" made STREAM START repeat every second and
+    /// the stall watchdog fire in the middle of a healthy stream.
+    private var framesThisStream = 0
+    private var streamWatchdog: Task<Void, Never>?
     private var rateWindowStart = Date()
 
     private func forwardFrame(_ pixelBuffer: CVPixelBuffer) {
-        guard let target = streamingTarget else { return }
-        guard let data = jpeg(from: pixelBuffer) else { return }
+        guard let target = streamingTarget else {
+            // Capture is running but nobody has asked for it yet. Worth
+            // saying once, because "capturing" and "sending" look identical
+            // from outside and this is where the two diverge.
+            if !loggedIdleCapture {
+                loggedIdleCapture = true
+                QCLog.write("capture running, no stream target yet")
+            }
+            return
+        }
+        loggedIdleCapture = false
+        guard let data = jpeg(from: pixelBuffer) else {
+            QCLog.write("frame dropped: JPEG encode failed")
+            return
+        }
+        if framesThisStream == 0 {
+            QCLog.write("STREAM START -> \(target.displayName), first frame \(data.count / 1024) KB")
+        }
+        framesThisStream += 1
         transport.sendFrameData(data, to: target)
 
         framesSent += 1
@@ -484,7 +538,11 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func jpeg(from pixelBuffer: CVPixelBuffer, quality: CGFloat = 0.55) -> Data? {
+    /// 0.8 rather than 0.55. At the old setting JPEG's ringing around thin
+    /// strokes made small text genuinely hard to read, which defeats the
+    /// purpose of sharing a document at all. The bandwidth for it comes from
+    /// no longer re-sending unchanged frames.
+    private func jpeg(from pixelBuffer: CVPixelBuffer, quality: CGFloat = 0.8) -> Data? {
         let image = CIImage(cvPixelBuffer: pixelBuffer)
         let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
         return ciContext.jpegRepresentation(of: image, colorSpace: colorSpace,
