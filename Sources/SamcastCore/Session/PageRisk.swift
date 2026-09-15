@@ -37,6 +37,11 @@ public struct MeetingMatch: Equatable, Sendable {
 
 public enum PageRiskDetector {
 
+    /// Stable tag for this rule set, so a stored decision can be matched
+    /// against the version of the rules that produced it.
+    static let ruleSetTag: UInt64 = 0x0000_5341_5456_494B
+
+
     /// Assess a URL string. Anything unparseable is treated as ordinary —
     /// this is a safety prompt, not a filter, and it must not block a handoff
     /// it merely failed to understand.

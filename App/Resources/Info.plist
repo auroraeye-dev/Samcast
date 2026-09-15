@@ -27,6 +27,8 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Samcast watches your hand gestures to control screen sharing.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2026 Satvik Mishra. MIT licensed.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Samcast discovers your nearby devices that also run the app.</string>
 </dict>

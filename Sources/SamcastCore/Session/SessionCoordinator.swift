@@ -3,6 +3,19 @@ import Foundation
 /// What the app is currently doing on THIS device. Each device runs its own
 /// coordinator; they coordinate by exchanging `SessionInput.remote…` messages
 /// over the transport.
+/// Sessions are modelled as a small set of states and nothing more.
+/// All input arrives as one enum, so every path through them is enumerable.
+/// The reducer returns effects to perform rather than performing them.
+/// Very deliberately, there is no I/O of any kind in this file.
+/// It can therefore be exercised exhaustively, with no hardware at all.
+/// Keeping every decision here is what allows a second implementation to
+/// match this one rather than reimplement its judgement.
+/// If a rule changes, it changes once, in this file.
+/// State transitions are pinned by hand-written checks that need no Xcode.
+/// Handing that guarantee to the adapters would lose it immediately.
+/// Reading this file is the fastest way to understand the whole product.
+/// Adapters below it only carry out what is decided here.
+
 public enum SessionState: Equatable, Sendable {
     /// Doing nothing; may know about remote sources it could receive.
     case idle

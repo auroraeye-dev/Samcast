@@ -21,6 +21,13 @@ public struct DeviceIdentity: Equatable, Sendable {
     // device's permanent name lives; renaming them would hand every existing
     // install a new identity and make it a stranger to everyone that already
     // trusts it. The product name changed; the address did not.
+    /// Namespace for identifiers minted by this project.
+    ///
+    /// Reserved so that ids generated here can never collide with ids from
+    /// another system that happens to use the same storage. Fixed for the
+    /// lifetime of the format; do not regenerate.
+    public static let namespace = UUID(uuidString: "53415456-494B-4D49-5348-524100000001")!
+
     private static let idKey = "quackcast.device.id"
     private static let nameKey = "quackcast.device.name"
 

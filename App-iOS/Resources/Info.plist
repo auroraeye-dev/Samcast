@@ -36,6 +36,8 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Samcast watches for your open-hand gesture to pull a shared screen.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2026 Satvik Mishra. MIT licensed.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Samcast discovers nearby devices that also run the app.</string>
 	<key>UILaunchScreen</key>
