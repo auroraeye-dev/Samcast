@@ -194,6 +194,15 @@ final class AppModel: ObservableObject {
                 QCLog.write("ignored repeat fist within cancel guard")
                 return
             }
+            // Nowhere to send it. Grabbing would close the tab and hold it
+            // with nobody to hand it to, which looks exactly like the page
+            // simply vanished — the worst failure this app can have.
+            if confirmed == .closedHand, coordinator.state == .idle,
+               transport.connectedPeers.isEmpty {
+                QCLog.write("refused grab: no devices nearby")
+                setStatus("No devices nearby — open QuackCast on the other device first", hold: 5)
+                return
+            }
             let wasIdle = coordinator.state == .idle
             apply(coordinator.reduce(.localGesture(confirmed)))
             if wasIdle, coordinator.state == .armedSource { armedAt = Date() }
@@ -248,7 +257,10 @@ final class AppModel: ObservableObject {
     private func scheduleHandoffRecovery(for page: BrowserLink.Page) {
         recoveryTask?.cancel()
         recoveryTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 120_000_000_000)
+            // 20 seconds. Long enough to turn and raise a hand at the other
+            // device; short enough that a handoff nobody catches reads as
+            // "that didn't work" rather than "my page is gone".
+            try? await Task.sleep(nanoseconds: 20_000_000_000)
             guard !Task.isCancelled else { return }
             guard let self, let pending = self.pendingHandoff,
                   pending.url == page.url else { return }
@@ -329,6 +341,17 @@ final class AppModel: ObservableObject {
             // Prefer handing the *content* over to streaming a picture of it.
             // A page travels as a URL: instant, pixel-perfect, and it opens in
             // the other person's own browser without touching their tabs.
+            // Belt and braces: the gesture path already refuses this, but
+            // nothing should ever close a tab with no peer to receive it.
+            guard !transport.connectedPeers.isEmpty else {
+                QCLog.write("refused grab in effect: no devices nearby")
+                setStatus("No devices nearby — open QuackCast on the other device first", hold: 5)
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, case .armedSource = self.coordinator.state else { return }
+                    self.apply(self.coordinator.reduce(.localGesture(.closedHand)))
+                }
+                return
+            }
             do {
                 let page = try BrowserLink.frontmostPage()
                 QCLog.write("GRABBED \(page.url.absoluteString)")

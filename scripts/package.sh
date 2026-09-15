@@ -32,6 +32,10 @@ mkdir -p dist
 # The project pins a development team so that privacy permissions survive
 # rebuilds on the developer's own machine. A CI runner has no such
 # certificate, so without a fallback every tagged release fails to build.
+# NOTE: expanded below as ${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"} rather than plain
+# "${SIGN_ARGS[@]}". macOS ships bash 3.2, where expanding an EMPTY array under
+# `set -u` is an unbound-variable error — which is exactly the common case here,
+# when the project's own signing identity is used and no overrides are needed.
 SIGN_ARGS=()
 if [[ -n "${SIGN_IDENTITY:-}" ]]; then
   echo "Signing with: $SIGN_IDENTITY"
@@ -45,7 +49,7 @@ fi
 
 xcodebuild -project QuackCast.xcodeproj -scheme QuackCast -configuration Release \
   -derivedDataPath build/dd \
-  ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO "${SIGN_ARGS[@]}" build
+  ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO ${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"} build
 
 APP="build/dd/Build/Products/Release/QuackCast.app"
 
