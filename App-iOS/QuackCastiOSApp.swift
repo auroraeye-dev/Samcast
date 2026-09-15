@@ -20,7 +20,11 @@ struct QuackCastiOSApp: App {
         .onChange(of: scenePhase) { phase in
             // iOS suspends this app in the background, so coming forward is
             // the moment to re-check what can be sent.
-            if phase == .active { model.didBecomeActive() }
+            switch phase {
+            case .active: model.didBecomeActive()
+            case .inactive, .background: model.didResignActive()
+            @unknown default: break
+            }
         }
     }
 }

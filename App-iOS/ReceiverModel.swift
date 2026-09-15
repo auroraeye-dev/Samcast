@@ -175,7 +175,18 @@ final class ReceiverModel: ObservableObject {
     /// does nothing.
     func didBecomeActive() {
         clipboardHasLink = UIPasteboard.general.hasURLs || UIPasteboard.general.hasStrings
+        // Keep the iPad awake while QuackCast is in front. Auto-lock was
+        // quietly ending sessions: the screen sleeps, iOS suspends the app,
+        // and the device drops off the network — so a handoff sent moments
+        // later had nowhere to land. A device left open as a target should
+        // stay a target.
+        UIApplication.shared.isIdleTimerDisabled = true
         updateStatus()
+    }
+
+    /// Let the iPad sleep normally again once QuackCast is not in front.
+    func didResignActive() {
+        UIApplication.shared.isIdleTimerDisabled = false
     }
 
     /// Accept a link handed in from elsewhere, e.g. quackcast://send?url=…
