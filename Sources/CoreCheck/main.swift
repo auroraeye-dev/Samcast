@@ -149,6 +149,43 @@ do {
 }
 
 // ---------------------------------------------------------------------------
+section("Mac to Mac — both ends can be a source")
+do {
+    // Only two Macs can reach this. An iPad is never a source, so it is always
+    // idle and free to receive; two Macs can each arm themselves, and then
+    // neither answers the other — one sits offering while the other ignores
+    // every open hand, and a page closes on the sender and arrives nowhere.
+    let macA = Peer(id: "A", displayName: "Mac A", kind: .mac)
+    let macB = Peer(id: "B", displayName: "Mac B", kind: .mac)
+    var b = SessionCoordinator()
+
+    _ = b.reduce(.localGesture(.closedHand))
+    expectEqual(b.state, .armedSource, "B armed itself first")
+
+    _ = b.reduce(.remoteSourceBecameAvailable(macA))
+    let effects = b.reduce(.localGesture(.openHand))
+    expectEqual(effects, [.stopScreenCapture, .withdrawSourceAvailable,
+                          .requestCastFromPeer(macA), .showRemoteScreen(from: macA)],
+                "an armed device takes what is offered when you open your hand")
+    expectEqual(b.state, .receiving(from: macA), "and becomes the receiver")
+
+    // Its own offer must be withdrawn before it starts receiving, or the far
+    // side is left holding a request against a device that has moved on.
+    expect(effects.firstIndex(of: .withdrawSourceAvailable)! <
+           effects.firstIndex(of: .requestCastFromPeer(macA))!,
+           "it stops offering before it starts asking")
+
+    // With nobody offering, an open hand while armed still does nothing —
+    // you cannot cast to yourself.
+    var c = SessionCoordinator()
+    _ = c.reduce(.localGesture(.closedHand))
+    expectEqual(c.reduce(.localGesture(.openHand)), [], "no source offering, so nothing happens")
+    expectEqual(c.state, .armedSource, "and it stays armed")
+
+    _ = macB   // named for symmetry with the scenario above
+}
+
+// ---------------------------------------------------------------------------
 section("Live-meeting detection (docs/meeting-vectors.json)")
 do {
     // Shared with the Windows build's test suite, so all three platforms agree

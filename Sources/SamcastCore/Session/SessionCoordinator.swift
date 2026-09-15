@@ -115,10 +115,27 @@ public struct SessionCoordinator: Sendable {
             }
 
         case .armedSource:
-            // Closing again disarms. (Opening your own hand can't cast to self.)
+            // Closing again disarms.
             if gesture == .closedHand {
                 state = .idle
                 return [.stopScreenCapture, .withdrawSourceAvailable]
+            }
+
+            // An open hand while armed used to do nothing — the reasoning being
+            // that you cannot cast to yourself. That held only while exactly one
+            // device could ever be a source. Between two Macs both ends can arm
+            // themselves, and then NEITHER can receive: one sits offering, the
+            // other ignores every open hand, and the page closes on the sender
+            // and arrives nowhere.
+            //
+            // So if somebody else is offering, an open hand means what it always
+            // means — give it to me — and this device stops being a source to
+            // take it. Own offer withdrawn first, so the peer is not left
+            // holding a request against a device that has moved on.
+            if gesture == .openHand, let source = preferredSource {
+                state = .receiving(from: source)
+                return [.stopScreenCapture, .withdrawSourceAvailable,
+                        .requestCastFromPeer(source), .showRemoteScreen(from: source)]
             }
             return []
 
