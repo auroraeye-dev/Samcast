@@ -1,173 +1,215 @@
-# QuackCast
+<div align="center">
 
-Move what you're working on to another device with a **hand gesture**.
+# 🦆 QuackCast
 
-- ✊ **Close your hand** → grab the page (or window) you're in
-- 🖐️ **Open your hand at another device** → it lands there
-- ✌️ **Peace sign** → screenshot to your Desktop
+### Move what you're working on to another device — with a wave of your hand.
 
-**A link doesn't get streamed, it moves.** Grab a web page and the tab closes
-on your Mac; open your hand at your iPad and the *real page* opens in its
-browser — instantly, at full fidelity, fully usable, leaving their other tabs
-alone. Anything that isn't a web page falls back to live-streaming that one
-window.
+<img src="docs/hero.svg" width="840" alt="A page is grabbed from a Mac with a closed hand, travels, and lands on an iPad with an open hand">
 
-Devices find each other automatically over Apple's peer-to-peer Wi-Fi (the same
-mechanism AirDrop uses), with Bluetooth assisting discovery. Only devices also
-running QuackCast appear. No network setup, no pairing, no internet, nothing
-leaves your local network.
+![Platform](https://img.shields.io/badge/macOS-13%2B-1f6feb?style=flat-square&logo=apple&logoColor=white)
+![Platform](https://img.shields.io/badge/iPadOS-16%2B-1f6feb?style=flat-square&logo=apple&logoColor=white)
+![Swift](https://img.shields.io/badge/Swift-5.9-f05138?style=flat-square&logo=swift&logoColor=white)
+![Tests](https://img.shields.io/badge/core%20tests-33%20passing-2da44e?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT-8250df?style=flat-square)
 
-### Devices and trust
-Each install picks a permanent friendly name such as `swift-heron-3172` and is
-discovered by that, rather than by an OS device name that can change or
-collide.
+</div>
 
-Trust governs *whether* a device may hand you things; it never decides *where*
-they go. A device is approved once, with a button, the first time it offers
-you something — after that it is remembered and your open hand is enough. But
-taking something **always** requires the gesture at the destination, so with
-several devices in the room the one you walk up to is the one that receives.
+---
+
+## The gestures
+
+| | Gesture | What happens |
+|:--:|---|---|
+| ✊ | **Close your hand** | Grabs the page — or window — you're looking at |
+| 🖐️ | **Open your hand** *at another device* | It lands **there** |
+| ✌️ | **Peace sign** | Screenshot, saved to your Desktop |
+
+No clicking, no menus, no picking a device from a list. **The device you walk
+up to is the one that receives it** — because it's the one that can see your hand.
+
+---
+
+## A link doesn't get streamed. It *moves*.
+
+This is the part that makes QuackCast different from screen sharing:
+
+```mermaid
+sequenceDiagram
+    participant M as 💻 Mac
+    participant P as 📱 iPad
+    M->>M: ✊ the tab closes here
+    M-->>P: offers the page
+    Note over P: 🖐️ open your hand
+    P->>M: I'll take it
+    M->>P: the URL itself — a few bytes
+    Note over P: the real page opens,<br/>fully usable, other tabs untouched
+```
+
+Grab a web page and **the tab closes on your Mac**. Open your hand at your
+iPad and the *actual page* opens in its browser — instantly, at full fidelity,
+scrollable and clickable, leaving its other tabs alone.
+
+**Apps can't move like that.** A running process can't leave its machine, so a
+non-browser window is sent as a **live picture** instead, while the app keeps
+running on the original device. QuackCast picks the right mechanism for you.
+
+---
 
 ## Install
 
-### Build from source (recommended, no warnings)
-macOS only attaches its quarantine flag to *downloaded* files, so an app you
-build yourself opens with **no Gatekeeper warning at all**:
+### Build from source — recommended, no warnings
+
+macOS only quarantines *downloaded* files, so an app you build yourself opens
+with **no Gatekeeper warning at all**:
 
 ```bash
 git clone https://github.com/auroraeye-dev/QuackCast.git
 cd QuackCast
-brew install xcodegen          # one-time
-./scripts/package.sh --run     # builds, installs to /Applications, launches
+brew install xcodegen           # one-time
+./scripts/package.sh --run      # build, install to /Applications, launch
 ```
-Requires Xcode (from the App Store).
 
-### Or download a release
-Grab **QuackCast.dmg** from the
-[Releases page](https://github.com/auroraeye-dev/QuackCast/releases), open it and
-drag QuackCast to Applications.
+Requires Xcode from the App Store.
 
-> Downloaded builds are **not notarized**, so macOS will warn the first time.
-> Either **right-click the app ▸ Open ▸ Open**, or clear the quarantine flag:
-> ```bash
-> xattr -dr com.apple.quarantine /Applications/QuackCast.app
-> ```
-> Notarization (which removes the warning entirely) requires a paid Apple
-> Developer Program membership; see *Signing* below.
+<details>
+<summary><b>Or download a release</b></summary>
 
-### First run
-QuackCast asks for **Camera** (to read gestures) and **Screen Recording** (to
-share the screen and take screenshots). The app's setup screen links straight to
-the right System Settings pane. macOS requires a relaunch after granting Screen
-Recording — there's a button for it.
+<br>
 
-## Signing
+Grab **QuackCast.dmg** from the [Releases page](https://github.com/auroraeye-dev/QuackCast/releases),
+open it and drag QuackCast to Applications.
 
-| Goal | Identity | Cost |
-|---|---|---|
-| Run locally, permissions persist across rebuilds | Apple Development (free Apple ID) | Free |
-| Downloads open with no Gatekeeper warning | Developer ID + notarization | $99/yr |
-
-The project pins a stable signing identity in `project.yml`. This matters more
-than it sounds: macOS ties privacy permissions to an app's signature, so an
-ad-hoc signed app (whose signature changes every build) makes users re-grant
-Screen Recording after every update.
-
-To produce a notarized build once you have a Developer ID:
+Downloaded builds are **not notarized**, so macOS warns the first time. Either
+**right-click ▸ Open ▸ Open**, or clear the quarantine flag:
 
 ```bash
-SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
-NOTARY_PROFILE=quackcast ./scripts/package.sh
+xattr -dr com.apple.quarantine /Applications/QuackCast.app
 ```
 
+Removing that warning entirely requires notarization, which needs a paid Apple
+Developer Program membership.
+
+</details>
+
+### First run
+
+QuackCast asks for **Camera** (to read gestures) and **Screen Recording** (to
+grab windows and take screenshots). Its setup screen links straight to the
+right System Settings pane, and offers a relaunch — macOS requires one after
+granting Screen Recording.
+
+---
+
+## Devices and trust
+
+Every install picks a permanent, friendly name like `swift-heron-3172` and is
+discovered by that, rather than an OS device name that can change or collide.
+
+> **Trust decides *whether* a device may hand you things. Your hand decides
+> *where* they go.** A device is approved once, with a button, the first time
+> it offers you something. After that it's remembered and your open hand is
+> enough — but taking something *always* needs the gesture at the destination.
+
+Devices find each other over Apple's peer-to-peer Wi-Fi — the same mechanism
+AirDrop uses, with Bluetooth assisting discovery. No network setup, no pairing,
+no internet, and nothing leaves your local network.
+
+---
 
 ## Platforms
 
 | Platform | Status | Notes |
 |---|---|---|
-| macOS | working | Sends and receives; grabs the page you're in, or streams the focused window |
-| iOS / iPadOS | receives well, sends deliberately | See the limits below |
-| Windows | planned, **separate build** | Would reimplement the `Ports` protocols |
+| **macOS 13+** | ✅ Sends and receives | Grabs the page you're in, or streams the focused window |
+| **iPadOS / iOS 16+** | ✅ Receives · ⚠️ sends deliberately | See below |
+| **Windows** | 🔭 Planned, separate build | MultipeerConnectivity is Apple-only |
 
-### Why the iPad is a better receiver than a sender
+<details>
+<summary><b>⚠️ Why the iPad is a better receiver than a sender</b></summary>
+
+<br>
+
 Two iOS rules shape this, and neither can be engineered around:
 
-* **No background operation.** iOS suspends a backgrounded app's camera and
-  networking, so QuackCast must be open and in front on the iPad to send or
-  receive at all. macOS has no such rule, which is why the Mac can sit idle
-  and still take part. The app keeps the iPad awake while it is in front, so
-  auto-lock doesn't quietly end a session.
-* **No reading another app's content.** There is no AppleScript on iOS, so the
-  app cannot read Safari's open tab. A link leaves an iPad via the clipboard
-  (copy it, then make a fist) or by being handed in through
-  `quackcast://send?url=…`, which a Shortcut or share action can use.
+- **No background operation.** iOS suspends a backgrounded app's camera and
+  networking, so QuackCast must be open and in front on the iPad to take part
+  at all. macOS has no such rule, which is why a Mac can sit idle and still
+  participate. The app holds the iPad awake while it's in front, so auto-lock
+  can't quietly end a session.
+- **No reading another app's content.** There's no AppleScript on iOS, so the
+  app can't read Safari's open tab. A link leaves an iPad via the clipboard
+  (copy it, then make a fist) or handed in through `quackcast://send?url=…`,
+  which a Shortcut or share action can use.
 
-There is also no way for any iOS app to launch itself on unlock or boot. The
-closest equivalent is a Shortcuts personal automation (e.g. *when joining your
-home Wi-Fi → open QuackCast*), which on iPadOS 17+ can run without a prompt.
+No iOS app can launch itself on unlock or boot. The nearest equivalent is a
+Shortcuts personal automation — *when joining your home Wi-Fi → open
+QuackCast* — which on iPadOS 17+ can run without a prompt.
 
-**Windows can't join this network.** MultipeerConnectivity is Apple-only, so a
-Windows build would be its own island unless the transport is replaced with
-something cross-platform (mDNS + WebRTC/QUIC).
+</details>
+
+---
 
 ## Architecture
 
-Hexagonal / ports-and-adapters so the "brain" stays portable:
+Ports and adapters, so the decision-making stays portable and testable:
 
 ```
-QuackCastCore  (pure Swift, Foundation-only — no Apple UI/media frameworks)
-├── Gesture/     HandLandmarks, GestureClassifier (geometry), GestureDebouncer
-├── Session/     SessionCoordinator (state machine), DeviceIdentity, TrustStore
-└── Ports/       HandTracker · ScreenSource · PeerTransport protocols
+QuackCastCore ······ pure Swift, Foundation only, zero platform imports
+├── Gesture/ ······· HandLandmarks · GestureClassifier · GestureDebouncer
+├── Session/ ······· SessionCoordinator · DeviceIdentity · TrustStore
+└── Ports/ ········· HandTracker · ScreenSource · PeerTransport
 
-Platform adapters:
-    VisionHandTracker · ScreenCaptureKitSource (macOS) · MultipeerTransport
-    BrowserLink (reads/closes the frontmost browser tab, macOS)
+Adapters ·········· VisionHandTracker · ScreenCaptureKitSource (macOS)
+                    MultipeerTransport · BrowserLink (macOS)
 ```
 
-`QuackCastCore` has **zero platform imports**, is fully unit-tested, and is
-what a future Windows port reuses — that port only reimplements the three
-`Ports` protocols.
+`QuackCastCore` holds the gesture maths and the session state machine with no
+Apple frameworks attached, so it runs on any Swift toolchain — and a future
+Windows port would reimplement only the three `Ports` protocols.
 
 ## Building & testing
 
-The portable core builds and its logic runs on any Swift toolchain — **you do
-not need full Xcode** for this part:
-
 ```bash
-swift run CoreCheck   # dependency-free smoke test (works with Command Line Tools)
-swift test            # full XCTest suite (requires Xcode)
-swift run CastPeer    # headless receiver: test casting without a second device
+swift run CoreCheck   # smoke test — works with Command Line Tools alone
+swift test            # full XCTest suite (needs Xcode)
+swift run CastPeer    # a second peer, so casting is testable on one Mac
 ```
 
-The macOS **app** requires **full Xcode** (from the App Store) — Command Line
-Tools alone cannot build a signed app bundle with camera/screen entitlements.
+`CastPeer` is worth knowing about: it joins the same service as the app, shows
+the incoming window live, and reports the frame rate and bandwidth actually
+achieved. It's how the connection-flapping bug was found.
 
-`CastPeer` is worth knowing about: it joins the same Multipeer service as the
-app and reports the frame rate and bandwidth actually achieved, so the cast
-pipeline can be tested and measured on one machine. It is how the connection
-flapping bug was found.
+Pushing a `vX.Y.Z` tag runs [`release.yml`](.github/workflows/release.yml),
+which builds a universal app and attaches the DMG and zip to a GitHub Release.
 
-Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`, which builds and
-attaches the DMG/zip to a GitHub Release automatically.
+<details>
+<summary><b>Design notes — the non-obvious decisions</b></summary>
 
-## Notes
+<br>
 
-- **Gestures** are separated by extended-finger count, the most reliable thing
-  hand tracking reports: fist (0) grabs, peace sign (2) screenshots, open palm
-  (4) receives. Earlier designs using a finger snap (audio) and a two-handed
-  "T" were dropped — any sharp noise imitated a snap, and hand tracking
-  degrades badly when two hands overlap.
+- **Gestures are separated by extended-finger count**, the most reliable thing
+  hand tracking reports: fist (0) grabs, peace (2) screenshots, open palm (4)
+  receives. Earlier designs using a finger snap and a two-handed "T" were
+  dropped — any sharp noise imitated a snap, and hand tracking degrades badly
+  when two hands overlap.
 - **The app is not sandboxed.** Reading the frontmost browser tab needs Apple
-  Events, which the sandbox blocks for directly-distributed apps. macOS still
+  Events, which the sandbox blocks for directly distributed apps. macOS still
   gates Camera, Screen Recording and Automation individually. Hardened Runtime
-  additionally requires `com.apple.security.automation.apple-events`, without
-  which Apple Events fail silently with no permission prompt at all.
-- **Apps are streamed, not moved.** A running process cannot leave its
-  machine, so a non-browser window is sent as a live picture while the app
-  keeps running on the original device. Only links genuinely move.
-- **Streaming is mirroring, not an extended display.** It sends JPEG frames
-  (1100px, 12fps) sized for a wireless link rather than for quality. H.264 is
-  the main outstanding work: roughly 10× less bandwidth and sharper text.
-- **Testing without a second device:** `swift run CastPeer` opens a viewer
-  window that joins as a separate peer on the same Mac.
+  *additionally* requires `com.apple.security.automation.apple-events` —
+  without it Apple Events fail silently, with no permission prompt at all.
+- **A stable signing identity is pinned in `project.yml`.** macOS ties privacy
+  permissions to an app's signature, so an ad-hoc signed app (whose signature
+  changes every build) forces users to re-grant Screen Recording after every
+  update.
+- **Streaming is mirroring, not an extended display** — a third-party app
+  cannot become a real external display. Frames are JPEG at 1100px/12fps,
+  sized for a wireless link. H.264 is the main outstanding work: roughly 10×
+  less bandwidth and sharper text.
+
+</details>
+
+---
+
+<div align="center">
+<sub>MIT licensed · built with Swift, Vision, ScreenCaptureKit and MultipeerConnectivity</sub>
+</div>
