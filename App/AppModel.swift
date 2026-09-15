@@ -396,10 +396,21 @@ final class AppModel: ObservableObject {
 
                 beginHandoff(page)
                 return
+            } catch BrowserLink.LinkError.frontAppNotABrowser(let app) {
+                // Not a failure — this is the whole point of window sharing.
+                // It used to report "front app is Freeform, not a supported
+                // browser", which reads as a refusal for every app the
+                // feature exists to handle. Only a browser can have its page
+                // *moved*; everything else gets mirrored, and that is normal.
+                QCLog.write("sharing window of \(app) (not a browser, so not a link)")
+                setStatus("Sharing your \(app) window — open your hand at the device you want it on")
             } catch {
-                // Say why the page couldn't be grabbed instead of silently
-                // streaming, which looks like the feature is broken.
-                setStatus("Streaming the window — \(error.localizedDescription)", hold: 12)
+                // A real failure: the front app *is* a browser, so a link was
+                // expected and something went wrong reading it. Worth saying,
+                // because mirroring a browser instead is a worse outcome the
+                // user did not ask for.
+                QCLog.write("link handoff failed, mirroring instead: \(error.localizedDescription)")
+                setStatus("Couldn't read the page (\(error.localizedDescription)) — sharing the window instead", hold: 12)
             }
             pendingHandoff = nil
             do {
