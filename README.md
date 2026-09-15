@@ -20,9 +20,13 @@ leaves your local network.
 ### Devices and trust
 Each install picks a permanent friendly name such as `swift-heron-3172` and is
 discovered by that, rather than by an OS device name that can change or
-collide. The first time you accept something from a device it becomes trusted,
-and after that its offers are taken automatically — unknown devices always
-require a deliberate gesture.
+collide.
+
+Trust governs *whether* a device may hand you things; it never decides *where*
+they go. A device is approved once, with a button, the first time it offers
+you something — after that it is remembered and your open hand is enough. But
+taking something **always** requires the gesture at the destination, so with
+several devices in the room the one you walk up to is the one that receives.
 
 ## Install
 
