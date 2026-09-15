@@ -149,6 +149,42 @@ do {
 }
 
 // ---------------------------------------------------------------------------
+section("Trust is asked once, and remembered either way")
+do {
+    // A throwaway suite, so the real trust store is never touched.
+    let defaults = UserDefaults(suiteName: "samcast.checks.trust")!
+    defaults.removePersistentDomain(forName: "samcast.checks.trust")
+    let trust = TrustStore(defaults: defaults)
+
+    expect(!trust.isKnown("peer-A"), "a device starts unknown, so it gets asked")
+
+    trust.trust("peer-A", name: "swift-heron-3172")
+    expect(trust.isTrusted("peer-A"), "allowing is remembered")
+    expect(trust.isKnown("peer-A"), "and it is never asked about again")
+    expect(!trust.isBlocked("peer-A"), "allowed is not blocked")
+
+    trust.block("peer-B", name: "teal-lynx-2222")
+    expect(trust.isBlocked("peer-B"), "declining is remembered too")
+    expect(trust.isKnown("peer-B"), "so a refused device stops asking")
+    expect(!trust.isTrusted("peer-B"), "declined is not trusted")
+
+    // The two states must be mutually exclusive, or the app has to guess
+    // which one wins — and a device that is both would be a security bug.
+    trust.trust("peer-B", name: "teal-lynx-2222")
+    expect(trust.isTrusted("peer-B"), "changing your mind allows it")
+    expect(!trust.isBlocked("peer-B"), "and clears the refusal")
+
+    trust.block("peer-A", name: "swift-heron-3172")
+    expect(trust.isBlocked("peer-A"), "changing your mind the other way blocks it")
+    expect(!trust.isTrusted("peer-A"), "and clears the trust")
+
+    trust.unblock("peer-A")
+    expect(!trust.isKnown("peer-A"), "unblocking returns it to being asked about")
+
+    defaults.removePersistentDomain(forName: "samcast.checks.trust")
+}
+
+// ---------------------------------------------------------------------------
 section("Mac to Mac — both ends can be a source")
 do {
     // Only two Macs can reach this. An iPad is never a source, so it is always

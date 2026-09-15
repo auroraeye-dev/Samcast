@@ -334,6 +334,54 @@ final class AppModel: ObservableObject {
         pulseGlow(.outward, message: "Grabbed — open your hand at another device")
     }
 
+    /// First contact from a device. Ask whether it may send here at all.
+    ///
+    /// Shown over whatever app is in front, because that is where the user
+    /// is standing when they open their hand — not in the Samcast window.
+    /// The answer is remembered either way, so this is asked once per device
+    /// and never again.
+    private func askWhetherToTrust(_ peer: Peer) {
+        QCLog.write("first contact from \(peer.displayName) — asking")
+        setStatus("Waiting — allow \(peer.displayName) to send to this Mac?")
+        confirmOverlay.ask(
+            title: "Receive from “\(peer.displayName)”?",
+            detail: "This device hasn't sent to this Mac before. Allowing it means "
+                  + "you won't be asked again — you'll just open your hand. "
+                  + "Declining blocks it until you change your mind in Samcast.",
+            confirmTitle: "Allow"
+        ) { [weak self] allowed in
+            guard let self else { return }
+            if allowed {
+                self.trust.trust(peer.id, name: peer.displayName)
+                self.trustedNames = Array(self.trust.trusted.values).sorted()
+                QCLog.write("ALLOWED \(peer.displayName) — will not ask again")
+                self.setStatus("\(peer.displayName) allowed — open your hand again to take it")
+                self.transport.send(.requestCast, to: peer)
+            } else {
+                // Includes the timeout. Silence means no, as everywhere else.
+                self.trust.block(peer.id, name: peer.displayName)
+                self.trustedNames = Array(self.trust.trusted.values).sorted()
+                QCLog.write("DECLINED \(peer.displayName) — blocked")
+                self.setStatus("Declined \(peer.displayName). Undo it in Samcast's device list.", hold: 8)
+                self.returnToIdle()
+            }
+        }
+    }
+
+    /// Leave a receiving state that is not going to complete, so the session
+    /// is not left waiting on something that will never arrive.
+    private func returnToIdle() {
+        if case .receiving(let source) = coordinator.state {
+            apply(coordinator.reduce(.remoteEndedCast(source)))
+        }
+    }
+
+    /// Allow a device that was previously declined.
+    func allowAgain(_ peerID: String, name: String) {
+        trust.trust(peerID, name: name)
+        trustedNames = Array(trust.trusted.values).sorted()
+    }
+
     /// A live meeting is on screen. Ask first.
     ///
     /// Handing a meeting over is a perfectly reasonable thing to want — it
@@ -435,9 +483,20 @@ final class AppModel: ObservableObject {
         case .withdrawSourceAvailable:
             broadcast(.sourceWithdrawn)
         case .requestCastFromPeer(let peer):
-            trust.trust(peer.id, name: peer.displayName)
-            trustedNames = Array(trust.trusted.values).sorted()
-            transport.send(.requestCast, to: peer)
+            // Trust decides *whether* a device may hand you things; the
+            // gesture decides *where* they go. This is the whether, and it
+            // is asked exactly once per device.
+            if trust.isBlocked(peer.id) {
+                QCLog.write("refused: \(peer.displayName) was turned down previously")
+                setStatus("\(peer.displayName) is not allowed to send to this Mac", hold: 6)
+                returnToIdle()
+                return
+            }
+            if trust.isTrusted(peer.id) {
+                transport.send(.requestCast, to: peer)
+                return
+            }
+            askWhetherToTrust(peer)
         case .startStreaming(let peer):
             if let page = pendingHandoff {
                 reannounceTask?.cancel()
@@ -512,11 +571,22 @@ final class AppModel: ObservableObject {
                     let url = try await self.screenSource.captureStill()
                     self.lastScreenshot = url
                     self.permissions.screenRecordingFailed = false
+                    QCLog.write("SCREENSHOT \(url.path)")
                     self.setStatus("📸 Screenshot saved to Desktop: \(url.lastPathComponent)")
+                    self.glowOverlay.flash(.inward, message: "Screenshot saved to Desktop")
                 } catch {
-                    // Show the real underlying error so failures are diagnosable
-                    // rather than always blamed on permissions.
-                    self.statusLine = "✌️ Peace sign seen — screenshot failed: \(error.localizedDescription)"
+                    // A screenshot needs Screen Recording, which is optional
+                    // for the rest of the app — so this is the one feature a
+                    // Mac set up only for links cannot do, and it must say so.
+                    // Reported through the overlay, not the status line: the
+                    // user just made a gesture at some other app and is not
+                    // looking at this window.
+                    let reason = self.permissions.canShareWindows
+                        ? error.localizedDescription
+                        : "Screen Recording isn't enabled for Samcast"
+                    QCLog.write("SCREENSHOT FAILED: \(reason)")
+                    self.setStatus("✌️ Screenshot failed — \(reason)", hold: 12)
+                    self.glowOverlay.flash(.inward, message: "Screenshot failed — \(reason)")
                 }
             }
         }
