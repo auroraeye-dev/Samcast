@@ -39,11 +39,18 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
     /// peer-to-peer Wi-Fi link to a tablet, and a fresh readable frame matters
     /// far more than smooth motion.
     ///
-    /// Lowered to 10 alongside the resolution increase. What is actually being
-    /// shared is nearly always a document, a design or a slide — legible text
-    /// is worth far more than fluid motion, and unchanged frames are skipped
-    /// entirely, so a still window costs nothing at any rate.
-    public var framesPerSecond: Int = 10
+    /// Four, deliberately.
+    ///
+    /// Frame rate and picture quality compete for the same bytes, and for
+    /// what people actually share — a document, a design, a slide — sharpness
+    /// wins easily. At 10 fps the encoder was forced to its ugliest setting
+    /// just to fit; at 4 it has two and a half times the budget per frame and
+    /// can send full-resolution pixels instead.
+    ///
+    /// It costs less than it appears to: unchanged frames are skipped
+    /// entirely, so a still window sends nothing at any rate, and the moment
+    /// something does change it is sent within 250 ms.
+    public var framesPerSecond: Int = 4
 
     /// Capture is downscaled to at most this width, **in real pixels**,
     /// before encoding.

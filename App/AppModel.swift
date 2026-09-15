@@ -506,11 +506,29 @@ final class AppModel: ObservableObject {
     // meet it. A softer picture that arrives beats a sharp one that kills the
     // stream.
 
-    /// Roughly 6 Mbit/s — comfortable for peer-to-peer Wi-Fi with headroom.
-    private let targetBytesPerSecond = 750 * 1024
+    /// Roughly 10 Mbit/s.
+    ///
+    /// The first value was a guess on the cautious side, and the measurements
+    /// showed why that costs something: the stream died at 3.2 MB/s but sat
+    /// rock-steady at 0.8, pinned to its worst picture with the budget fully
+    /// spent. The true ceiling is somewhere between, so this reaches for it.
+    /// Overshooting is safe now in a way it was not before — frames past the
+    /// budget are skipped rather than queued, and the receiver keeps only the
+    /// newest — so the cost of aiming too high is a dropped frame, not a dead
+    /// session.
+    private let targetBytesPerSecond = 1200 * 1024
 
     private var jpegQuality: CGFloat = 0.75
     private var encodeScale: CGFloat = 1.0
+
+    /// Resolution is defended harder than compression. For text, a
+    /// full-size frame with JPEG artefacts stays readable, while a crisply
+    /// encoded shrunken one does not — the strokes are simply gone. So
+    /// quality is spent down to 0.40 before scale gives up anything, and
+    /// scale never falls below 80% (1280px of the 1600 captured).
+    private let minQuality: CGFloat = 0.40
+    private let maxQuality: CGFloat = 0.85
+    private let minScale: CGFloat = 0.80
     private var budgetBytes = 0
     private var budgetStart = Date()
     private var framesSkipped = 0
@@ -585,15 +603,15 @@ final class AppModel: ObservableObject {
     private func adaptEncoding(lastFrameBytes: Int) {
         let targetFrame = targetBytesPerSecond / max(screenSource.framesPerSecond, 1)
         if lastFrameBytes > targetFrame * 6 / 5 {
-            if jpegQuality > 0.40 {
+            if jpegQuality > minQuality {
                 jpegQuality -= 0.05
-            } else if encodeScale > 0.60 {
+            } else if encodeScale > minScale {
                 encodeScale -= 0.05
             }
         } else if lastFrameBytes < targetFrame * 3 / 5 {
             if encodeScale < 1.0 {
                 encodeScale = min(1.0, encodeScale + 0.05)
-            } else if jpegQuality < 0.82 {
+            } else if jpegQuality < maxQuality {
                 jpegQuality += 0.02
             }
         }
