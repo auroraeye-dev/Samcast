@@ -29,13 +29,16 @@ public final class H264StreamView {
     /// to decode them against. Counted rather than logged each time.
     private var framesSkippedBeforeKeyframe = 0
 
+    /// Called when the stream cannot be decoded from what we have and only a
+    /// fresh keyframe will fix it.
+    public var onNeedsKeyframe: (() -> Void)?
+
     public init() {
         layer.videoGravity = .resizeAspect
-        if #available(iOS 17.0, macOS 14.0, *) {
-            // Without this the layer silently stops after an interruption
-            // (a backgrounded app, a display change) and never resumes.
-            layer.sampleBufferRenderer.requestMediaDataWhenReady(on: .main) {}
-        }
+        // NOTE: do NOT call requestMediaDataWhenReady here. That puts the
+        // renderer into pull mode, where it asks the handler for data — and
+        // we push instead. Doing both, with an empty handler, made the layer
+        // stall unpredictably: it worked, then stopped, then worked again.
     }
 
     /// Feed one decoded `VideoPacket`.
@@ -48,9 +51,13 @@ public final class H264StreamView {
             rebuildFormat(sps: sps, pps: pps)
         }
         guard let formatDescription else {
+            // Frames are arriving but none can be decoded: we joined after
+            // the last keyframe, or the one carrying the parameter sets was
+            // lost. Nothing improves until a new one is sent, so ask.
             framesSkippedBeforeKeyframe += 1
             if framesSkippedBeforeKeyframe == 1 {
                 onError?("Waiting for a keyframe…")
+                onNeedsKeyframe?()
             }
             return
         }
@@ -70,11 +77,20 @@ public final class H264StreamView {
         }
 
         if layer.status == .failed {
-            // A failed layer never recovers on its own.
+            // A failed layer never recovers on its own, and after a flush it
+            // needs a keyframe before it can show anything again.
             layer.flush()
+            self.formatDescription = nil
             onError?("Display layer failed; resetting")
+            onNeedsKeyframe?()
+            return
         }
-        layer.enqueue(sampleBuffer)
+
+        if #available(iOS 17.0, macOS 14.0, *) {
+            layer.sampleBufferRenderer.enqueue(sampleBuffer)
+        } else {
+            layer.enqueue(sampleBuffer)
+        }
 
         if !hasShownFrame {
             hasShownFrame = true

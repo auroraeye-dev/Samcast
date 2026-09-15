@@ -487,12 +487,15 @@ final class AppModel: ObservableObject {
                     QCLog.write("priming stream with the last captured frame")
                     encoder.encode(cached, at: 0)
                 }
+                startKeyframeHeartbeat()
             } catch {
                 setStatus("Couldn't start streaming: \(error.localizedDescription)")
             }
         case .stopStreaming:
             streamingTarget = nil
             encoder.invalidate()
+            keyframeHeartbeat?.cancel()
+            keyframeHeartbeat = nil
             streamWatchdog?.cancel()
             streamWatchdog = nil
         case .showRemoteScreen:
@@ -588,6 +591,19 @@ final class AppModel: ObservableObject {
     /// then waits, sometimes ten seconds, for the sender to happen to move
     /// something. Holding the last frame lets the answer be immediate.
     private var lastCapturedFrame: CVPixelBuffer?
+
+    /// When the last frame actually went out, and the timer that notices if
+    /// that was too long ago.
+    ///
+    /// A receiver cannot decode anything until it has a keyframe, and the
+    /// idle-frame skipping means a window nobody is touching produces no
+    /// frames at all — so if the first keyframe is missed, or the viewer
+    /// joins between two of them, there is nothing on the way to recover
+    /// with and the screen simply stays empty. Re-sending the frame we
+    /// already hold, as a keyframe, gives them a way back every couple of
+    /// seconds for almost no bandwidth.
+    private var lastFrameSentAt = Date.distantPast
+    private var keyframeHeartbeat: Task<Void, Never>?
     /// Frames sent since this stream began. Distinct from `framesSent`, which
     /// is a per-second rate window and resets constantly — reading that for
     /// "has anything been sent?" made STREAM START repeat every second and
@@ -644,6 +660,7 @@ final class AppModel: ObservableObject {
     /// Put an encoded frame on the wire and keep the running statistics.
     /// Shared by both codecs so the numbers mean the same thing either way.
     private func deliver(_ packet: Data, bytes: Int, to target: Peer) {
+        lastFrameSentAt = Date()
         if framesThisStream == 0 {
             QCLog.write("STREAM START -> \(target.displayName), first frame \(bytes / 1024) KB"
                         + " (\(usingH264 ? "H.264" : "JPEG"))")
@@ -664,6 +681,28 @@ final class AppModel: ObservableObject {
                                Double(bytesSent) / 1024 / Double(max(framesSent, 1)),
                                codec, framesSkipped))
             framesSent = 0; bytesSent = 0; framesSkipped = 0; rateWindowStart = Date()
+        }
+    }
+
+    /// While a stream is running, make sure a decodable keyframe goes out at
+    /// least every couple of seconds even if nothing on screen has changed.
+    ///
+    /// This is what turns "it worked, then it didn't, then it did" into
+    /// something reliable: any receiver that missed a keyframe recovers on
+    /// the next beat instead of waiting for the sender to happen to move a
+    /// window. A still frame costs a few KB, so the floor is negligible.
+    private func startKeyframeHeartbeat() {
+        keyframeHeartbeat?.cancel()
+        keyframeHeartbeat = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                guard let self, !Task.isCancelled, self.streamingTarget != nil else { return }
+                guard Date().timeIntervalSince(self.lastFrameSentAt) >= 1.5,
+                      let cached = self.lastCapturedFrame else { continue }
+                QCLog.write("keyframe heartbeat — nothing sent for 1.5s")
+                self.encoder.requestKeyframe()
+                self.encoder.encode(cached, at: 0)
+            }
         }
     }
 

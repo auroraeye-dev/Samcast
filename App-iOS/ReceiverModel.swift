@@ -150,6 +150,20 @@ final class ReceiverModel: ObservableObject {
         transport.delegate = self
         transport.start()
 
+        // Say what the video layer is doing. A stalled stream and a working
+        // one look identical from across the room, and a black rectangle
+        // tells the user nothing about whether to wait or try again.
+        videoView.onError = { [weak self] message in
+            Task { @MainActor in self?.statusLine = message }
+        }
+        videoView.onNeedsKeyframe = { [weak self] in
+            Task { @MainActor in
+                // The sender re-sends a keyframe every 1.5s while streaming,
+                // so this resolves itself — say so rather than looking stuck.
+                self?.statusLine = "Catching up…"
+            }
+        }
+
         handTracker.onHands = { [weak self] hands, time in
             guard let self else { return }
             // Only a confident, properly sized hand counts. Receiving someone's
