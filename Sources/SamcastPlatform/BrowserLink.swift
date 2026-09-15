@@ -129,7 +129,13 @@ public enum BrowserLink {
     }
 
     /// Opens a handed-over URL in this machine's default browser.
-    public static func open(_ url: URL) {
+    ///
+    /// Returns whether macOS accepted it. The result used to be discarded,
+    /// which meant a page that arrived and then failed to open looked exactly
+    /// like one that never arrived — and those need completely different
+    /// fixes.
+    @discardableResult
+    public static func open(_ url: URL) -> Bool {
         NSWorkspace.shared.open(url)
     }
 

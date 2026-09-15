@@ -810,8 +810,21 @@ extension AppModel: PeerTransportDelegate {
             // A handed-over page opens natively here; there is no session state
             // to advance, the thing has simply arrived.
             if message == .handoff {
-                guard let payload, let url = URL(string: payload) else { return }
-                BrowserLink.open(url)
+                guard let payload, let url = URL(string: payload) else {
+                    QCLog.write("HANDOFF REFUSED — unreadable address: \(payload ?? "nil")")
+                    self.setStatus("Something arrived from \(peer.displayName) that wasn't a web address", hold: 8)
+                    return
+                }
+                // Say whether macOS actually opened it. Silently dropping this
+                // made "the page never arrived" and "the page arrived and the
+                // browser refused it" look identical.
+                let opened = BrowserLink.open(url)
+                QCLog.write(opened
+                    ? "OPENED \(url.absoluteString)"
+                    : "HANDOFF ARRIVED BUT macOS REFUSED TO OPEN IT: \(url.absoluteString)")
+                if !opened {
+                    self.setStatus("Couldn't open the page from \(peer.displayName) — no default browser?", hold: 10)
+                }
                 self.setStatus("📬 Opened a page from \(peer.displayName)")
                 self.pulseGlow(.inward, message: "Received from \(peer.displayName)")
                 self.apply(self.coordinator.reduce(.remoteEndedCast(peer)))
