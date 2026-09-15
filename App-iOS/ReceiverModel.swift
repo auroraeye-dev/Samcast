@@ -40,6 +40,14 @@ final class ReceiverModel: ObservableObject {
     /// apart from "it never started" or "it is still arriving but frozen".
     @Published private(set) var streamStats: String = ""
 
+    /// Draws the incoming H.264 stream. Decoding and drawing happen in
+    /// hardware, so frames never become `UIImage`s and never touch the main
+    /// thread at draw time — which is what used to freeze this app.
+    let videoView = H264StreamView()
+    /// True once an H.264 frame has arrived, so the view knows which of the
+    /// two renderers to show.
+    @Published private(set) var isShowingVideo = false
+
     /// Frames arrive on a network thread and must reach SwiftUI on the main
     /// one. Reliable delivery applies no backpressure, so queueing a
     /// main-actor hop per frame lets that queue grow without bound the moment
@@ -493,7 +501,25 @@ extension ReceiverModel: PeerTransportDelegate {
             print("QC: frame from \(peer.displayName) was not Data")
             return
         }
-        guard let decoded = UIImage(data: data) else {
+        guard let packet = VideoPacket.decode(data) else {
+            print("QC: unreadable frame of \(data.count / 1024) KB from \(peer.displayName)")
+            return
+        }
+
+        if packet.codec == .h264 {
+            // Straight to the display layer. No image is ever created.
+            Task { @MainActor in
+                if !self.isReceivingStream {
+                    self.beginWatching(peer)
+                }
+                self.isShowingVideo = true
+                self.videoView.enqueue(packet)
+                self.noteFrame(bytes: data.count)
+            }
+            return
+        }
+
+        guard let decoded = UIImage(data: packet.payload) else {
             print("QC: frame of \(data.count / 1024) KB from \(peer.displayName) failed to decode")
             return
         }
@@ -511,15 +537,30 @@ extension ReceiverModel: PeerTransportDelegate {
             // session may already have settled back to idle, so don't require
             // an exact state match — that silently discarded valid frames.
             if !self.isReceivingStream {
-                self.isReceivingStream = true
-                self.requestTimeout?.cancel()
-                self.currentPage = nil          // a live window takes over
-                self.statusLine = "Watching \(peer.displayName)'s window"
-                self.pulseGlow(.inward)
+                self.beginWatching(peer)
             }
             self.receivedImage = next
             self.updateStreamStats()
         }
+    }
+
+    /// Shared by both codecs: a stream has started arriving.
+    @MainActor
+    private func beginWatching(_ peer: Peer) {
+        isReceivingStream = true
+        requestTimeout?.cancel()
+        currentPage = nil                   // a live window takes over
+        statusLine = "Watching \(peer.displayName)'s window"
+        pulseGlow(.inward)
+    }
+
+    /// Count an H.264 frame for the on-screen stats. The JPEG path counts
+    /// inside the inbox instead, since it also tracks superseded frames.
+    @MainActor
+    private func noteFrame(bytes: Int) {
+        _ = inbox.offer(UIImage(), bytes: bytes)
+        _ = inbox.take()
+        updateStreamStats()
     }
 
     /// Refresh the on-screen counters about once a second.

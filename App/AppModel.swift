@@ -143,6 +143,17 @@ final class AppModel: ObservableObject {
         // app launched from Finder. Send them to the log the user can tail.
         MultipeerTransport.log = { QCLog.write($0) }
 
+        encoder.onEncodedFrame = { [weak self] frame in
+            guard let self else { return }
+            let packet = VideoPacket.h264(frame.data, isKeyframe: frame.isKeyframe,
+                                          sps: frame.sps, pps: frame.pps)
+            Task { @MainActor in
+                guard let target = self.streamingTarget else { return }
+                self.deliver(packet, bytes: packet.count, to: target)
+            }
+        }
+        encoder.onError = { message in QCLog.write("h264: \(message)") }
+
         screenSource.onFrame = { [weak self] frame, _ in
             guard let self else { return }
             // `frame` is an opaque CVPixelBuffer (a CoreFoundation type, so a
@@ -440,6 +451,9 @@ final class AppModel: ObservableObject {
             // No held page: stream instead. Capture may not be running (the
             // handoff path skips it), so make sure it is started.
             streamingTarget = peer
+            // Whoever just asked has never seen a keyframe, and cannot decode
+            // anything until they do.
+            encoder.requestKeyframe()
             do {
                 try screenSource.startCapture()
                 setStatus("Streaming to \(peer.displayName)")
@@ -460,6 +474,7 @@ final class AppModel: ObservableObject {
             }
         case .stopStreaming:
             streamingTarget = nil
+            encoder.invalidate()
             streamWatchdog?.cancel()
             streamWatchdog = nil
         case .showRemoteScreen:
@@ -536,6 +551,13 @@ final class AppModel: ObservableObject {
     private var framesSent = 0
     private var bytesSent = 0
     private var loggedIdleCapture = false
+
+    /// Hardware H.264. JPEG stays as the fallback for when a session cannot
+    /// be created, but it is genuinely a fallback now: it re-sends the whole
+    /// picture every frame, which is why sharpness and smoothness had to be
+    /// traded against each other at all.
+    private let encoder = H264Encoder()
+    private var usingH264 = true
     /// Frames sent since this stream began. Distinct from `framesSent`, which
     /// is a per-second rate window and resets constantly — reading that for
     /// "has anything been sent?" made STREAM START repeat every second and
@@ -569,27 +591,44 @@ final class AppModel: ObservableObject {
             return
         }
 
+        // H.264 encodes the difference between frames and manages its own
+        // bitrate, so the quality ladder below applies to JPEG only.
+        if usingH264 {
+            encoder.encode(pixelBuffer, at: 0)
+            return                        // the send happens in onEncodedFrame
+        }
+
         guard let data = jpeg(from: pixelBuffer, quality: jpegQuality, scale: encodeScale) else {
             QCLog.write("frame dropped: JPEG encode failed")
             return
         }
         budgetBytes += data.count
         adaptEncoding(lastFrameBytes: data.count)
+        deliver(VideoPacket.jpeg(data), bytes: data.count, to: target)
+    }
+
+    /// Put an encoded frame on the wire and keep the running statistics.
+    /// Shared by both codecs so the numbers mean the same thing either way.
+    private func deliver(_ packet: Data, bytes: Int, to target: Peer) {
         if framesThisStream == 0 {
-            QCLog.write("STREAM START -> \(target.displayName), first frame \(data.count / 1024) KB")
+            QCLog.write("STREAM START -> \(target.displayName), first frame \(bytes / 1024) KB"
+                        + " (\(usingH264 ? "H.264" : "JPEG"))")
         }
         framesThisStream += 1
-        transport.sendFrameData(data, to: target)
+        transport.sendFrameData(packet, to: target)
 
         framesSent += 1
-        bytesSent += data.count
+        bytesSent += bytes
         let elapsed = Date().timeIntervalSince(rateWindowStart)
         if elapsed >= 1 {
-            QCLog.write(String(format: "stream %.1f fps, %.0f KB/s, avg frame %.0f KB, q%.2f scale %.0f%%, %d skipped",
+            let codec = usingH264
+                ? "H.264"
+                : String(format: "q%.2f scale %.0f%%", jpegQuality, encodeScale * 100)
+            QCLog.write(String(format: "stream %.1f fps, %.0f KB/s, avg frame %.0f KB, %@, %d skipped",
                                Double(framesSent) / elapsed,
                                Double(bytesSent) / 1024 / elapsed,
                                Double(bytesSent) / 1024 / Double(max(framesSent, 1)),
-                               jpegQuality, encodeScale * 100, framesSkipped))
+                               codec, framesSkipped))
             framesSent = 0; bytesSent = 0; framesSkipped = 0; rateWindowStart = Date()
         }
     }

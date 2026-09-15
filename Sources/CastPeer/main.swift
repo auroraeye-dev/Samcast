@@ -99,7 +99,16 @@ final class ViewerReceiver: NSObject, PeerTransportDelegate, NSApplicationDelega
     nonisolated func transport(_ transport: PeerTransport, didReceiveFrame frame: Any, from peer: Peer) {
         guard let data = frame as? Data else { return }
         Task { @MainActor in
-            if let image = NSImage(data: data) { imageView.image = image }
+            // Frames are wrapped now. This viewer only renders JPEG; an
+            // H.264 stream is still counted so the throughput numbers work,
+            // which is what this tool is actually for.
+            if let packet = VideoPacket.decode(data) {
+                if packet.codec == .jpeg, let image = NSImage(data: packet.payload) {
+                    imageView.image = image
+                }
+            } else if let image = NSImage(data: data) {
+                imageView.image = image
+            }
 
             frames += 1
             bytes += data.count

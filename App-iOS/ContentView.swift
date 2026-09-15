@@ -1,5 +1,6 @@
 import SwiftUI
 import SamcastCore
+import SamcastPlatform
 
 struct ContentView: View {
     @EnvironmentObject var model: ReceiverModel
@@ -8,7 +9,14 @@ struct ContentView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if model.isReceivingStream, let image = model.receivedImage {
+            if model.isReceivingStream, model.isShowingVideo {
+                // H.264: hardware decode straight to a layer.
+                VStack(spacing: 0) {
+                    StreamHeader(model: model)
+                    VideoLayerView(stream: model.videoView)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            } else if model.isReceivingStream, let image = model.receivedImage {
                 // A live window from another device takes over the screen.
                 VStack(spacing: 0) {
                     HStack {

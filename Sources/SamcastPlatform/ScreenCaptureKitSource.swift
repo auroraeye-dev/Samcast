@@ -50,7 +50,12 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
     /// It costs less than it appears to: unchanged frames are skipped
     /// entirely, so a still window sends nothing at any rate, and the moment
     /// something does change it is sent within 250 ms.
-    public var framesPerSecond: Int = 4
+    /// Fifteen. This was cut to 4 when every frame was a whole JPEG and
+    /// sharpness and smoothness were competing for the same bytes. H.264
+    /// sends only what changed, so that trade is gone and motion can be
+    /// fluid again. Unchanged frames are still skipped, so a still window
+    /// costs nothing at any rate.
+    public var framesPerSecond: Int = 15
 
     /// Capture is downscaled to at most this width, **in real pixels**,
     /// before encoding.
