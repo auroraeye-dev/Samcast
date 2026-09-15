@@ -8,7 +8,23 @@ struct ContentView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if let page = model.currentPage {
+            if model.isReceivingStream, let image = model.receivedImage {
+                // A live window from another device takes over the screen.
+                VStack(spacing: 0) {
+                    HStack {
+                        Text(model.statusLine)
+                            .font(.caption).foregroundStyle(.gray).lineLimit(1)
+                        Spacer()
+                        Button("Stop") { model.stopWatching() }
+                            .font(.callout)
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            } else if let page = model.currentPage {
                 VStack(spacing: 0) {
                     HStack {
                         Text(page.host ?? page.absoluteString)
@@ -23,10 +39,6 @@ struct ContentView: View {
                     .padding(.vertical, 8)
                     WebPageView(url: page)
                 }
-            } else if let image = model.receivedImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
             } else {
                 idleView
             }

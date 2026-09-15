@@ -34,6 +34,16 @@ final class ReceiverModel: ObservableObject {
     @Published private(set) var peers: [Peer] = []
     @Published private(set) var currentGesture: HandGesture = .none
     @Published private(set) var receivedImage: UIImage?
+    /// True while a live window is being streamed here. Apps can't be handed
+    /// over the way a link can — a running process stays on its own machine —
+    /// so what arrives is a live picture of that window instead.
+    @Published private(set) var isReceivingStream = false
+    /// True when the clipboard holds a link that could be sent.
+    ///
+    /// Checked with `hasURLs`, which does not read the clipboard and so does
+    /// not trigger the system "pasted from" banner; the contents are only
+    /// actually read when you deliberately make a fist to send.
+    @Published private(set) var clipboardHasLink = false
     @Published private(set) var statusLine = "Looking for a Mac…"
     @Published private(set) var availableSource: Peer?
     /// Live: is a real hand in front of this device's camera?
@@ -139,6 +149,7 @@ final class ReceiverModel: ObservableObject {
             // a fist caught from across the room silently stopped it being
             // able to receive at all.
             guard clipboardURL() != nil else {
+                clipboardHasLink = false
                 statusLine = "Copy a link first, then close your hand to send it"
                 print("QC: fist ignored — nothing on the clipboard to send")
                 return
@@ -155,6 +166,35 @@ final class ReceiverModel: ObservableObject {
         }
     }
 
+    /// Called when the app comes to the foreground.
+    ///
+    /// iOS suspends a backgrounded app's camera and networking, so QuackCast
+    /// must be open on this device to send or receive at all — nothing can be
+    /// done about that. What it can do is be immediately ready: notice a
+    /// copied link straight away rather than making you discover that a fist
+    /// does nothing.
+    func didBecomeActive() {
+        clipboardHasLink = UIPasteboard.general.hasURLs || UIPasteboard.general.hasStrings
+        updateStatus()
+    }
+
+    /// Accept a link handed in from elsewhere, e.g. quackcast://send?url=…
+    /// so a Shortcut or share action can pass a page without the clipboard.
+    func handleIncoming(_ url: URL) {
+        guard url.scheme?.lowercased() == "quackcast" else { return }
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let raw = components.queryItems?.first(where: { $0.name == "url" })?.value,
+              let target = URL(string: raw),
+              target.scheme?.hasPrefix("http") == true else { return }
+
+        pendingHandoff = target
+        apply(coordinator.reduce(.localGesture(.closedHand)))
+        armedAt = Date()
+        statusLine = "Holding \(target.host ?? "link") — open your hand at the device you want it on"
+        pulseGlow(.outward)
+        print("QC: incoming link \(target.absoluteString)")
+    }
+
     /// Reopen the most recent page after closing it.
     func reopenLastPage() {
         currentPage = lastReceivedURL
@@ -162,6 +202,17 @@ final class ReceiverModel: ObservableObject {
 
     func closePage() {
         currentPage = nil
+    }
+
+    /// Stop watching a streamed window and tell the sender.
+    func stopWatching() {
+        isReceivingStream = false
+        receivedImage = nil
+        if case .receiving(let peer) = state {
+            transport.send(.endCast, to: peer)
+            apply(coordinator.reduce(.remoteEndedCast(peer)))
+        }
+        statusLine = "Stopped watching"
     }
 
     /// Touch fallback so it works on a device with no usable camera (e.g. the
@@ -227,7 +278,7 @@ final class ReceiverModel: ObservableObject {
             try? await Task.sleep(nanoseconds: UInt64(5 * 1_000_000_000))
             guard let self, !Task.isCancelled else { return }
             // Something arrived in time, nothing to undo.
-            guard self.currentPage == nil else { return }
+            guard self.currentPage == nil, !self.isReceivingStream else { return }
             if case .receiving(let peer) = self.state {
                 self.apply(self.coordinator.reduce(.remoteEndedCast(peer)))
             }
@@ -260,6 +311,7 @@ final class ReceiverModel: ObservableObject {
             pulseGlow(.inward)
         case .hideRemoteScreen:
             receivedImage = nil
+            isReceivingStream = false
         case .notifyEndedCast(let peer):
             transport.send(.endCast, to: peer)
 
@@ -294,6 +346,10 @@ final class ReceiverModel: ObservableObject {
                 statusLine = trust.isTrusted(src.id)
                     ? "🖐️ \(src.displayName) has something for you — open your hand here to take it"
                     : "\(src.displayName) wants to send you something — allow it once to continue"
+            } else if clipboardHasLink {
+                statusLine = peers.isEmpty
+                    ? "A link is on your clipboard — waiting for a device to send it to"
+                    : "A link is on your clipboard — close your hand to send it"
             } else {
                 statusLine = peers.isEmpty ? "Looking for a Mac running QuackCast…"
                                            : "Connected — waiting for something to be grabbed"
@@ -356,11 +412,20 @@ extension ReceiverModel: PeerTransportDelegate {
     }
 
     nonisolated func transport(_ transport: PeerTransport, didReceiveFrame frame: Any, from peer: Peer) {
-        guard let data = frame as? Data else { return }
+        guard let data = frame as? Data, let image = UIImage(data: data) else { return }
         Task { @MainActor in
-            if case .receiving(let source) = self.state, source == peer {
-                self.receivedImage = UIImage(data: data)
+            // Frames only arrive because this device asked for them, and the
+            // session may already have settled back to idle, so don't require
+            // an exact state match — that silently discarded valid frames.
+            if !self.isReceivingStream {
+                self.isReceivingStream = true
+                self.requestTimeout?.cancel()
+                self.currentPage = nil          // a live window takes over
+                self.statusLine = "Watching \(peer.displayName)'s window"
+                self.pulseGlow(.inward)
+                print("QC: stream started from \(peer.displayName)")
             }
+            self.receivedImage = image
         }
     }
 }

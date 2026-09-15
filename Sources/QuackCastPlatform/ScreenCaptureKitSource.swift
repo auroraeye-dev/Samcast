@@ -25,15 +25,16 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
     /// never produces a frame.
     public var onCaptureError: ((String) -> Void)?
 
-    /// Target capture frame rate. 15 is plenty for sharing a screen and halves
-    /// the bytes compared with 30.
-    public var framesPerSecond: Int = 15
+    /// Target capture frame rate. Low on purpose: this stream crosses a
+    /// peer-to-peer Wi-Fi link to a tablet, and a fresh readable frame matters
+    /// far more than smooth motion.
+    public var framesPerSecond: Int = 12
 
     /// Capture is downscaled to at most this width before encoding. A Retina
     /// display is far too large to push over a peer-to-peer link frame by
     /// frame; scaling here (rather than after capture) also saves the encode
     /// and copy cost of the full-size image.
-    public var maxCaptureWidth: Int = 1800
+    public var maxCaptureWidth: Int = 1100
 
     private var stream: SCStream?
     private var isRunning = false

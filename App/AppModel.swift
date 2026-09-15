@@ -380,13 +380,28 @@ final class AppModel: ObservableObject {
 
     // MARK: Streaming
 
+    private var framesSent = 0
+    private var bytesSent = 0
+    private var rateWindowStart = Date()
+
     private func forwardFrame(_ pixelBuffer: CVPixelBuffer) {
         guard let target = streamingTarget else { return }
         guard let data = jpeg(from: pixelBuffer) else { return }
         transport.sendFrameData(data, to: target)
+
+        framesSent += 1
+        bytesSent += data.count
+        let elapsed = Date().timeIntervalSince(rateWindowStart)
+        if elapsed >= 1 {
+            QCLog.write(String(format: "stream %.1f fps, %.0f KB/s, avg frame %.0f KB",
+                               Double(framesSent) / elapsed,
+                               Double(bytesSent) / 1024 / elapsed,
+                               Double(bytesSent) / 1024 / Double(max(framesSent, 1))))
+            framesSent = 0; bytesSent = 0; rateWindowStart = Date()
+        }
     }
 
-    private func jpeg(from pixelBuffer: CVPixelBuffer, quality: CGFloat = 0.75) -> Data? {
+    private func jpeg(from pixelBuffer: CVPixelBuffer, quality: CGFloat = 0.55) -> Data? {
         let image = CIImage(cvPixelBuffer: pixelBuffer)
         let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
         return ciContext.jpegRepresentation(of: image, colorSpace: colorSpace,
