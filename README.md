@@ -80,12 +80,22 @@ running on the original device. QuackCast picks the right mechanism for you.
 
 ---
 
-## Install
+## Get it
 
-### Build from source — recommended, no warnings
+| Platform | How | State |
+|---|---|---|
+| **macOS 13+** | [Download the `.dmg`](https://github.com/auroraeye-dev/QuackCast/releases/latest) | Sends and receives |
+| **iPadOS / iOS 16+** | Build from source — **Apple allows no download** | Receives; sends links |
+| **Windows 10+** | [Source zip](https://github.com/auroraeye-dev/QuackCast/releases/latest) | Experimental, never run on Windows |
 
-macOS only quarantines *downloaded* files, so an app you build yourself opens
-with **no Gatekeeper warning at all**:
+### macOS
+
+Open the `.dmg` and drag QuackCast to Applications. It is signed but **not
+notarized** — that needs a paid Apple Developer membership — so macOS warns
+on first open: **right-click ▸ Open ▸ Open**.
+
+Building from source skips the warning entirely, because macOS only
+quarantines apps that were downloaded:
 
 ```bash
 git clone https://github.com/auroraeye-dev/QuackCast.git
@@ -96,25 +106,28 @@ brew install xcodegen           # one-time
 
 Requires Xcode from the App Store.
 
-<details>
-<summary><b>Or download a release</b></summary>
+### iPad and iPhone
 
-<br>
-
-Grab **QuackCast.dmg** from the [Releases page](https://github.com/auroraeye-dev/QuackCast/releases),
-open it and drag QuackCast to Applications.
-
-Downloaded builds are **not notarized**, so macOS warns the first time. Either
-**right-click ▸ Open ▸ Open**, or clear the quarantine flag:
+**There is no download, and there cannot be one.** Apple provides no way to
+install an iOS app from a website or a release page — an `.ipa` file here
+would be inert. The only routes are the App Store or TestFlight, both of
+which require the paid Apple Developer Program, or building it yourself:
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/QuackCast.app
+brew install xcodegen && xcodegen generate
+open QuackCast.xcodeproj        # QuackCastiOS scheme, pick your device
 ```
 
-Removing that warning entirely requires notarization, which needs a paid Apple
-Developer Program membership.
+With a free Apple account the app stops working after 7 days and has to be
+rebuilt. The build is universal, so the same one runs on iPhone and iPad.
 
-</details>
+### Windows
+
+Experimental, and the honest state is in
+[the bridge repo](../QuackCast-Bridge): the protocol underneath is tested,
+but the Windows-only parts have only ever been compiled, never run on
+Windows. It also cannot talk to the macOS **app** — only to the headless
+`BridgeCLI`, because the app speaks Apple-only MultipeerConnectivity.
 
 ### First run
 
@@ -122,8 +135,6 @@ QuackCast asks for **Camera** (to read gestures) and **Screen Recording** (to
 grab windows and take screenshots). Its setup screen links straight to the
 right System Settings pane, and offers a relaunch — macOS requires one after
 granting Screen Recording.
-
----
 
 ## Devices and trust
 
