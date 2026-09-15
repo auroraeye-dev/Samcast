@@ -19,6 +19,11 @@ Samcast.xcodeproj/
 # Misc
 *.log
 
-# Generated from the source artwork by scripts/make-icons.swift.
-# The Contents.json is tracked; the PNGs are build output.
-Assets.xcassets/**/*.png
+# The generated app icons ARE tracked, deliberately. They are produced by
+# scripts/make-icons.swift from a single source image, but that source is not
+# in the repo — so ignoring them would leave anyone who clones this unable to
+# build an app with an icon, and unable to regenerate one.
+#
+# (The rule that used to sit here never worked anyway: a gitignore pattern
+# containing a slash is anchored to the repo root, so "Assets.xcassets/**"
+# never matched "App/Resources/Assets.xcassets/**".)
