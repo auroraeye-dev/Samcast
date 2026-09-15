@@ -21,7 +21,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 RUN_AFTER=false
-[[ "${1:-}" == "--run" ]] && RUN_AFTER=true
+SHARE=false
+for arg in "$@"; do
+  case "$arg" in
+    --run)   RUN_AFTER=true ;;
+    --share) SHARE=true ;;
+  esac
+done
 
 command -v xcodegen >/dev/null || { echo "xcodegen is required: brew install xcodegen" >&2; exit 1; }
 xcodegen generate
@@ -37,7 +43,25 @@ mkdir -p dist
 # `set -u` is an unbound-variable error — which is exactly the common case here,
 # when the project's own signing identity is used and no overrides are needed.
 SIGN_ARGS=()
-if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+if $SHARE; then
+  # A build meant for somebody else's Mac.
+  #
+  # The normal build is signed with an Apple Development certificate, which
+  # makes macOS add the get-task-allow (debuggable) entitlement. An app
+  # carrying that, signed for development, refuses to launch on any Mac other
+  # than a registered development machine — so the obvious "just send them the
+  # DMG" quietly does not work.
+  #
+  # Ad-hoc signing drops both, and the app runs anywhere after the user
+  # right-click ▸ Opens it once. The cost is that the signature changes with
+  # every build, so macOS treats each one as a new app and privacy permissions
+  # have to be granted again. Fine for testing; Developer ID + notarization is
+  # the real answer for distribution.
+  echo "Building a shareable, ad-hoc signed app (runs on any Mac)"
+  SIGN_ARGS=(CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual
+             DEVELOPMENT_TEAM="" PROVISIONING_PROFILE_SPECIFIER=""
+             CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO)
+elif [[ -n "${SIGN_IDENTITY:-}" ]]; then
   echo "Signing with: $SIGN_IDENTITY"
   SIGN_ARGS=(CODE_SIGN_IDENTITY="$SIGN_IDENTITY")
 elif security find-identity -v -p codesigning 2>/dev/null | grep -q "Apple Develop"; then
