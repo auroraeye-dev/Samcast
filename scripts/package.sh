@@ -29,10 +29,18 @@ xcodegen generate
 rm -rf build dist
 mkdir -p dist
 
+# The project pins a development team so that privacy permissions survive
+# rebuilds on the developer's own machine. A CI runner has no such
+# certificate, so without a fallback every tagged release fails to build.
 SIGN_ARGS=()
 if [[ -n "${SIGN_IDENTITY:-}" ]]; then
   echo "Signing with: $SIGN_IDENTITY"
   SIGN_ARGS=(CODE_SIGN_IDENTITY="$SIGN_IDENTITY")
+elif security find-identity -v -p codesigning 2>/dev/null | grep -q "Apple Develop"; then
+  echo "Signing with the project's configured identity"
+else
+  echo "No signing identity available — falling back to ad-hoc signing"
+  SIGN_ARGS=(CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="" PROVISIONING_PROFILE_SPECIFIER="")
 fi
 
 xcodebuild -project QuackCast.xcodeproj -scheme QuackCast -configuration Release \

@@ -81,13 +81,26 @@ NOTARY_PROFILE=quackcast ./scripts/package.sh
 
 | Platform | Status | Notes |
 |---|---|---|
-| macOS | working | Grabs the page you're in, or streams the focused window |
-| iOS / iPadOS | working | Receives anything; sends links via the clipboard |
+| macOS | working | Sends and receives; grabs the page you're in, or streams the focused window |
+| iOS / iPadOS | receives well, sends deliberately | See the limits below |
 | Windows | planned, **separate build** | Would reimplement the `Ports` protocols |
 
-**iOS can send too, but only via the clipboard.** There is no AppleScript on
-iOS, so an app cannot read Safari's open tab the way it can on macOS — copy the
-link, then make a fist. A Share Extension would remove that step.
+### Why the iPad is a better receiver than a sender
+Two iOS rules shape this, and neither can be engineered around:
+
+* **No background operation.** iOS suspends a backgrounded app's camera and
+  networking, so QuackCast must be open and in front on the iPad to send or
+  receive at all. macOS has no such rule, which is why the Mac can sit idle
+  and still take part. The app keeps the iPad awake while it is in front, so
+  auto-lock doesn't quietly end a session.
+* **No reading another app's content.** There is no AppleScript on iOS, so the
+  app cannot read Safari's open tab. A link leaves an iPad via the clipboard
+  (copy it, then make a fist) or by being handed in through
+  `quackcast://send?url=…`, which a Shortcut or share action can use.
+
+There is also no way for any iOS app to launch itself on unlock or boot. The
+closest equivalent is a Shortcuts personal automation (e.g. *when joining your
+home Wi-Fi → open QuackCast*), which on iPadOS 17+ can run without a prompt.
 
 **Windows can't join this network.** MultipeerConnectivity is Apple-only, so a
 Windows build would be its own island unless the transport is replaced with
@@ -146,8 +159,11 @@ attaches the DMG/zip to a GitHub Release automatically.
   gates Camera, Screen Recording and Automation individually. Hardened Runtime
   additionally requires `com.apple.security.automation.apple-events`, without
   which Apple Events fail silently with no permission prompt at all.
-- **Streaming is mirroring, not an extended display**, and still sends JPEG
-  frames (~100 KB each). H.264 is the main outstanding work: roughly 10× less
-  bandwidth and sharper text.
+- **Apps are streamed, not moved.** A running process cannot leave its
+  machine, so a non-browser window is sent as a live picture while the app
+  keeps running on the original device. Only links genuinely move.
+- **Streaming is mirroring, not an extended display.** It sends JPEG frames
+  (1100px, 12fps) sized for a wireless link rather than for quality. H.264 is
+  the main outstanding work: roughly 10× less bandwidth and sharper text.
 - **Testing without a second device:** `swift run CastPeer` opens a viewer
   window that joins as a separate peer on the same Mac.
