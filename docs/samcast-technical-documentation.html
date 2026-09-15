@@ -1,0 +1,1312 @@
+<meta charset="utf-8">
+<title>Samcast — Technical Documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  @page { size: A4; margin: 20mm 18mm 20mm 18mm; }
+
+  :root {
+    --ink: #14181c;
+    --muted: #5a6a74;
+    --faint: #8b98a2;
+    --rule: #d8e0e5;
+    --amber: #9a5c00;
+    --cyan: #0d6b78;
+    --panel: #f4f7f8;
+    --code-bg: #f2f5f6;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font: 400 10.5pt/1.55 "Source Serif 4", Georgia, serif;
+    color: var(--ink);
+    margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  h1, h2, h3, h4, .sans { font-family: "Source Sans 3", system-ui, sans-serif; }
+
+  /* ---------- title page ---------- */
+  .cover { height: 245mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always; }
+  .cover img { width: 86px; margin-bottom: 20mm; }
+  .cover h1 { font-size: 34pt; line-height: 1.05; margin: 0 0 4mm; letter-spacing: -.02em; font-weight: 700; }
+  .cover .sub { font-size: 13pt; color: var(--muted); margin-bottom: 18mm; font-family: "Source Sans 3", sans-serif; }
+  .cover dl { display: grid; grid-template-columns: 34mm 1fr; gap: 2mm 0; font-family: "Source Sans 3", sans-serif; font-size: 9.5pt; margin: 0; }
+  .cover dt { color: var(--faint); text-transform: uppercase; letter-spacing: .09em; font-size: 7.5pt; padding-top: .4mm; }
+  .cover dd { margin: 0; }
+
+  /* ---------- structure ---------- */
+  h2 {
+    font-size: 17pt; font-weight: 700; letter-spacing: -.015em;
+    margin: 0 0 1mm; padding-top: 2mm;
+    page-break-after: avoid; page-break-before: always;
+  }
+  h2.cont { page-break-before: auto; margin-top: 10mm; }
+  h2 + .chapter-intro { color: var(--muted); font-size: 11pt; margin: 0 0 6mm; page-break-after: avoid; }
+  .partnum {
+    font-family: "JetBrains Mono", monospace; font-size: 8pt; letter-spacing: .16em;
+    color: var(--amber); text-transform: uppercase; display: block; margin-bottom: 1.5mm;
+  }
+  h3 { font-size: 12pt; font-weight: 700; margin: 7mm 0 2mm; page-break-after: avoid; }
+  h4 { font-size: 10.5pt; font-weight: 600; margin: 5mm 0 1.5mm; color: var(--ink); page-break-after: avoid; }
+  p { margin: 0 0 3mm; orphans: 3; widows: 3; }
+  ul, ol { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin-bottom: 1.2mm; }
+  strong { font-weight: 600; }
+
+  /* ---------- code ---------- */
+  pre {
+    font-family: "JetBrains Mono", monospace; font-size: 8pt; line-height: 1.45;
+    background: var(--code-bg); border-left: 2.5pt solid var(--cyan);
+    padding: 3mm 4mm; margin: 0 0 4mm; white-space: pre-wrap; overflow-wrap: anywhere;
+    page-break-inside: avoid;
+  }
+  code { font-family: "JetBrains Mono", monospace; font-size: .86em; background: var(--code-bg); padding: 0 .8mm; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  /* ---------- tables ---------- */
+  table { border-collapse: collapse; width: 100%; font-family: "Source Sans 3", sans-serif;
+          font-size: 8.8pt; margin: 0 0 4mm; page-break-inside: avoid; }
+  th { text-align: left; font-weight: 600; font-size: 7.5pt; text-transform: uppercase;
+       letter-spacing: .07em; color: var(--muted); border-bottom: 1pt solid var(--ink); padding: 1.6mm 2mm; }
+  td { border-bottom: .5pt solid var(--rule); padding: 1.6mm 2mm; vertical-align: top; }
+  td.num { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---------- callouts ---------- */
+  .note, .warn {
+    padding: 3mm 4mm; margin: 0 0 4mm; font-size: 9.6pt;
+    page-break-inside: avoid; background: var(--panel);
+  }
+  .note { border-left: 2.5pt solid var(--cyan); }
+  .warn { border-left: 2.5pt solid var(--amber); }
+  .note .label, .warn .label {
+    font-family: "Source Sans 3", sans-serif; font-size: 7.5pt; letter-spacing: .1em;
+    text-transform: uppercase; display: block; margin-bottom: 1mm; font-weight: 600;
+  }
+  .note .label { color: var(--cyan); }
+  .warn .label { color: var(--amber); }
+
+  /* ---------- bug entries ---------- */
+  .bug { page-break-inside: avoid; margin-bottom: 5mm; border-top: .5pt solid var(--rule); padding-top: 2.5mm; }
+  .bug h4 { margin-top: 0; }
+  .bug dl { display: grid; grid-template-columns: 22mm 1fr; gap: 1mm 0; font-size: 9.4pt; margin: 0; }
+  .bug dt { font-family: "Source Sans 3", sans-serif; font-size: 7.5pt; text-transform: uppercase;
+            letter-spacing: .08em; color: var(--faint); padding-top: .8mm; }
+  .bug dd { margin: 0; }
+
+  /* ---------- toc ---------- */
+  .toc { page-break-after: always; }
+  .toc h2 { page-break-before: auto; }
+  .toc ol { list-style: none; padding: 0; font-family: "Source Sans 3", sans-serif; font-size: 9.6pt; }
+  .toc > ol > li { margin-bottom: 1.2mm; }
+  .toc .part { font-weight: 700; margin-top: 4mm; font-size: 8pt; letter-spacing: .1em;
+               text-transform: uppercase; color: var(--amber); }
+  .toc ol ol { padding-left: 6mm; margin-top: .8mm; color: var(--muted); }
+
+  .lede { font-size: 11.5pt; color: var(--muted); margin-bottom: 5mm; }
+  hr { border: none; border-top: .5pt solid var(--rule); margin: 6mm 0; }
+  .small { font-size: 9pt; color: var(--muted); }
+</style>
+
+<!-- ============================= COVER ============================= -->
+<div class="cover">
+  <img src="../App-iOS/Resources/Assets.xcassets/AppIcon.appiconset/icon_1024.png" alt="">
+  <h1>Samcast</h1>
+  <div class="sub">Moving what you're working on to another device,<br>with a hand gesture.</div>
+  <dl>
+    <dt>Document</dt><dd>Complete technical documentation</dd>
+    <dt>Version</dt><dd>1.0.0</dd>
+    <dt>Date</dt><dd>15 September 2026</dd>
+    <dt>Author</dt><dd>Satvik Mishra</dd>
+    <dt>Repository</dt><dd>github.com/auroraeye-dev/Samcast</dd>
+    <dt>Bridge</dt><dd>github.com/auroraeye-dev/Samcast-Bridge</dd>
+    <dt>Licence</dt><dd>MIT</dd>
+    <dt>Scale</dt><dd>5,057 lines Swift · 4,278 lines bridge · 95 commits</dd>
+  </dl>
+</div>
+
+<!-- ============================= TOC ============================= -->
+<div class="toc">
+<h2>Contents</h2>
+<ol>
+  <li class="part">Part I — The idea</li>
+  <ol>
+    <li>1. Origin, and how the idea changed</li>
+    <li>2. The central distinction: moving versus mirroring</li>
+    <li>3. What the product actually is</li>
+  </ol>
+  <li class="part">Part II — Architecture</li>
+  <ol>
+    <li>4. Ports and adapters</li>
+    <li>5. Module map</li>
+    <li>6. The session state machine</li>
+  </ol>
+  <li class="part">Part III — Reading the hand</li>
+  <ol>
+    <li>7. Vision and the 21 landmarks</li>
+    <li>8. The classifier, and why the thumb is ignored</li>
+    <li>9. Debouncing</li>
+    <li>10. Gestures that were tried and abandoned</li>
+  </ol>
+  <li class="part">Part IV — Networking</li>
+  <ol>
+    <li>11. How devices find each other</li>
+    <li>12. Ports, interfaces and what was observed</li>
+    <li>13. Why there is no Bluetooth</li>
+    <li>14. The cross-platform bridge protocol</li>
+    <li>15. Discovery, dialling and back-off</li>
+  </ol>
+  <li class="part">Part V — Moving the content</li>
+  <ol>
+    <li>16. Link handoff</li>
+    <li>17. Window mirroring</li>
+    <li>18. The codec journey</li>
+    <li>19. Keyframes, priming and recovery</li>
+  </ol>
+  <li class="part">Part VI — Safety</li>
+  <ol>
+    <li>20. Live-meeting detection</li>
+    <li>21. The trust model</li>
+    <li>22. Permissions, sandbox and hardened runtime</li>
+    <li>23. What crosses the wire, and what is refused</li>
+  </ol>
+  <li class="part">Part VII — Problems</li>
+  <ol>
+    <li>24. A catalogue of every bug and its cause</li>
+    <li>25. Patterns worth generalising</li>
+  </ol>
+  <li class="part">Part VIII — Platforms</li>
+  <ol>
+    <li>26. macOS</li>
+    <li>27. iPhone and iPad, and their hard limits</li>
+    <li>28. Windows</li>
+  </ol>
+  <li class="part">Part IX — Testing and distribution</li>
+  <ol>
+    <li>29. How correctness is pinned</li>
+    <li>30. Signing, notarisation and getting it onto devices</li>
+  </ol>
+  <li class="part">Part X — State and future</li>
+  <ol>
+    <li>31. What is verified and what is not</li>
+    <li>32. Known issues</li>
+    <li>33. Where to take it next</li>
+  </ol>
+</ol>
+</div>
+
+<!-- ============================= PART I ============================= -->
+<h2><span class="partnum">Part I · The idea</span>1. Origin, and how the idea changed</h2>
+<p class="chapter-intro">The project began as a joke and became useful when one assumption was discarded.</p>
+
+<p>The first description was a single sentence: keep the camera always on, and when you open and close your hand like a duck's beak, the page you are looking at is captured; open your hand in front of another laptop and the screen appears there; snap your fingers and it takes a screenshot.</p>
+
+<p>Two things in that sentence turned out to be wrong, and finding out why shaped everything that followed.</p>
+
+<h3>The snap could not work</h3>
+<p>A finger snap was to trigger screenshots. In practice any sharp sound triggered it — a fist landing on a desk, a cupboard closing, a keyboard being struck hard. Attempts to require a hand in frame <em>and</em> a snap sound reduced false positives without eliminating them, because a hand is usually in frame when you are sitting at a desk.</p>
+
+<p>The replacement was a two-handed "T" shape, borrowed from sports. That failed for a different and more interesting reason: hand-tracking models degrade sharply when two hands overlap, because the joints of one occlude the other. The model would report one hand, or two hands with implausible geometry, and never stably.</p>
+
+<p>The gesture that survived is the <strong>peace sign</strong> — two extended fingers, one hand, no overlap, no audio. It is recognised by the same mechanism as the other two gestures, which is the real reason it works: it is not a special case.</p>
+
+<h3>"Sharing the screen" was the wrong goal</h3>
+<p>The original idea assumed screen sharing. Mid-project the requirement was restated much more precisely, and it changed the architecture:</p>
+
+<div class="note">
+<span class="label">The restated requirement</span>
+For a <strong>link</strong>: "that link closed on my mac and got opened in someone else's mac, same link." For an <strong>app</strong>: "process still using server and hardware of mac 1 only, just screen output address got changed from screen of mac 1 to mac 2." And crucially: <strong>"not the whole monitor — just the thing that I am on currently."</strong>
+</div>
+
+<p>That is two different products wearing one gesture. A link can genuinely <em>move</em>: only a URL travels, the tab closes on the sender and the real page opens on the receiver. An application cannot move at all — a running process is bound to its machine — so the best available approximation is to send a picture of its window while it keeps running where it is.</p>
+
+<p>Recognising these as different operations, rather than one operation with a special case, is the single most important design decision in the project.</p>
+
+<h2 class="cont">2. The central distinction: moving versus mirroring</h2>
+
+<table>
+  <tr><th></th><th>A link</th><th>An application window</th></tr>
+  <tr><td><strong>What travels</strong></td><td>A URL — a few dozen bytes</td><td>Encoded video frames</td></tr>
+  <tr><td><strong>Fidelity</strong></td><td>Perfect; it is the real page</td><td>Lossy, and always will be</td></tr>
+  <tr><td><strong>On the sender</strong></td><td>The tab closes — it has gone</td><td>The app keeps running</td></tr>
+  <tr><td><strong>On the receiver</strong></td><td>Opens in <em>their</em> browser, with <em>their</em> logins</td><td>A picture they cannot interact with</td></tr>
+  <tr><td><strong>Ongoing cost</strong></td><td>None after arrival</td><td>Continuous bandwidth</td></tr>
+  <tr><td><strong>Latency</strong></td><td>One round trip</td><td>Continuous, and visible</td></tr>
+</table>
+
+<p>The consequence is that <strong>Samcast always prefers to move</strong>. When the frontmost application is a recognised browser, the page is handed over as a link. Only when it is not — Figma, Xcode, a spreadsheet, Keynote, Freeform — does it fall back to mirroring.</p>
+
+<p>This preference is not a performance optimisation. A link arriving in the recipient's own browser is a categorically better outcome: they are logged into their own accounts, the text is selectable, the page is scrollable, and nothing continues to consume the network afterwards.</p>
+
+<h2 class="cont">3. What the product actually is</h2>
+
+<table>
+  <tr><th>Gesture</th><th>Meaning</th><th>Implementation</th></tr>
+  <tr><td>Closed hand (fist)</td><td>Offer what I am looking at</td><td>0 of 4 fingers extended</td></tr>
+  <tr><td>Open hand</td><td>Give it to me, here</td><td>4 of 4 fingers extended</td></tr>
+  <tr><td>Peace sign</td><td>Screenshot to Desktop</td><td>Index and middle only</td></tr>
+</table>
+
+<p>The interaction model has one rule that everything else follows from: <strong>the device that receives is the device that can see your hand.</strong> There is no device picker, and there cannot be one, because the gesture <em>is</em> the selection. Walking to a machine and opening your hand at it is unambiguous in a way that choosing "MacBook Pro (2)" from a list is not.</p>
+
+<p>This also produces the security property that matters most: nothing can be pushed onto a device. A sender offers; a receiver must physically gesture to accept. There is no code path that delivers content to a device that has not asked.</p>
+
+<!-- ============================= PART II ============================= -->
+<h2><span class="partnum">Part II · Architecture</span>4. Ports and adapters</h2>
+<p class="chapter-intro">The decision-making is kept free of every Apple framework, so it can be tested without a camera, a network or a screen.</p>
+
+<p>The codebase is organised as a hexagonal architecture. A core module contains all the logic that decides things; platform modules contain all the code that touches hardware. The core defines protocols — "ports" — and the platform modules implement them.</p>
+
+<pre><code>SamcastCore          pure Swift, Foundation only, zero platform imports
+├── Gesture/         HandLandmarks · GestureClassifier · GestureDebouncer
+├── Session/         SessionCoordinator · DeviceIdentity · TrustStore
+│                    PageRisk (live-meeting detection)
+└── Ports/           HandTracker · ScreenSource · PeerTransport
+
+SamcastPlatform      the Apple adapters
+├── VisionHandTracker        AVFoundation + Vision
+├── ScreenCaptureKitSource   SCStream window capture
+├── H264Encoder              VideoToolbox compression
+├── H264DisplayLayer         AVSampleBufferDisplayLayer playback
+├── MultipeerTransport       MultipeerConnectivity
+└── BrowserLink              AppleScript / Apple Events</code></pre>
+
+<p>The three ports are deliberately small:</p>
+
+<pre><code>protocol HandTracker {
+    var onHands: (([HandLandmarks], TimeInterval) -> Void)? { get set }
+    func start() throws
+    func stop()
+}
+
+protocol ScreenSource {
+    var onFrame: ((Any, TimeInterval) -> Void)? { get set }
+    func startCapture() throws
+    func stopCapture()
+    func captureStill() async throws -> URL
+}
+
+protocol PeerTransport {
+    var delegate: PeerTransportDelegate? { get set }
+    var connectedPeers: [Peer] { get }
+    func start()
+    func stop()
+    func send(_ message: ControlMessage, payload: String?, to peer: Peer)
+}</code></pre>
+
+<div class="note">
+<span class="label">Why the frame type is <code>Any</code></span>
+<code>ScreenSource.onFrame</code> passes an opaque <code>Any</code> rather than a <code>CVPixelBuffer</code>. The core must not import CoreVideo, and a pixel buffer is a platform type. The adapter downcasts on receipt. This is the one place where type safety is traded for portability, and it caused a real bug — see §24.
+</div>
+
+<p>The payoff is concrete: <code>SamcastCore</code> compiles and its 81 checks run on any Swift toolchain, including a machine with only Command Line Tools installed and no Xcode. It also meant the Windows bridge could reuse the core by path dependency rather than by copying it, which is what stops the two builds from drifting apart.</p>
+
+<h2 class="cont">5. Module map</h2>
+
+<table>
+  <tr><th>File</th><th>Responsibility</th></tr>
+  <tr><td><code>HandLandmarks.swift</code></td><td><code>Point2D</code>, the 21 <code>HandJoint</code> cases, and a hand observation with a confidence</td></tr>
+  <tr><td><code>GestureClassifier.swift</code></td><td>Geometry only — turns one frame of landmarks into a gesture</td></tr>
+  <tr><td><code>GestureDebouncer.swift</code></td><td>Temporal smoothing; fires only when the stable gesture changes</td></tr>
+  <tr><td><code>SessionCoordinator.swift</code></td><td>A pure reducer: state + input → new state + effects</td></tr>
+  <tr><td><code>DeviceIdentity.swift</code></td><td>Persistent random name and UUID</td></tr>
+  <tr><td><code>TrustStore.swift</code></td><td>Which peers have been approved</td></tr>
+  <tr><td><code>PageRisk.swift</code></td><td>Recognises live meetings that must be confirmed first</td></tr>
+  <tr><td><code>AppModel.swift</code></td><td>macOS orchestration — wires every adapter to the coordinator</td></tr>
+  <tr><td><code>ReceiverModel.swift</code></td><td>The iOS equivalent</td></tr>
+</table>
+
+<h2 class="cont">6. The session state machine</h2>
+
+<p><code>SessionCoordinator</code> is a pure function. It holds a state, accepts an input, mutates the state and returns a list of effects. It performs no I/O, which is why it can be exhaustively tested.</p>
+
+<pre><code>enum SessionState {
+    case idle
+    case armedSource              // I have offered something
+    case casting(to: Peer)        // I am sending to this peer
+    case receiving(from: Peer)    // I am receiving from this peer
+}</code></pre>
+
+<p>The interesting transitions:</p>
+
+<table>
+  <tr><th>State</th><th>Input</th><th>Effects</th><th>New state</th></tr>
+  <tr><td><code>idle</code></td><td>closed hand</td><td>start capture, advertise</td><td><code>armedSource</code></td></tr>
+  <tr><td><code>idle</code></td><td>open hand, someone offering</td><td>request cast, show remote</td><td><code>receiving</code></td></tr>
+  <tr><td><code>idle</code></td><td>open hand, nobody offering</td><td>none</td><td><code>idle</code></td></tr>
+  <tr><td><code>armedSource</code></td><td>closed hand again</td><td>stop capture, withdraw</td><td><code>idle</code></td></tr>
+  <tr><td><code>armedSource</code></td><td><strong>open hand, someone offering</strong></td><td>withdraw, then request</td><td><code>receiving</code></td></tr>
+  <tr><td><code>armedSource</code></td><td>peer requests</td><td>start streaming</td><td><code>casting</code></td></tr>
+</table>
+
+<div class="warn">
+<span class="label">The row in bold was added late, and its absence was a real bug</span>
+Originally an open hand while armed did nothing, on the reasoning that you cannot cast to yourself. That holds only while exactly one device in a pair can be a source. An iPad is never a source, so it is always idle and free to receive — which is why the bug never appeared during weeks of Mac-to-iPad testing. Two Macs can each arm themselves, and then <em>neither</em> can receive: one sits broadcasting an offer and the other ignores every open hand. Observed in the log as fifteen ignored offers across twenty seconds. See §24.
+</div>
+
+<!-- ============================= PART III ============================= -->
+<h2><span class="partnum">Part III · Reading the hand</span>7. Vision and the 21 landmarks</h2>
+<p class="chapter-intro">Hand tracking is the input device. Everything about the interaction is shaped by what it can and cannot report reliably.</p>
+
+<p>On Apple platforms, <code>VNDetectHumanHandPoseRequest</code> reports 21 joints per hand, each with a confidence value. The numbering is shared with MediaPipe, which is what made the Windows port a translation rather than a rewrite.</p>
+
+<pre><code> 0  wrist
+ 1–4   thumb    CMC, MP, IP, tip
+ 5–8   index    MCP, PIP, DIP, tip
+ 9–12  middle   MCP, PIP, DIP, tip
+13–16  ring     MCP, PIP, DIP, tip
+17–20  little   MCP, PIP, DIP, tip</code></pre>
+
+<p>The adapter converts Vision's bottom-left origin to a top-left origin and hands the core a neutral struct. Missing joints — occluded or low confidence — are simply absent rather than zeroed, so the classifier can tell "not detected" from "at the origin".</p>
+
+<h2 class="cont">8. The classifier, and why the thumb is ignored</h2>
+
+<p>The entire gesture vocabulary rests on one measurement: <strong>how many of the four non-thumb fingers are extended.</strong></p>
+
+<pre><code>A finger is extended when its tip is further from the wrist
+than its middle (PIP) joint.</code></pre>
+
+<p>That is a comparison, not an absolute distance, which gives two properties for free:</p>
+
+<ul>
+  <li><strong>Scale invariance.</strong> A hand close to the camera and the same hand across the room classify identically, because both distances scale together.</li>
+  <li><strong>Rotation invariance.</strong> It does not matter which way the hand is turned; a straight finger's tip is further from the wrist than its knuckle regardless of orientation.</li>
+</ul>
+
+<p>The thumb is deliberately excluded. Its tip can be closer to or further from the wrist depending only on how the hand is rotated, so including it would make the count depend on wrist angle rather than on finger state. This is why the app counts to four, not five — a detail that was wrong in the first draft of the marketing site.</p>
+
+<p>Classification order matters:</p>
+
+<pre><code>if index && middle && !ring && !little  → peace
+if extendedCount >= 4                    → open hand
+if extendedCount <= 0                    → closed hand
+otherwise                                → nothing</code></pre>
+
+<p>Peace is tested first because it has two fingers extended and would otherwise fall through to "nothing". Three fingers extended is deliberately unrecognised — it is the most common transitional shape as a hand opens or closes, and assigning it a meaning would make every gesture ambiguous mid-motion.</p>
+
+<h2 class="cont">9. Debouncing</h2>
+
+<p>Raw per-frame classification flickers. A hand closing passes through open, three-finger, two-finger and fist within a few frames, and the tracker's confidence wobbles throughout. Acting on raw frames produces several conflicting events per gesture.</p>
+
+<p><code>GestureDebouncer</code> requires a gesture to be held steadily for a hold duration (0.25–0.3 s) before it counts, and returns a value <em>only on the frame where the stable gesture changes</em>. Everything downstream therefore sees each gesture exactly once.</p>
+
+<h2 class="cont">10. Gestures that were tried and abandoned</h2>
+
+<table>
+  <tr><th>Gesture</th><th>Intended for</th><th>Why it failed</th></tr>
+  <tr><td>Finger snap (audio)</td><td>Screenshot</td><td>Any sharp sound triggered it — desk taps, cupboards, keystrokes</td></tr>
+  <tr><td>Snap + hand in frame</td><td>Screenshot</td><td>A hand is almost always in frame at a desk, so it added nothing</td></tr>
+  <tr><td>Two-handed "T"</td><td>Screenshot</td><td>Hand tracking degrades badly when hands overlap and occlude each other</td></tr>
+  <tr><td>Peace sign</td><td>Screenshot</td><td>Works — one hand, no overlap, distinct finger count</td></tr>
+</table>
+
+<!-- ============================= PART IV ============================= -->
+<h2><span class="partnum">Part IV · Networking</span>11. How devices find each other</h2>
+<p class="chapter-intro">Two completely different mechanisms, depending on whether the far end is an Apple device.</p>
+
+<h3>Between Apple devices: MultipeerConnectivity</h3>
+
+<p>The Apple build uses <code>MCNearbyServiceAdvertiser</code> and <code>MCNearbyServiceBrowser</code> with the service type <code>quackcast</code>, which registers the Bonjour service <code>_quackcast._tcp</code>. Sessions are created with <code>encryptionPreference: .required</code>, so macOS refuses to form an unencrypted session.</p>
+
+<p>Underneath, Bonjour (mDNS) advertises the service on the local network. Browsing finds it, one side invites, the other accepts, and Apple establishes the transport — over the local Wi-Fi network, or peer-to-peer via AWDL when no network is shared.</p>
+
+<p>This was verified directly rather than assumed. Browsing the network while the app ran produced:</p>
+
+<pre><code>$ dns-sd -B _quackcast._tcp
+
+Timestamp     A/R  Flags  if  Domain   Service Type       Instance Name
+15:20:12.814  Add      3  24  local.   _quackcast._tcp.   239i3264d7gmk
+15:20:12.814  Add      3   1  local.   _quackcast._tcp.   239i3264d7gmk
+15:20:12.814  Add      2  14  local.   _quackcast._tcp.   23ld60czlsqmw</code></pre>
+
+<p>Interface 14 is <code>en0</code> — the Wi-Fi interface. The instance names are opaque strings chosen by MultipeerConnectivity; the human-readable device name travels inside the connection, not in the advertisement.</p>
+
+<h2 class="cont">12. Ports, interfaces and what was observed</h2>
+
+<table>
+  <tr><th>Purpose</th><th>Protocol</th><th>Port</th><th>Scope</th></tr>
+  <tr><td>Apple discovery</td><td>mDNS / Bonjour</td><td class="num">UDP 5353</td><td>Multicast, link-local</td></tr>
+  <tr><td>Apple transport</td><td>MultipeerConnectivity</td><td class="num">dynamic</td><td>Chosen by the framework</td></tr>
+  <tr><td>Bridge discovery</td><td>UDP broadcast</td><td class="num">UDP 50505</td><td>Subnet broadcast</td></tr>
+  <tr><td>Bridge transport</td><td>TCP</td><td class="num">ephemeral</td><td>Advertised in the beacon</td></tr>
+</table>
+
+<p>Interfaces observed on the development machine:</p>
+
+<pre><code>lo0     index  1    loopback
+en1     index 10
+en0     index 14    Wi-Fi          192.168.1.32
+awdl0   index 16    Apple Wireless Direct Link
+utun0   index 18
+bridge0              up, but no IP address assigned</code></pre>
+
+<div class="note">
+<span class="label">USB-C between two Macs does nothing for this app</span>
+Connecting two Macs by cable creates a <code>bridge0</code> interface, but it carries no IP address unless Thunderbolt Bridge is explicitly configured. Samcast never uses USB. If the cable route is wanted — for a location with no usable Wi-Fi — enabling Thunderbolt Bridge on both machines gives the interface a link-local address, and Bonjour will run over it.
+</div>
+
+<h2 class="cont">13. Why there is no Bluetooth</h2>
+
+<p>The original idea assumed Bluetooth: "see if that app is installed on nearby <em>bluetooth connected</em> device". The finished product contains no Bluetooth code at all — no <code>CoreBluetooth</code> import, no central, no peripheral. This was verified by searching the entire codebase.</p>
+
+<p>Discovery is Bonjour over Wi-Fi. That changes what "nearby" means, in ways worth stating plainly:</p>
+
+<ul>
+  <li>Two devices in <strong>different rooms on the same Wi-Fi</strong> can hand things to each other. The range is the router's, not ten metres.</li>
+  <li>Two devices <strong>side by side on different networks</strong> — one on Wi-Fi, one on cellular — cannot see each other at all.</li>
+  <li>The bridge protocol additionally cannot cross subnets, because broadcast does not.</li>
+</ul>
+
+<p>MultipeerConnectivity retains one genuine advantage: AWDL can form a direct device-to-device link with Wi-Fi switched on but joined to no network. The socket bridge cannot do this — it needs a real IP network, even if that is only a phone hotspot.</p>
+
+<h2 class="cont">14. The cross-platform bridge protocol</h2>
+
+<p>MultipeerConnectivity is a closed Apple framework over AWDL. A Windows PC cannot speak it, and no library exists that can. Reaching Windows therefore required replacing the entire transport with something both sides could implement from a specification.</p>
+
+<h4>Discovery beacon — UDP 50505</h4>
+
+<p>Every peer broadcasts a JSON datagram every 2 seconds to the IPv4 broadcast address of each active interface, and listens on the same port.</p>
+
+<pre><code>{"qc":1,"id":"C0D6F8F9-…","name":"demo-mac","kind":"mac","port":49410}</code></pre>
+
+<table>
+  <tr><th>Field</th><th>Meaning</th></tr>
+  <tr><td><code>qc</code></td><td>Protocol version. A peer must <em>ignore</em> a version it does not implement.</td></tr>
+  <tr><td><code>id</code></td><td>Stable per-install UUID. Trust is keyed on this — never the name, never the IP.</td></tr>
+  <tr><td><code>name</code></td><td>Human-readable, display only.</td></tr>
+  <tr><td><code>kind</code></td><td><code>mac</code> · <code>windowsPC</code> · <code>iPad</code> · <code>iPhone</code> · <code>unknown</code>.</td></tr>
+  <tr><td><code>port</code></td><td>The TCP port this peer is accepting connections on.</td></tr>
+</table>
+
+<p>A peer is considered lost after 8 seconds of silence — four missed beacons. Beacons carrying one's own id are ignored, because broadcast returns to the sender on most stacks.</p>
+
+<h4>Framing</h4>
+
+<p>Every TCP message is length-prefixed, so the stream can carry both small JSON and multi-hundred-kilobyte images:</p>
+
+<pre><code>┌────────────┬────────┬───────────────────┐
+│  length    │  type  │      payload      │
+│  4 bytes   │ 1 byte │   length bytes    │
+│ big-endian │        │                   │
+└────────────┴────────┴───────────────────┘
+
+type 0x01  control — UTF-8 JSON
+type 0x02  screen frame — JPEG bytes</code></pre>
+
+<div class="warn">
+<span class="label">The most important line in any socket program</span>
+A payload longer than <strong>8 MiB</strong> is rejected and the connection closed. Without a cap, one malformed or hostile length prefix makes the receiver attempt an allocation of up to 4 GiB. A real frame is a few hundred kilobytes, so the limit is generous and still protective.
+</div>
+
+<h4>Control messages</h4>
+
+<p>The JSON envelope is deliberately identical to the one the Apple build sends, so both transports carry the same control plane:</p>
+
+<pre><code>{ "control": "handoff", "payload": "https://example.com/article" }</code></pre>
+
+<table>
+  <tr><th>Control</th><th>Direction</th><th>Meaning</th></tr>
+  <tr><td><code>hello</code></td><td>both, on connect</td><td>Identifies the connection: <code>id|name|kind</code></td></tr>
+  <tr><td><code>sourceAvailable</code></td><td>sender → peers</td><td>Something is being held for you</td></tr>
+  <tr><td><code>sourceWithdrawn</code></td><td>sender → peers</td><td>The hold expired or was cancelled</td></tr>
+  <tr><td><code>requestCast</code></td><td>receiver → sender</td><td>Open hand seen — give it to me</td></tr>
+  <tr><td><code>handoff</code></td><td>sender → receiver</td><td>The URL itself</td></tr>
+  <tr><td><code>endCast</code></td><td>either</td><td>Stop the stream</td></tr>
+</table>
+
+<h4>The exchange</h4>
+
+<pre><code>   holder (fist)                        receiver (open hand)
+       │                                          │
+       │────────── sourceAvailable ──────────────▶│   something is waiting
+       │                                          │
+       │◀───────── requestCast ───────────────────│   open hand seen
+       │                                          │
+       │────────── handoff "https://…" ──────────▶│   the URL itself
+       │                                          │
+       │   close the tab here      the page opens here</code></pre>
+
+<p>The holder closes its own tab only <em>after</em> <code>requestCast</code> arrives, so a gesture nobody catches leaves the page exactly where it was. If no request arrives within 5 seconds, the holder withdraws and restores its own state.</p>
+
+<h2 class="cont">15. Discovery, dialling and back-off</h2>
+
+<p>Each peer listens on an ephemeral TCP port advertised in its beacon. When peer A discovers peer B, exactly one of them dials, chosen by comparing ids as strings:</p>
+
+<pre><code>A dials B  ⟺  A.id &lt; B.id</code></pre>
+
+<p>Both sides apply the same rule, so a pair never ends up with two overlapping connections. This rule is not decorative — its absence caused connections that survived only a few seconds each, because both ends invited and each new session tore down the last.</p>
+
+<p>A second rule proved equally necessary. A TCP connect takes time, during which the peer is still "not connected" — so a once-per-second tick opened a second, third and fourth connection to the same peer, and the duplicate-resolution rule then tore them down in turn. In-flight dials are now tracked explicitly.</p>
+
+<p>Failed dials back off 1, 2, 4, 8 seconds, capped at 8, for as long as the peer's beacons keep arriving.</p>
+
+<!-- ============================= PART V ============================= -->
+<h2><span class="partnum">Part V · Moving the content</span>16. Link handoff</h2>
+<p class="chapter-intro">Reading and closing a browser tab from outside the browser, and putting it back if nobody catches it.</p>
+
+<p>On macOS, reading the frontmost browser's current tab uses AppleScript. Chromium-based browsers and Safari use different vocabulary for the same idea, so each is scripted separately:</p>
+
+<pre><code>-- Safari
+tell application "Safari"
+    set theTab to current tab of front window
+    return (URL of theTab as text) & linefeed & (name of theTab as text)
+end tell
+
+-- Chromium family
+tell application "Google Chrome"
+    set theTab to active tab of front window
+    return (URL of theTab as text) & linefeed & (title of theTab as text)
+end tell</code></pre>
+
+<p>Supported: Safari, Chrome, Edge, Brave, Arc, Vivaldi. The frontmost application's bundle identifier is checked first; if it is not a known browser, the window-mirroring path is taken instead.</p>
+
+<h4>The lifecycle of a grabbed page</h4>
+
+<ol>
+  <li>Fist → read the frontmost tab.</li>
+  <li>If it is a live meeting, ask first and stop here until answered (§20).</li>
+  <li>Close the tab, hold the URL, advertise availability, start a 20-second recovery timer.</li>
+  <li>On <code>requestCast</code>: send the URL, cancel the timer, return to idle.</li>
+  <li>If the timer fires first: reopen the page locally and return to idle.</li>
+</ol>
+
+<div class="note">
+<span class="label">Why the tab closes immediately on macOS</span>
+The Mac app closes the tab at grab time, not at delivery. That makes the gesture feel immediate — the page visibly leaves your hand — but it means a misread fist has a visible cost. The 20-second recovery exists entirely to bound that cost. The headless bridge peer takes the opposite approach and closes only on delivery; both are defensible and the difference is deliberate.
+</div>
+
+<h4>Opening on the receiver</h4>
+
+<p>A received URL opens in the receiver's default browser via <code>NSWorkspace</code>. On iOS it opens inside the app in a <code>WKWebView</code>, because iOS cannot hand a URL to Safari without leaving Samcast — and iOS suspends backgrounded apps, which would end the session.</p>
+
+<p>This inconsistency is deliberate. The Mac behaviour is the correct one and matches the product's premise: the page opens in <em>their</em> browser, with <em>their</em> logins. The iOS behaviour is the lesser of two evils forced by the platform.</p>
+
+<h2 class="cont">17. Window mirroring</h2>
+
+<p>When the frontmost application is not a browser, ScreenCaptureKit captures that single window — not the desktop.</p>
+
+<h4>Choosing the window</h4>
+
+<p><code>CGWindowListCopyWindowInfo</code> is used rather than <code>SCShareableContent</code>'s ordering, because the former is genuinely front-to-back z-ordered and the latter's order is undocumented. The first window is taken that:</p>
+
+<ul>
+  <li>is not owned by Samcast or its test peer — capturing a window that is <em>displaying</em> the mirror produces an infinite tunnel;</li>
+  <li>is on layer 0 — higher layers are the menu bar, Dock and overlays;</li>
+  <li>is larger than 120×120 points — smaller ones are tool palettes and tooltips.</li>
+</ul>
+
+<p>There is deliberately <strong>no whole-desktop fallback</strong>. If no suitable window is found, capture fails with an explanation rather than silently sharing everything on screen.</p>
+
+<h4>Skipping unchanged frames</h4>
+
+<p>ScreenCaptureKit delivers frames at the configured rate whether or not anything changed, marking unchanged ones <code>.idle</code>. Forwarding those meant a static Keynote slide cost the same bandwidth as video. Skipping them makes a still window nearly free — and is what pays for the higher resolution and quality described next.</p>
+
+<h2 class="cont">18. The codec journey</h2>
+<p class="chapter-intro">Five distinct stages, each fixing the problem the previous one exposed.</p>
+
+<table>
+  <tr><th>Stage</th><th>Configuration</th><th>Result</th></tr>
+  <tr><td>1. Initial</td><td>JPEG, unreliable send</td><td><strong>Zero frames ever arrived</strong></td></tr>
+  <tr><td>2. Reliable</td><td>JPEG q0.55, 1100 px, 12 fps</td><td>Worked; 1,587 KB/s; soft text</td></tr>
+  <tr><td>3. Sharper</td><td>JPEG q0.8, 1600 px, 10 fps</td><td>3,230 KB/s — <strong>killed the session</strong></td></tr>
+  <tr><td>4. Adaptive</td><td>Byte budget, quality floats</td><td>Stable but pinned at its ugliest</td></tr>
+  <tr><td>5. H.264</td><td>VideoToolbox, 15 fps, 1600 px</td><td><strong>20–130 KB/s, frames 1–9 KB</strong></td></tr>
+</table>
+
+<h4>Why stage 1 failed</h4>
+
+<p>Frames were sent with <code>.unreliable</code>, which is datagram-based and silently refuses payloads past a size ceiling. A JPEG of a window is 100–300 KB. Every frame was rejected — and the error was discarded by <code>try?</code>, so nothing was logged anywhere. The symptom was a feature that had never once worked, with no evidence why.</p>
+
+<h4>Why stage 3 killed the session</h4>
+
+<p>Reliable delivery does not drop; it queues. Overshooting the link's capacity therefore makes latency grow without bound until the session collapses. Sending 3.2 MB/s to an iPad over Wi-Fi did exactly that.</p>
+
+<h4>The adaptive controller</h4>
+
+<p>Stage 4 introduced a byte budget the encoder steers toward:</p>
+
+<ul>
+  <li>Frames past the second's budget are <strong>skipped, not queued</strong>.</li>
+  <li>Quality floats between 0.40 and 0.85; scale floats 100%→80% only once quality bottoms out, because a slightly soft full-size frame stays readable while a crisply encoded shrunken one does not — the strokes are simply gone.</li>
+  <li>Recovery climbs more slowly than back-off (+0.02 vs −0.05), or the controller oscillates.</li>
+</ul>
+
+<h4>Why H.264 changed the shape of the problem</h4>
+
+<p>JPEG re-encodes the entire picture every frame. For a window where three words changed, that is almost entirely waste, and it forces a choice between a sharp picture and a smooth one. H.264 encodes the <em>difference</em> between frames, so the same window costs a fraction of the bandwidth and can be sent at full resolution.</p>
+
+<pre><code>kVTCompressionPropertyKey_RealTime            true
+kVTCompressionPropertyKey_AllowFrameReordering false   // B-frames add latency
+kVTCompressionPropertyKey_ProfileLevel         Main, auto level
+kVTCompressionPropertyKey_AverageBitRate       2,500,000
+kVTCompressionPropertyKey_MaxKeyFrameInterval  120 frames / 5 seconds</code></pre>
+
+<p>Measured on a real iPad over Wi-Fi: <strong>15 fps at 1600 px, frames of 1–9 KB, 20–130 KB/s.</strong> Against stage 4's 4 fps at 200 KB per frame and 770 KB/s, that is roughly four times the frame rate for a twentieth of the bandwidth, at the same resolution.</p>
+
+<h2 class="cont">19. Keyframes, priming and recovery</h2>
+
+<p>H.264 introduced a failure mode JPEG did not have: a decoder cannot show anything until it has a keyframe carrying the sequence and picture parameter sets. Three mechanisms were needed to make that reliable.</p>
+
+<h4>Parameter sets ride with every keyframe</h4>
+
+<p>A receiver that joins mid-stream has never seen the parameter sets, so they are re-sent with every keyframe rather than once at the start. The packet format carries them explicitly:</p>
+
+<pre><code>byte 0      codec     0x01 JPEG · 0x02 H.264
+byte 1      flags     bit0 keyframe · bit1 parameter sets follow
+[if bit1]   uint16 spsLength, sps bytes
+[if bit1]   uint16 ppsLength, pps bytes
+remainder   payload</code></pre>
+
+<h4>Priming</h4>
+
+<p>Capture begins at the fist; the stream target is set when someone opens their hand, seconds later. In between, frames are captured and discarded — and because unchanged frames are skipped, a static window then produces nothing at all. Measured consequence: <strong>a 10.3-second delay</strong> before anything appeared, waiting for the sender to happen to move something.</p>
+
+<p>The last captured frame is now retained even while nobody is watching, and encoded the moment a receiver appears. The delay became 33 milliseconds.</p>
+
+<h4>The keyframe heartbeat</h4>
+
+<p>If a receiver misses the keyframe, the same idle-skipping means nothing is on the way to recover with. While a stream is active and nothing has been sent for 1.5 seconds, the retained frame is re-sent as a keyframe. Any receiver recovers on the next beat rather than on luck. A still frame is a few kilobytes, so the resting cost is negligible.</p>
+
+<!-- ============================= PART VI ============================= -->
+<h2><span class="partnum">Part VI · Safety</span>20. Live-meeting detection</h2>
+<p class="chapter-intro">The one place where a misread gesture costs more than a reopened tab.</p>
+
+<p>Hand tracking is never perfect. A hand closing around a mug reads much like a deliberate fist. For an ordinary page the cost of a misread is a tab that reopens twenty seconds later. For a <strong>live video call</strong> it is being dropped out of the meeting in front of other people, with fresh camera and microphone prompts on rejoining.</p>
+
+<p>Same gesture, entirely different cost — so live calls are confirmed first.</p>
+
+<h4>What counts as a call</h4>
+
+<table>
+  <tr><th>Service</th><th>Recognised by</th></tr>
+  <tr><td>Google Meet</td><td><code>meet.google.com</code> + a room code of shape <code>abc-defg-hij</code>, or <code>/lookup/</code></td></tr>
+  <tr><td>Zoom</td><td><code>zoom.us</code> / <code>zoomgov.com</code> + <code>/j/</code>, <code>/s/</code>, <code>/wc/</code>, <code>/my/</code></td></tr>
+  <tr><td>Microsoft Teams</td><td><code>teams.microsoft.com</code> or <code>teams.live.com</code> + <code>meetup-join</code>, <code>/l/meeting</code>, <code>/meet/</code></td></tr>
+  <tr><td>Webex</td><td><code>webex.com</code> + <code>/meet/</code>, <code>/join/</code>, <code>/wbxmjs/</code>, <code>/j.php</code></td></tr>
+  <tr><td>Jitsi, Whereby, Chime, Gather, Around, BlueJeans, GoToMeeting</td><td>Any non-marketing room path</td></tr>
+</table>
+
+<div class="note">
+<span class="label">The negative cases matter as much as the positive ones</span>
+<code>meet.google.com</code> on its own is a landing page. Zoom's pricing page is not a call. A Meet code of the wrong shape — <code>abcd-efg-hij</code>, or digits instead of letters — is not a room. All of these must stay <strong>silent</strong>. A prompt that people learn to dismiss without reading protects nobody, and would make the feature actively harmful. The shared fixture file contains 31 cases, of which 12 are negative.
+</div>
+
+<h4>How the prompt behaves</h4>
+
+<p>Two properties are load-bearing:</p>
+
+<ul>
+  <li><strong>It appears over the browser, not in the app.</strong> When you make a fist you are in Safari, not in Samcast. A prompt inside the app window would be asked where nobody is looking — a mistake the glow animation originally made and had to be rebuilt to avoid.</li>
+  <li><strong>Doing nothing means no.</strong> The prompt times out into a cancel after 12 seconds. Someone who did not mean to make that gesture is precisely the person who will not reach for a button.</li>
+</ul>
+
+<p>Nothing is closed, advertised or timed until the question is answered, so declining has nothing to undo.</p>
+
+<h2 class="cont">21. The trust model</h2>
+
+<div class="note">
+<span class="label">The rule in one sentence</span>
+<strong>Trust decides <em>whether</em> a device may hand you things. Your hand decides <em>where</em> they go.</strong> The two are never conflated.
+</div>
+
+<p>Every install generates a permanent random name — <code>swift-heron-3172</code>, <code>vivid-vole-4997</code> — and a UUID, stored once and reused forever. Devices are discovered and trusted by this rather than by an operating-system device name, which can change, collide, or be unreadable. Your real device name is never broadcast.</p>
+
+<p>An unknown device is approved once, explicitly, the first time it offers something. Thereafter it is remembered. But trust never delivers anything: taking something always requires the gesture at the destination. There is no code path that pushes content onto a device that has not asked.</p>
+
+<h2 class="cont">22. Permissions, sandbox and hardened runtime</h2>
+
+<table>
+  <tr><th>Permission</th><th>Needed for</th><th>Required?</th></tr>
+  <tr><td>Camera</td><td>Reading gestures</td><td><strong>Yes</strong> — nothing works without it</td></tr>
+  <tr><td>Screen Recording</td><td>Mirroring a window, screenshots</td><td>Optional — links work without</td></tr>
+  <tr><td>Automation</td><td>Reading and closing a browser tab</td><td>Per browser, on first use</td></tr>
+  <tr><td>Local Network</td><td>Finding devices</td><td>Yes, prompted by the system</td></tr>
+</table>
+
+<h4>Why the app is not sandboxed</h4>
+
+<p>Reading the frontmost browser tab requires Apple Events. The App Sandbox blocks these for directly distributed applications — the temporary-exception entitlement is honoured only for App Store builds. Samcast therefore runs unsandboxed.</p>
+
+<p>This is a genuine trade-off and is stated as one. macOS still gates Camera, Screen Recording and Automation individually, and the source is public precisely so that what the app does with that freedom can be read.</p>
+
+<h4>The hardened runtime trap</h4>
+
+<div class="warn">
+<span class="label">A failure with no error and no prompt</span>
+With Hardened Runtime enabled, Apple Events require the <code>com.apple.security.automation.apple-events</code> entitlement. Without it, events fail with error −1743 and <strong>no permission prompt is ever shown</strong> — the user cannot grant what they were never asked for. This cost significant debugging time, because every symptom pointed at the browser scripting rather than at the entitlement.
+</div>
+
+<h4>Permissions are tied to the code signature</h4>
+
+<p>macOS keys privacy grants to an application's signature. An ad-hoc signature is derived from the binary's contents and therefore changes with every build — so each new build is a different app as far as the system is concerned, and every permission must be granted again. Worse, the previous entry remains in the list looking as though it were still in force, and shadows the new one until removed with the minus button.</p>
+
+<p>This is why the development machine uses a stable development-signed build, and why a second machine that receives ad-hoc builds re-grants permissions each time. It is also the practical reason Screen Recording was made optional: asking for less is the only available lever on a machine that cannot be registered to a developer account.</p>
+
+<h2 class="cont">23. What crosses the wire, and what is refused</h2>
+
+<p>Exactly two things cross the network: a URL string, and encoded video frames. The URL is the dangerous one, because the receiver hands it to the operating system.</p>
+
+<pre><code>Accepted:  http://…   https://…   (with a non-empty host, ≤ 4096 chars)
+
+Refused:   file:///etc/passwd
+           file:///C:/Windows/System32/config/SAM
+           smb://server/share
+           javascript:alert(1)
+           vbscript:msgbox
+           ms-msdt:/id
+           someapp://run
+           C:\Windows\System32\cmd.exe
+           /Applications/Calculator.app
+           example.com            (no scheme)
+           https://               (no host)</code></pre>
+
+<p>This is validated <strong>independently on both sides</strong>, not merely by the sender, because the sender is exactly the party that cannot be trusted in a hostile case. Each refusal above has a test.</p>
+
+<!-- ============================= PART VII ============================= -->
+<h2><span class="partnum">Part VII · Problems</span>24. A catalogue of every bug and its cause</h2>
+<p class="chapter-intro">The most useful part of this document. Each entry records what was observed, what actually caused it, and how it was fixed.</p>
+
+<div class="bug">
+<h4>Frames never arrived, with no error anywhere</h4>
+<dl>
+  <dt>Symptom</dt><dd>Window sharing had never produced a single frame on a real device.</dd>
+  <dt>Cause</dt><dd>Frames were sent with <code>.unreliable</code>, which is datagram-based and silently refuses oversized payloads. A window JPEG is 100–300 KB. <code>try?</code> discarded the resulting error.</dd>
+  <dt>Fix</dt><dd>Send reliably; log send failures, throttled to once a second so twelve frames a second cannot flood the log.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>The picture was soft at any setting</h4>
+<dl>
+  <dt>Symptom</dt><dd>Text in a mirrored window was hard to read even at high JPEG quality.</dd>
+  <dt>Cause</dt><dd><code>maxCaptureWidth</code> was compared against the window's width in <strong>points</strong>. A 1400 pt window is 2800 physical pixels on a Retina display, so asking for 1100 was a 2.5× reduction before encoding began.</dd>
+  <dt>Fix</dt><dd>Multiply by the backing scale factor and compare pixels to pixels. Measured result: 1600×1004.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>The iPad froze mid-stream while the Mac kept sending</h4>
+<dl>
+  <dt>Symptom</dt><dd>The Mac streamed at 10 fps for thirty seconds with zero send failures; the iPad's picture had stopped.</dd>
+  <dt>Cause</dt><dd>Every frame did <code>UIImage(data:)</code> then hopped to the main actor to assign a <code>@Published</code>. With reliable delivery there is no backpressure, so once decoding fell behind the queue grew without bound and the UI froze.</dd>
+  <dt>Fix</dt><dd>A lock-guarded inbox keeping only the newest frame; decode forced on the network thread rather than at draw time.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>The stream worked, then stopped, then worked</h4>
+<dl>
+  <dt>Symptom</dt><dd>Intermittent delivery; the iPad reporting "nothing arrived" and re-requesting every few seconds.</dd>
+  <dt>Cause</dt><dd>Two faults. The display layer had been put into pull mode by calling <code>requestMediaDataWhenReady</code> with an empty handler while frames were also being pushed in. And a receiver that missed a keyframe had nothing on the way to recover with, because a static window produces no frames.</dd>
+  <dt>Fix</dt><dd>Remove the pull-mode call; add the 1.5-second keyframe heartbeat.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>Ten seconds before anything appeared</h4>
+<dl>
+  <dt>Symptom</dt><dd>Opening a hand at the iPad showed nothing for up to ten seconds.</dd>
+  <dt>Cause</dt><dd>Idle-frame skipping. Capture started at the fist, its first frame was discarded because nobody had asked yet, and a static window then produced nothing until the sender happened to move something.</dd>
+  <dt>Fix</dt><dd>Retain the last captured frame and encode it the instant a receiver appears. 10.3 s → 33 ms.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>Two Macs, and neither could receive</h4>
+<dl>
+  <dt>Symptom</dt><dd>A page closed on the sending Mac and arrived nowhere. The log showed fifteen <code>sourceAvailable</code> broadcasts ignored across twenty seconds.</dd>
+  <dt>Cause</dt><dd>In <code>armedSource</code>, an open hand returned no effects — commented "opening your own hand can't cast to self". True only while one device in a pair can be a source. An iPad never is, so the bug was invisible during all Mac-to-iPad testing.</dd>
+  <dt>Fix</dt><dd>If another device is offering, an armed device withdraws its own offer and takes theirs. Order asserted by test: withdraw before request.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>The page arrived and opened, and looked like it had not</h4>
+<dl>
+  <dt>Symptom</dt><dd>Reported twice as "the link closed there but did not open here".</dd>
+  <dt>Cause</dt><dd>It <em>had</em> opened — 21 ms after arriving — behind Samcast, where nobody was looking. <code>NSWorkspace.open</code>'s result was discarded, so "never arrived" and "arrived and opened invisibly" produced identical evidence.</dd>
+  <dt>Fix</dt><dd>Use <code>NSWorkspace.OpenConfiguration</code> with <code>activates = true</code> to raise the browser, and report the real outcome from the completion handler.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>A tab closed with nowhere to send it</h4>
+<dl>
+  <dt>Symptom</dt><dd>With no other device running, a fist still closed the tab and held it for two minutes, re-announcing to an empty peer list every two seconds.</dd>
+  <dt>Cause</dt><dd>No check for connected peers before arming. The headless bridge peer had this check; the Mac app never got it.</dd>
+  <dt>Fix</dt><dd>Refuse to grab with no devices nearby, and say so. Recovery shortened from 120 s to 20 s — two minutes staring at a closed tab reads as "my page is gone", not as a safety net.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>"Not a supported browser" on every app the feature exists for</h4>
+<dl>
+  <dt>Symptom</dt><dd>Sharing Freeform, Mail or FaceTime reported <em>"front app is Freeform, not a supported browser"</em>.</dd>
+  <dt>Cause</dt><dd>One <code>catch</code> reused for two unrelated situations. A non-browser front app is not a failure — it is the normal path for window mirroring.</dd>
+  <dt>Fix</dt><dd>Separate catches. Not-a-browser now reads "Sharing your Freeform window"; a browser whose URL could not be read remains an error, because silently mirroring it instead is a worse outcome nobody asked for.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>Connections that flapped every second</h4>
+<dl>
+  <dt>Symptom</dt><dd>Peers connecting and disconnecting once per second, on both the Multipeer and socket transports.</dd>
+  <dt>Cause</dt><dd>Two causes, same shape. Both ends invited each other, and each new session tore down the last. Separately, the once-per-second tick re-dialled while a connect was still in flight.</dd>
+  <dt>Fix</dt><dd>A deterministic rule so exactly one side dials, plus explicit tracking of in-flight dials.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>Permissions reset on every rebuild</h4>
+<dl>
+  <dt>Symptom</dt><dd>Screen Recording had to be granted again after each build.</dd>
+  <dt>Cause</dt><dd>Ad-hoc signing. macOS keys privacy grants to the signature, which changes with every build.</dd>
+  <dt>Fix</dt><dd>Pin a development team so the signature is stable on the development machine.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>Apple Events failed silently with no prompt</h4>
+<dl>
+  <dt>Symptom</dt><dd>Reading the browser tab failed with error −1743 and no permission dialog ever appeared.</dd>
+  <dt>Cause</dt><dd>Two compounding causes: the App Sandbox blocked Apple Events entirely, and Hardened Runtime additionally required the <code>apple-events</code> entitlement.</dd>
+  <dt>Fix</dt><dd>Disable the sandbox and add the entitlement. Both were necessary; neither alone was sufficient.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>The Mac cancelled its own handoff</h4>
+<dl>
+  <dt>Symptom</dt><dd>A grabbed page was released before it could be delivered.</dd>
+  <dt>Cause</dt><dd>The sending Mac's own camera caught hands as the user walked away, and those gestures were acted upon.</dd>
+  <dt>Fix</dt><dd>While holding a grabbed page, this device's camera stops deciding anything — you are gesturing at another machine, not this one.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>A conditional downcast that always succeeded</h4>
+<dl>
+  <dt>Symptom</dt><dd>Invalid frames passing a type check.</dd>
+  <dt>Cause</dt><dd><code>CVPixelBuffer</code> is a CoreFoundation type, so <code>as?</code> against it always succeeds.</dd>
+  <dt>Fix</dt><dd>Compare <code>CFGetTypeID(frame) == CVPixelBufferGetTypeID()</code>.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>The second handoff showed the first page</h4>
+<dl>
+  <dt>Symptom</dt><dd>On iPad, a second handed-over link displayed the previous one.</dd>
+  <dt>Cause</dt><dd><code>SFSafariViewController</code> cannot change its URL after presentation.</dd>
+  <dt>Fix</dt><dd>An inline <code>WKWebView</code>, which can.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>An iPhone announcing itself as an iPad</h4>
+<dl>
+  <dt>Symptom</dt><dd>The first iPhone to run the app appeared in device lists as an iPad.</dd>
+  <dt>Cause</dt><dd><code>Peer.Kind</code> was hardcoded to <code>.iPad</code> — harmless while an iPad was the only iOS device that had ever run it.</dd>
+  <dt>Fix</dt><dd>Read <code>UIDevice.current.userInterfaceIdiom</code>.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>A packaging script that crashed before building</h4>
+<dl>
+  <dt>Symptom</dt><dd><code>SIGN_ARGS[@]: unbound variable</code>.</dd>
+  <dt>Cause</dt><dd>macOS ships bash 3.2, where expanding an <em>empty</em> array under <code>set -u</code> is an error — and empty is the normal case when no signing override is needed.</dd>
+  <dt>Fix</dt><dd><code>${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"}</code>.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>A shareable build that would not launch elsewhere</h4>
+<dl>
+  <dt>Symptom</dt><dd>The DMG refused to open on a second Mac.</dd>
+  <dt>Cause</dt><dd>Development signing makes Xcode add the <code>get-task-allow</code> (debuggable) entitlement, and an app carrying that refuses to launch on a machine not registered for development.</dd>
+  <dt>Fix</dt><dd>A <code>--share</code> build mode: ad-hoc signed, no team, no profile, no <code>get-task-allow</code>.</dd>
+</dl>
+</div>
+
+<div class="bug">
+<h4>Discovery going quiet while still advertising</h4>
+<dl>
+  <dt>Symptom</dt><dd>After some time running, the app saw no peers — while <code>dns-sd</code> confirmed it was still advertising and two other instances were visible on the network.</dd>
+  <dt>Cause</dt><dd>Not yet established. The browser appears to stop forming sessions while advertising continues. A restart resolves it.</dd>
+  <dt>Status</dt><dd><strong>Open.</strong> The only symptom is an empty device list, which is indistinguishable from "nothing else is switched on". See §32.</dd>
+</dl>
+</div>
+
+<h2 class="cont">25. Patterns worth generalising</h2>
+
+<p>Several of the bugs above are instances of the same few mistakes.</p>
+
+<h4>A discarded error is a bug you will not find</h4>
+<p><code>try?</code> on the frame send hid a feature that had never worked. Discarding <code>NSWorkspace.open</code>'s result made "never arrived" and "arrived invisibly" identical. Capture errors going only to a status line made "which window" and "why did it fail" unanswerable after the fact. In each case the fix was hours of work and the cause was one discarded value.</p>
+
+<h4>Test on the topology you ship, not the one that is convenient</h4>
+<p>The armed-source bug survived weeks of testing because an iPad can never be a source. The whole class of "both ends can send" problems was invisible until a second Mac existed. Similarly, every streaming measurement taken against a loopback peer was meaningless for bandwidth, because the network was never exercised.</p>
+
+<h4>Optimisations create failure modes</h4>
+<p>Skipping unchanged frames is correct and saved 98% of the bandwidth. It also directly caused two separate bugs: a ten-second delay before the first frame, and an unrecoverable stream after a lost keyframe. Both needed a mechanism — priming, and the heartbeat — that only exists because of the optimisation.</p>
+
+<h4>Comments encode assumptions that expire</h4>
+<p><em>"Opening your own hand can't cast to self"</em> was true when written and false later. The comment was accurate, reasonable, and became the bug. Assumptions that depend on the deployment topology deserve a test, not a comment.</p>
+
+<!-- ============================= PART VIII ============================= -->
+<h2><span class="partnum">Part VIII · Platforms</span>26. macOS</h2>
+
+<p>The fullest implementation: sends and receives, links and windows. macOS 13 or later, any Mac with a camera.</p>
+
+<p>A Mac can sit idle and still participate, because macOS does not suspend backgrounded applications the way iOS does. This is the single biggest functional difference between the platforms and it shapes the whole product: the Mac is the device that can always be reached.</p>
+
+<h2 class="cont">27. iPhone and iPad, and their hard limits</h2>
+
+<p>The iOS build is universal — <code>TARGETED_DEVICE_FAMILY: "1,2"</code> — so one build runs on both. Two platform rules constrain it, and neither can be engineered around.</p>
+
+<h4>No background operation</h4>
+<p>iOS suspends a backgrounded app's camera and networking. Samcast must therefore be open and in front on an iPhone or iPad to take part at all. The app holds the device awake while it is frontmost so that auto-lock cannot quietly end a session, but it cannot run behind another app, and no iOS app can launch itself on unlock or boot.</p>
+
+<h4>No reading another app's content</h4>
+<p>There is no AppleScript on iOS. The app cannot read Safari's open tab. A link therefore leaves an iPhone or iPad by the clipboard — copy it, then make a fist — or through the <code>quackcast://send?url=…</code> URL scheme, which a Shortcut or share action can call.</p>
+
+<p>The practical consequence is that an iOS device is an excellent receiver and a deliberately limited sender.</p>
+
+<h2 class="cont">28. Windows</h2>
+
+<p>Windows support is a separate repository because it is a different transport, not a port of the app. MultipeerConnectivity cannot reach Windows, so the bridge replaces it with the UDP and TCP protocol described in §14.</p>
+
+<pre><code>windows/samcast/
+  wire.py          framing, envelopes, beacons, URL safety
+  transport.py     UDP discovery + TCP connections
+  session.py       what a fist and an open hand mean
+  gestures.py      a direct port of the Swift classifier
+  camera.py        MediaPipe hand tracking
+  browser.py       reading Chrome's URL via UI Automation
+  capture.py       window capture via mss
+  glow.py          the same amber/cyan animation
+  app.py           the Tk window</code></pre>
+
+<p>Reading the focused browser's URL uses <strong>UI Automation</strong> — the accessibility tree a screen reader reads. It is read-only, requires no special privilege, and involves no injection or extension. Firefox exposes its tree only once accessibility is enabled; Chrome, Edge, Brave, Vivaldi and Opera work as they are.</p>
+
+<div class="warn">
+<span class="label">Status, stated plainly</span>
+<strong>The Windows code has never been executed on Windows.</strong> The protocol beneath it is tested in both directions between a Mac and a Python peer, but MediaPipe hand tracking, UI Automation, <code>mss</code> capture and the Tk window have only ever been compiled. It also does not talk to the Samcast app — only to the headless <code>BridgeCLI</code>, because the app speaks MultipeerConnectivity.
+</div>
+
+<div class="warn">
+<span class="label">Bridge traffic is not encrypted</span>
+MultipeerConnectivity encrypts everything by default; raw sockets do not. Anyone able to observe the LAN can read a URL in transit or forge a discovery beacon and impersonate a trusted device. TLS with a trust-on-first-use pinned certificate is the top open item and fixes both problems at once. Until then, the bridge is for networks you control.
+</div>
+
+<!-- ============================= PART IX ============================= -->
+<h2><span class="partnum">Part IX · Testing and distribution</span>29. How correctness is pinned</h2>
+
+<p>Three suites, deliberately runnable without Xcode:</p>
+
+<table>
+  <tr><th>Suite</th><th>Count</th><th>Covers</th></tr>
+  <tr><td><code>swift run CoreCheck</code></td><td class="num">81</td><td>Gestures, debouncing, the state machine, trust, identity, meeting detection</td></tr>
+  <tr><td><code>swift run BridgeCheck</code></td><td class="num">43</td><td>Framing, malformed streams, URL safety, gesture parity</td></tr>
+  <tr><td><code>python -m unittest</code></td><td class="num">48</td><td>The same, from the Python side, plus session rules</td></tr>
+</table>
+
+<h4>Shared fixtures are the interesting part</h4>
+
+<p>Where a port was unavoidable — Python cannot call Swift — two independent implementations exist of the same rules. Two implementations of anything drift. So both read <strong>the same fixture files</strong>:</p>
+
+<ul>
+  <li><code>docs/gesture-vectors.json</code> — nine hand shapes with expected classifications, read by the Swift and Python suites.</li>
+  <li><code>docs/meeting-vectors.json</code> — 31 URLs with expected outcomes, of which 12 must produce <em>no</em> prompt.</li>
+</ul>
+
+<p>A disagreement about what a fist is, or about what counts as a live meeting, therefore fails a test rather than confusing a user standing in front of a laptop.</p>
+
+<p>The fixtures also record a known quirk honestly: a hand whose wrist was not detected classifies as a fist, because zero fingers can be shown to be extended. The case is named <code>KNOWN QUIRK</code> in the file rather than quietly omitted.</p>
+
+<h2 class="cont">30. Signing, notarisation and getting it onto devices</h2>
+
+<table>
+  <tr><th>Route</th><th>Signature</th><th>Runs on</th><th>Cost</th></tr>
+  <tr><td>Build from source</td><td>Development</td><td>Registered Macs</td><td>Free; no Gatekeeper warning</td></tr>
+  <tr><td><code>--share</code> DMG</td><td>Ad-hoc</td><td>Any Mac</td><td>Free; warning, and permissions reset each build</td></tr>
+  <tr><td>Developer ID + notarised</td><td>Developer ID</td><td>Any Mac</td><td>$99/yr; no warning</td></tr>
+  <tr><td>iOS via Xcode</td><td>Development</td><td>Connected devices</td><td>Free; <strong>expires after 7 days</strong></td></tr>
+  <tr><td>TestFlight</td><td>Distribution</td><td>Anyone invited</td><td>$99/yr; 90-day builds</td></tr>
+</table>
+
+<div class="note">
+<span class="label">There is no iOS download, and there cannot be one</span>
+Apple provides no mechanism to install an iOS app from a website or a release page. An <code>.ipa</code> published for download is inert. This is a platform rule, not a missing feature, and it is why the release ships a macOS disk image and build instructions for iOS rather than two downloads.
+</div>
+
+<p>Installing on a device that is not yours additionally requires the owner to enable <strong>Developer Mode</strong> (Settings ▸ Privacy & Security), restart the device, and trust the developer certificate. All three are deliberate friction on Apple's part, and a managed work phone will usually refuse outright.</p>
+
+<!-- ============================= PART X ============================= -->
+<h2><span class="partnum">Part X · State and future</span>31. What is verified and what is not</h2>
+
+<table>
+  <tr><th>Path</th><th>Links</th><th>Live window</th><th>Evidence</th></tr>
+  <tr><td>Mac → Mac</td><td>Verified</td><td>Untested</td><td>Two real Macs, both directions</td></tr>
+  <tr><td>Mac → iPad</td><td>Verified</td><td>Verified</td><td>15 fps, 1600 px, 20–130 KB/s</td></tr>
+  <tr><td>iPad → Mac</td><td>Verified</td><td>Not possible</td><td>Clipboard only; iOS cannot capture other apps</td></tr>
+  <tr><td>iPhone → Mac</td><td>Connected</td><td>Not possible</td><td>iPhone 17 Pro, identified correctly</td></tr>
+  <tr><td>Mac ↔ Windows</td><td>Protocol only</td><td>Untested</td><td>Mac ↔ Python on one machine</td></tr>
+</table>
+
+<h2 class="cont">32. Known issues</h2>
+
+<ol>
+  <li><strong>Discovery can go quiet while the app still advertises.</strong> Confirmed by browsing the network with <code>dns-sd</code> while the app reported no peers. A restart fixes it. The only symptom is an empty device list, which looks exactly like "nothing else is switched on" — the worst kind of failure. Two mitigations are planned: restart the browser when nothing has been found for a while, and say so in the interface.</li>
+  <li><strong>Mac-to-Mac window mirroring is untested.</strong> Links work both ways; the mirroring path between two Macs has never run.</li>
+  <li><strong>Bridge traffic is unencrypted.</strong> §28.</li>
+  <li><strong>A restored page can land somewhere else.</strong> When a handoff is not caught and the page is reopened, a site that re-authenticates may return a login page rather than where you were. Observed with a Claude design URL.</li>
+  <li><strong>Ad-hoc builds reset permissions.</strong> Unavoidable without a paid developer account; mitigated by making Screen Recording optional.</li>
+  <li><strong>The iOS build expires after seven days</strong> on a free account.</li>
+  <li><strong>Debug logging is verbose.</strong> Useful during development, and should be reduced before any wider release.</li>
+</ol>
+
+<h2 class="cont">33. Where to take it next</h2>
+
+<h4>Bonjour discovery for the bridge</h4>
+<p>The highest-value change. The bridge currently uses UDP broadcast, which iOS forbids without the <code>com.apple.developer.networking.multicast</code> entitlement — something Apple grants only on application. Bonjour through Apple's own APIs is exempt, and the iOS Info.plist already declares the service. On Windows, the <code>zeroconf</code> package provides mDNS in pure Python with no Bonjour install required.</p>
+<p>This would collapse the two networks into one: Mac, iPhone, iPad and Windows all discovering each other by the same mechanism. It would also let the <em>app</em> reach Windows rather than only the headless CLI, and would work across subnets, which broadcast cannot.</p>
+
+<h4>Move the Mac app onto the LAN transport</h4>
+<p>One line, because both transports implement the same port. It should follow Bonjour, not precede it, or the iPad is dropped in the meantime.</p>
+
+<h4>TLS for the bridge</h4>
+<p>Trust-on-first-use with a pinned certificate. Fixes both unencrypted traffic and forgeable beacons at once.</p>
+
+<h4>A share extension for iOS</h4>
+<p>Sending a link from an iPhone currently requires copying it first. A share extension would make it Share ▸ Samcast, which fits the gesture model rather than fighting it.</p>
+
+<h4>Self-healing discovery</h4>
+<p>Issue 1 above. A peer-to-peer application that silently stops finding peers, with no way for the user to tell, is a reliability problem that "restart it" does not answer.</p>
+
+<h2><span class="partnum">Part XI · Reading the source</span>34. A guided order</h2>
+<p class="chapter-intro">Where to start, and what each file is actually for.</p>
+
+<p>The repository is 5,057 lines of Swift across 33 files, plus 4,278 lines in the bridge. Read in this order and each file explains the next.</p>
+
+<table>
+  <tr><th>#</th><th>File</th><th>Why here</th></tr>
+  <tr><td class="num">1</td><td><code>Sources/SamcastCore/Ports/Ports.swift</code></td><td>Three small protocols. The entire shape of the system in one file.</td></tr>
+  <tr><td class="num">2</td><td><code>Gesture/HandLandmarks.swift</code></td><td>The vocabulary: points, joints, a hand observation.</td></tr>
+  <tr><td class="num">3</td><td><code>Gesture/GestureClassifier.swift</code></td><td>Pure geometry. Read the extended-finger test and the ordering.</td></tr>
+  <tr><td class="num">4</td><td><code>Gesture/GestureDebouncer.swift</code></td><td>Twenty lines that make the gestures usable.</td></tr>
+  <tr><td class="num">5</td><td><code>Session/SessionCoordinator.swift</code></td><td>The whole product's behaviour as a pure reducer.</td></tr>
+  <tr><td class="num">6</td><td><code>Sources/CoreCheck/main.swift</code></td><td>81 checks. Faster to read than the prose it verifies.</td></tr>
+  <tr><td class="num">7</td><td><code>Session/PageRisk.swift</code></td><td>Self-contained; the negative cases are the interesting half.</td></tr>
+  <tr><td class="num">8</td><td><code>SamcastPlatform/BrowserLink.swift</code></td><td>Where the "links move" idea meets AppleScript.</td></tr>
+  <tr><td class="num">9</td><td><code>SamcastPlatform/ScreenCaptureKitSource.swift</code></td><td>Window selection, idle-frame skipping, the mirror-tunnel guard.</td></tr>
+  <tr><td class="num">10</td><td><code>SamcastPlatform/H264Encoder.swift</code></td><td>VideoToolbox, and why each property is set as it is.</td></tr>
+  <tr><td class="num">11</td><td><code>SamcastPlatform/MultipeerTransport.swift</code></td><td>Discovery, the one-directional invite rule, frame sending.</td></tr>
+  <tr><td class="num">12</td><td><code>App/AppModel.swift</code></td><td>The largest file. Everything above, wired together.</td></tr>
+  <tr><td class="num">13</td><td><code>App-iOS/ReceiverModel.swift</code></td><td>The same job under iOS constraints. Read after the Mac one.</td></tr>
+  <tr><td class="num">14</td><td><code>docs/PROTOCOL.md</code> (bridge)</td><td>The wire format, reimplementable from that page alone.</td></tr>
+</table>
+
+<div class="note">
+<span class="label">Read the comments</span>
+Many comments in this codebase record <em>why</em> something is the way it is, usually because the obvious alternative was tried and failed. The comment above <code>serviceType</code> explaining why it still reads <code>quackcast</code>, the one on <code>.unreliable</code> becoming <code>.reliable</code>, and the one on the armed-source open hand are each a bug's epitaph.
+</div>
+
+<h2 class="cont">35. The three flows, end to end</h2>
+
+<h4>Flow 1 — a link moves</h4>
+<pre><code>Mac A (sender)                                    Mac B (receiver)
+──────────────                                    ────────────────
+camera → Vision → landmarks
+classifier → .closedHand
+debouncer → stable after 0.3s
+coordinator: idle → armedSource
+  effects: [startScreenCapture, advertiseSourceAvailable]
+
+BrowserLink.frontmostPage()
+  → AppleScript to Safari
+  → https://example.com
+
+PageRiskDetector.assess(url)
+  → .ordinary  (a meeting would stop here and ask)
+
+beginHandoff:
+  close the tab
+  hold the URL
+  start 20s recovery timer
+  broadcast sourceAvailable  ─────────────────────▶ coordinator:
+                                                      idle → (offer noted)
+                                                    user opens hand
+                                                    coordinator: → receiving
+                             ◀───────────────────── requestCast
+  cancel recovery timer
+  send handoff + URL         ─────────────────────▶ validate scheme
+  coordinator → idle                                  http/https only
+                                                    NSWorkspace.open
+                                                      activates = true
+                                                    coordinator → idle</code></pre>
+
+<h4>Flow 2 — a window is mirrored</h4>
+<pre><code>Mac A (sender)                                    iPad (receiver)
+──────────────                                    ───────────────
+fist → armedSource
+BrowserLink.frontmostPage() throws
+  frontAppNotABrowser("Freeform")
+  → this is the normal path, not an error
+
+ScreenCaptureKit:
+  CGWindowListCopyWindowInfo → front window
+  skip Samcast's own windows
+  config 1600px, 15fps, showsCursor
+  frames arrive; .idle ones are skipped
+  last frame retained even with no viewer
+
+broadcast sourceAvailable    ─────────────────────▶ open hand
+                             ◀───────────────────── requestCast
+encoder.requestKeyframe()
+encode the retained frame    ─────────────────────▶ parameter sets + keyframe
+  → priming: 33ms, not 10s                          CMVideoFormatDescription
+                                                    AVSampleBufferDisplayLayer
+H264Encoder, per frame:
+  VTCompressionSessionEncodeFrame
+  → AVCC NALs, ~1-9 KB       ─────────────────────▶ enqueue, hardware decode
+                                                    no UIImage is ever created
+every 1.5s with nothing sent:
+  re-send retained frame as keyframe ─────────────▶ a lost receiver recovers</code></pre>
+
+<h4>Flow 3 — the bridge finds a Windows PC</h4>
+<pre><code>Mac (BridgeCLI)                                   Windows (peer_cli.py)
+───────────────                                   ─────────────────────
+bind UDP 50505, SO_REUSEPORT               bind UDP 50505
+listen TCP on ephemeral port               listen TCP on ephemeral port
+
+every 2s: broadcast beacon ──────────────▶ decode, check qc == 1
+  {"qc":1,"id":…,"port":49410}             ignore own id
+                          ◀────────────── every 2s: its own beacon
+
+whichever id sorts lower dials the other's advertised TCP port
+in-flight dials tracked, so the 1s tick does not dial twice
+
+           ───── TCP connect ─────▶
+           ───── hello  id|name|kind ─────▶
+           ◀───── hello  id|name|kind ─────
+
+now: length-prefixed frames, 4-byte big-endian + 1 type byte
+     0x01 control JSON   ·   0x02 JPEG
+     anything over 8 MiB closes the connection</code></pre>
+
+<h2 class="cont">36. Command reference</h2>
+
+<h4>Building and running</h4>
+<pre><code># macOS app — build, install to /Applications, launch
+./scripts/package.sh --run
+
+# A build that runs on someone else's Mac (ad-hoc, no get-task-allow)
+./scripts/package.sh --share
+
+# With a Developer ID, and notarised
+SIGN_IDENTITY="Developer ID Application: Name (TEAM)" ./scripts/package.sh
+NOTARY_PROFILE=samcast ./scripts/package.sh
+
+# Regenerate the Xcode project after changing project.yml
+xcodegen generate</code></pre>
+
+<h4>Tests</h4>
+<pre><code>swift run CoreCheck                              # 81 checks, no Xcode needed
+swift test                                       # XCTest suite, needs Xcode
+cd ../Samcast-Bridge/mac && swift run BridgeCheck        # 43 checks
+cd ../Samcast-Bridge/windows && python -m unittest discover -s tests -t .</code></pre>
+
+<h4>Testing without a second device</h4>
+<pre><code>swift run CastPeer                  # headless receiver, shows fps and KB/s
+
+# Bridge: two peers on one machine
+swift run BridgeCLI --as alpha --verbose
+python peer_cli.py --as beta --auto-accept --dry-run</code></pre>
+
+<h4>Diagnostics</h4>
+<pre><code>tail -f ~/Library/Logs/Samcast.log          # everything the Mac app does
+
+dns-sd -B _quackcast._tcp                   # who is advertising, and on which interface
+ipconfig getifaddr en0                      # this Mac's address
+xcrun devicectl list devices                # paired iPhones and iPads
+
+codesign -dvv /Applications/Samcast.app     # how it is signed
+codesign -d --entitlements - /Applications/Samcast.app</code></pre>
+
+<h4>Log lines worth recognising</h4>
+<table>
+  <tr><th>Line</th><th>Means</th></tr>
+  <tr><td><code>GRABBED &lt;url&gt;</code></td><td>A page was read and is being held</td></tr>
+  <tr><td><code>CONFIRM needed: Zoom</code></td><td>A live call — waiting for the user</td></tr>
+  <tr><td><code>refused grab: no devices nearby</code></td><td>Nothing was closed; there was nowhere to send</td></tr>
+  <tr><td><code>capture target: Freeform — …</code></td><td>Which window was chosen for mirroring</td></tr>
+  <tr><td><code>capture size: 1600×1004 px</code></td><td>Resolution actually negotiated</td></tr>
+  <tr><td><code>priming stream with the last captured frame</code></td><td>Instant first frame, rather than waiting for motion</td></tr>
+  <tr><td><code>STREAM START -> peer, first frame 82 KB (H.264)</code></td><td>Frames are flowing</td></tr>
+  <tr><td><code>keyframe heartbeat — nothing sent for 1.5s</code></td><td>The recovery safety net, working</td></tr>
+  <tr><td><code>STREAM STALLED: 3s after start</code></td><td>Capture started and produced nothing</td></tr>
+  <tr><td><code>OPENED and raised &lt;url&gt;</code></td><td>A received page opened and the browser came forward</td></tr>
+  <tr><td><code>PUT BACK (timeout) &lt;url&gt;</code></td><td>Nobody caught it; the page was restored</td></tr>
+  <tr><td><code>peers now: []</code></td><td>No devices — expected, or issue 1 in §32</td></tr>
+</table>
+
+<h2 class="cont">37. The shared fixtures in full</h2>
+
+<h4>Gesture vectors</h4>
+<p>Nine synthetic hands, read by both the Swift and Python classifiers.</p>
+<table>
+  <tr><th>Case</th><th>Expected</th></tr>
+  <tr><td>All four fingers extended</td><td><code>openHand</code></td></tr>
+  <tr><td>Everything curled</td><td><code>closedHand</code></td></tr>
+  <tr><td>Index and middle only</td><td><code>peace</code></td></tr>
+  <tr><td>Three fingers</td><td><code>none</code> — deliberately unrecognised</td></tr>
+  <tr><td>One finger</td><td><code>none</code></td></tr>
+  <tr><td>Ring and little only</td><td><code>none</code> — not peace</td></tr>
+  <tr><td>Index and ring</td><td><code>none</code> — not peace</td></tr>
+  <tr><td>Low confidence, all extended</td><td><code>none</code></td></tr>
+  <tr><td>No wrist detected</td><td><code>closedHand</code> — <strong>known quirk</strong>, recorded honestly</td></tr>
+</table>
+
+<h4>Meeting vectors — the negative half</h4>
+<p>These twelve must produce <strong>no prompt</strong>. They matter as much as the positives.</p>
+<pre><code>https://meet.google.com/              a landing page, not a room
+https://meet.google.com
+https://zoom.us/
+https://zoom.us/download
+https://www.zoom.us/pricing
+https://teams.microsoft.com/
+https://whereby.com/pricing
+https://en.wikipedia.org/wiki/Videotelephony
+https://news.ycombinator.com/item?id=1
+https://calendar.google.com/calendar/u/0/r
+https://meet.google.com/abcd-efg-hij   wrong group sizes
+https://meet.google.com/123-4567-890   digits, not letters</code></pre>
+
+<h2 class="cont">38. Glossary</h2>
+
+<table>
+  <tr><th>Term</th><th>Meaning here</th></tr>
+  <tr><td><strong>AWDL</strong></td><td>Apple Wireless Direct Link. Device-to-device Wi-Fi with no router, used by AirDrop and available to MultipeerConnectivity.</td></tr>
+  <tr><td><strong>Bonjour / mDNS</strong></td><td>Apple's zero-configuration service discovery. Advertises <code>_quackcast._tcp</code> on the local network.</td></tr>
+  <tr><td><strong>TCC</strong></td><td>Transparency, Consent and Control — the macOS privacy system that keys permissions to an app's code signature.</td></tr>
+  <tr><td><strong>Hardened Runtime</strong></td><td>A macOS code-signing option that restricts an app's capabilities unless entitlements are declared explicitly.</td></tr>
+  <tr><td><strong>get-task-allow</strong></td><td>The debuggable entitlement. Added automatically to development builds, and the reason such a build will not launch on an unregistered Mac.</td></tr>
+  <tr><td><strong>Ad-hoc signature</strong></td><td>A signature with no identity, derived from the binary's contents — so it changes with every build.</td></tr>
+  <tr><td><strong>Notarisation</strong></td><td>Apple scanning and blessing a distributed build. Removes the first-open warning. Requires a paid membership.</td></tr>
+  <tr><td><strong>SPS / PPS</strong></td><td>Sequence and picture parameter sets. H.264 metadata a decoder needs before it can decode anything.</td></tr>
+  <tr><td><strong>Keyframe</strong></td><td>A fully self-contained frame. Everything between keyframes describes only what changed.</td></tr>
+  <tr><td><strong>AVCC</strong></td><td>The H.264 packaging VideoToolbox emits: each NAL unit prefixed with a 4-byte length.</td></tr>
+  <tr><td><strong>PIP joint</strong></td><td>Proximal interphalangeal — the middle knuckle. The reference point for "is this finger extended".</td></tr>
+  <tr><td><strong>Idle frame</strong></td><td>A frame ScreenCaptureKit delivers when nothing on screen changed. Skipped, which is what makes a still window nearly free.</td></tr>
+  <tr><td><strong>Port / adapter</strong></td><td>A protocol defined by the core (port) and its platform implementation (adapter).</td></tr>
+  <tr><td><strong>Peer id</strong></td><td>A stable per-install UUID. Trust is keyed on this, never on a name or an address.</td></tr>
+</table>
+
+<hr>
+
+<p class="small">Samcast is MIT licensed. Source: <strong>github.com/auroraeye-dev/Samcast</strong> and <strong>github.com/auroraeye-dev/Samcast-Bridge</strong>. Built with Swift, Vision, ScreenCaptureKit, VideoToolbox and MultipeerConnectivity.</p>
