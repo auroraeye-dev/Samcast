@@ -818,12 +818,13 @@ extension AppModel: PeerTransportDelegate {
                 // Say whether macOS actually opened it. Silently dropping this
                 // made "the page never arrived" and "the page arrived and the
                 // browser refused it" look identical.
-                let opened = BrowserLink.open(url)
-                QCLog.write(opened
-                    ? "OPENED \(url.absoluteString)"
-                    : "HANDOFF ARRIVED BUT macOS REFUSED TO OPEN IT: \(url.absoluteString)")
-                if !opened {
-                    self.setStatus("Couldn't open the page from \(peer.displayName) — no default browser?", hold: 10)
+                BrowserLink.open(url) { [weak self] opened in
+                    QCLog.write(opened
+                        ? "OPENED and raised \(url.absoluteString)"
+                        : "HANDOFF ARRIVED BUT macOS REFUSED TO OPEN IT: \(url.absoluteString)")
+                    if !opened {
+                        self?.setStatus("Couldn't open the page from \(peer.displayName) — no default browser?", hold: 10)
+                    }
                 }
                 self.setStatus("📬 Opened a page from \(peer.displayName)")
                 self.pulseGlow(.inward, message: "Received from \(peer.displayName)")

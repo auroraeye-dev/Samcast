@@ -128,15 +128,24 @@ public enum BrowserLink {
         return (try? run(script)) != nil
     }
 
-    /// Opens a handed-over URL in this machine's default browser.
+    /// Opens a handed-over URL in this machine's default browser and brings
+    /// that browser to the front.
     ///
-    /// Returns whether macOS accepted it. The result used to be discarded,
-    /// which meant a page that arrived and then failed to open looked exactly
-    /// like one that never arrived — and those need completely different
-    /// fixes.
-    @discardableResult
-    public static func open(_ url: URL) -> Bool {
-        NSWorkspace.shared.open(url)
+    /// Raising the browser is the whole point, not a nicety. The page was
+    /// handed over by someone standing at this machine — they are looking at
+    /// the screen, waiting for it. Opening a tab behind whatever happens to
+    /// be frontmost is indistinguishable from the handoff having failed, and
+    /// it was: the log said OPENED while the user reported nothing arriving.
+    ///
+    /// `NSWorkspace.OpenConfiguration` activates the target app by default,
+    /// where the older synchronous `open(_:)` only returned whether the URL
+    /// was accepted for opening.
+    public static func open(_ url: URL, then completion: ((Bool) -> Void)? = nil) {
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = true
+        NSWorkspace.shared.open(url, configuration: configuration) { _, error in
+            DispatchQueue.main.async { completion?(error == nil) }
+        }
     }
 
     private static func run(_ source: String) throws -> String {
