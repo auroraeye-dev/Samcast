@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct QuackCastApp: App {
+struct SamcastApp: App {
     @StateObject private var model = AppModel()
 
     var body: some Scene {

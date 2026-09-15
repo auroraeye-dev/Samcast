@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Build QuackCast and package it for distribution.
+# Build Samcast and package it for distribution.
 #
 #   ./scripts/package.sh              build + package (ad-hoc/dev signed)
 #   ./scripts/package.sh --run        build, install to /Applications, launch
 #   SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" ./scripts/package.sh
-#   NOTARY_PROFILE=quackcast ./scripts/package.sh    also notarize (needs the above)
+#   NOTARY_PROFILE=samcast ./scripts/package.sh    also notarize (needs the above)
 #
 # Signing notes:
 #   * Default signing uses whatever the project is configured with (a free
@@ -47,25 +47,25 @@ else
   SIGN_ARGS=(CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="" PROVISIONING_PROFILE_SPECIFIER="")
 fi
 
-xcodebuild -project QuackCast.xcodeproj -scheme QuackCast -configuration Release \
+xcodebuild -project Samcast.xcodeproj -scheme Samcast -configuration Release \
   -derivedDataPath build/dd \
   ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO ${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"} build
 
-APP="build/dd/Build/Products/Release/QuackCast.app"
+APP="build/dd/Build/Products/Release/Samcast.app"
 
 # Package a DMG (drag-to-Applications) and a plain zip.
 STAGE="build/dmg"
 rm -rf "$STAGE"; mkdir -p "$STAGE"
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
-hdiutil create -volname "QuackCast" -srcfolder "$STAGE" -ov -format UDZO dist/QuackCast.dmg
-ditto -c -k --sequesterRsrc --keepParent "$APP" dist/QuackCast-macOS.zip
+hdiutil create -volname "Samcast" -srcfolder "$STAGE" -ov -format UDZO dist/Samcast.dmg
+ditto -c -k --sequesterRsrc --keepParent "$APP" dist/Samcast-macOS.zip
 
 # Notarize only when a stored notarytool profile is supplied.
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
   echo "Notarizing with profile: $NOTARY_PROFILE"
-  xcrun notarytool submit dist/QuackCast.dmg --keychain-profile "$NOTARY_PROFILE" --wait
-  xcrun stapler staple dist/QuackCast.dmg
+  xcrun notarytool submit dist/Samcast.dmg --keychain-profile "$NOTARY_PROFILE" --wait
+  xcrun stapler staple dist/Samcast.dmg
 fi
 
 echo
@@ -76,9 +76,9 @@ codesign -dv "$APP" 2>&1 | grep -E "Authority|TeamIdentifier" || true
 if $RUN_AFTER; then
   echo
   echo "Installing to /Applications and launching…"
-  pkill -f "QuackCast.app/Contents/MacOS/QuackCast" 2>/dev/null || true
+  pkill -f "Samcast.app/Contents/MacOS/Samcast" 2>/dev/null || true
   sleep 1
-  rm -rf /Applications/QuackCast.app
-  cp -R "$APP" /Applications/QuackCast.app
-  open -a /Applications/QuackCast.app
+  rm -rf /Applications/Samcast.app
+  cp -R "$APP" /Applications/Samcast.app
+  open -a /Applications/Samcast.app
 fi

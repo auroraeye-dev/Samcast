@@ -3,7 +3,7 @@ import Foundation
 /// A stable, friendly identity for this device.
 ///
 /// Device names like "Satvik's iPad" are not dependable: they change, they
-/// collide, and on some platforms they aren't readable at all. QuackCast
+/// collide, and on some platforms they aren't readable at all. Samcast
 /// instead generates a random name once, stores it, and uses it forever — so
 /// peers can recognise each other across restarts and remember who they trust.
 public struct DeviceIdentity: Equatable, Sendable {
@@ -17,6 +17,10 @@ public struct DeviceIdentity: Equatable, Sendable {
         self.name = name
     }
 
+    // These keys still read quackcast on purpose. They are where this
+    // device's permanent name lives; renaming them would hand every existing
+    // install a new identity and make it a stranger to everyone that already
+    // trusts it. The product name changed; the address did not.
     private static let idKey = "quackcast.device.id"
     private static let nameKey = "quackcast.device.name"
 

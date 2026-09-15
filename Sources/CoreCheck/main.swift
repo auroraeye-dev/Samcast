@@ -1,4 +1,4 @@
-import QuackCastCore
+import SamcastCore
 import Foundation
 
 // A tiny, dependency-free assertion harness so the core logic can be verified
@@ -42,7 +42,7 @@ func makeHand(curl: Double, thumbIndexGap: Double = 0.6, confidence: Double = 0.
     return HandLandmarks(points: pts, confidence: confidence)
 }
 
-print("QuackCast core smoke test\n")
+print("Samcast core smoke test\n")
 
 section("GestureClassifier")
 do {
@@ -83,7 +83,7 @@ do {
 section("DeviceIdentity")
 do {
     // Use a scratch defaults domain so the real identity isn't touched.
-    let suite = "quackcast.tests.\(UUID().uuidString)"
+    let suite = "samcast.tests.\(UUID().uuidString)"
     let defaults = UserDefaults(suiteName: suite)!
 
     let first = DeviceIdentity.loadOrCreate(defaults: defaults)
@@ -105,7 +105,7 @@ do {
 
 section("TrustStore")
 do {
-    let suite = "quackcast.tests.\(UUID().uuidString)"
+    let suite = "samcast.tests.\(UUID().uuidString)"
     let defaults = UserDefaults(suiteName: suite)!
     let trust = TrustStore(defaults: defaults)
 

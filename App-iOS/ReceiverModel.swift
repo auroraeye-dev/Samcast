@@ -1,8 +1,8 @@
 import Foundation
 import SwiftUI
 import UIKit
-import QuackCastCore
-import QuackCastPlatform
+import SamcastCore
+import SamcastPlatform
 
 /// iOS/iPadOS peer. Works in both directions:
 ///
@@ -26,7 +26,7 @@ final class ReceiverModel: ObservableObject {
     /// A link grabbed here, waiting to be dropped on another device.
     private var pendingHandoff: URL?
 
-    /// This device's persistent QuackCast name, shown so you know what to look
+    /// This device's persistent Samcast name, shown so you know what to look
     /// for on the other device.
     let identity = DeviceIdentity.loadOrCreate(kind: .iPad)
 
@@ -121,7 +121,7 @@ final class ReceiverModel: ObservableObject {
     @Published private(set) var fingerReadout = "—"
     /// A page handed to this device, shown in an in-app browser.
     ///
-    /// Opening it in Safari instead would background QuackCast, and iOS then
+    /// Opening it in Safari instead would background Samcast, and iOS then
     /// suspends its networking and camera — so the device silently stops being
     /// able to receive anything until you switch back. Keeping the page inside
     /// the app keeps the connection and the gesture camera alive.
@@ -231,14 +231,14 @@ final class ReceiverModel: ObservableObject {
 
     /// Called when the app comes to the foreground.
     ///
-    /// iOS suspends a backgrounded app's camera and networking, so QuackCast
+    /// iOS suspends a backgrounded app's camera and networking, so Samcast
     /// must be open on this device to send or receive at all — nothing can be
     /// done about that. What it can do is be immediately ready: notice a
     /// copied link straight away rather than making you discover that a fist
     /// does nothing.
     func didBecomeActive() {
         clipboardHasLink = UIPasteboard.general.hasURLs || UIPasteboard.general.hasStrings
-        // Keep the iPad awake while QuackCast is in front. Auto-lock was
+        // Keep the iPad awake while Samcast is in front. Auto-lock was
         // quietly ending sessions: the screen sleeps, iOS suspends the app,
         // and the device drops off the network — so a handoff sent moments
         // later had nowhere to land. A device left open as a target should
@@ -247,7 +247,7 @@ final class ReceiverModel: ObservableObject {
         updateStatus()
     }
 
-    /// Let the iPad sleep normally again once QuackCast is not in front.
+    /// Let the iPad sleep normally again once Samcast is not in front.
     func didResignActive() {
         UIApplication.shared.isIdleTimerDisabled = false
     }
@@ -255,7 +255,7 @@ final class ReceiverModel: ObservableObject {
     /// Accept a link handed in from elsewhere, e.g. quackcast://send?url=…
     /// so a Shortcut or share action can pass a page without the clipboard.
     func handleIncoming(_ url: URL) {
-        guard url.scheme?.lowercased() == "quackcast" else { return }
+        guard url.scheme?.lowercased() == "samcast" else { return }
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let raw = components.queryItems?.first(where: { $0.name == "url" })?.value,
               let target = URL(string: raw),
@@ -425,7 +425,7 @@ final class ReceiverModel: ObservableObject {
                     ? "A link is on your clipboard — waiting for a device to send it to"
                     : "A link is on your clipboard — close your hand to send it"
             } else {
-                statusLine = peers.isEmpty ? "Looking for a Mac running QuackCast…"
+                statusLine = peers.isEmpty ? "Looking for a Mac running Samcast…"
                                            : "Connected — waiting for something to be grabbed"
             }
         case .receiving(let p):

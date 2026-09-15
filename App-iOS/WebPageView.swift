@@ -1,7 +1,7 @@
 import SwiftUI
 import WebKit
 
-/// Displays a handed-over page inside QuackCast.
+/// Displays a handed-over page inside Samcast.
 ///
 /// Rendered directly in the view hierarchy rather than presented as a modal:
 /// modal presentation depended on finding a key window and a root view

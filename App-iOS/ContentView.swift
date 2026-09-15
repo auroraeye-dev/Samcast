@@ -1,5 +1,5 @@
 import SwiftUI
-import QuackCastCore
+import SamcastCore
 
 struct ContentView: View {
     @EnvironmentObject var model: ReceiverModel

@@ -6,7 +6,7 @@ import AppKit
 /// Two deliberate choices:
 ///
 /// * **It is not part of the app's window.** When you make a fist you are in
-///   your browser, not in QuackCast, so a prompt inside the app window would
+///   your browser, not in Samcast, so a prompt inside the app window would
 ///   be asked where nobody is looking — the same mistake the glow originally
 ///   made. This is a floating panel above every other app.
 /// * **Doing nothing means "no".** It times out into a cancel. If the fist

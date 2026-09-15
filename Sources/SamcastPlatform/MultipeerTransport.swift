@@ -1,11 +1,11 @@
 import Foundation
 import MultipeerConnectivity
-import QuackCastCore
+import SamcastCore
 #if os(iOS)
 import UIKit
 #endif
 
-/// This device's persistent QuackCast name. Devices are discovered and trusted
+/// This device's persistent Samcast name. Devices are discovered and trusted
 /// by this rather than by the OS device name, which can change or be
 /// unreadable.
 private func quackCastName() -> String {
@@ -13,7 +13,7 @@ private func quackCastName() -> String {
 }
 
 /// Apple adapter for `PeerTransport`, backed by MultipeerConnectivity. It
-/// advertises and browses for the `quackcast` service over Bluetooth +
+/// advertises and browses for the `samcast` service over Bluetooth +
 /// peer-to-peer Wi-Fi simultaneously, so any nearby device also running the
 /// app is discovered and auto-connected. This is the "my nearby devices that
 /// have the app" layer.
@@ -35,6 +35,9 @@ public final class MultipeerTransport: NSObject, PeerTransport {
         print(message)
     }
 
+    // Still quackcast: this is the name devices find each other by, so both
+    // ends must agree. Changing it makes older installs invisible to newer
+    // ones for no user-visible gain.
     private static let serviceType = "quackcast" // 1–15 chars, [a-z0-9-]
 
     private let localKind: Peer.Kind
@@ -247,7 +250,7 @@ extension MultipeerTransport: MCNearbyServiceAdvertiserDelegate {
                            didReceiveInvitationFromPeer peerID: MCPeerID,
                            withContext context: Data?,
                            invitationHandler: @escaping (Bool, MCSession?) -> Void) {
-        // Accept invitations from other QuackCast instances, unless we are
+        // Accept invitations from other Samcast instances, unless we are
         // already connected to that peer (which would create a second session).
         invitationHandler(!session.connectedPeers.contains(peerID), session)
     }

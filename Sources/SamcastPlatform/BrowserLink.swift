@@ -145,7 +145,7 @@ public enum BrowserLink {
             let code = (error[NSAppleScript.errorNumber] as? Int) ?? 0
             let message = (error[NSAppleScript.errorMessage] as? String) ?? "unknown AppleScript error"
             if code == -1743 {
-                throw LinkError.scriptFailed("QuackCast isn't allowed to control your browser. Enable it under System Settings ▸ Privacy & Security ▸ Automation.")
+                throw LinkError.scriptFailed("Samcast isn't allowed to control your browser. Enable it under System Settings ▸ Privacy & Security ▸ Automation.")
             }
             throw LinkError.scriptFailed("AppleScript error \(code): \(message)")
         }

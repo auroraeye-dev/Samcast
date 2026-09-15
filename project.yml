@@ -1,7 +1,11 @@
 # XcodeGen spec — the human-readable source of truth for the Xcode project.
 # Regenerate the .xcodeproj any time with:  xcodegen generate
-name: QuackCast
+name: Samcast
 options:
+  # A bundle identifier is a permanent address, not a brand. It still reads
+  # quackcast because changing it would reset every macOS privacy permission
+  # and make the iPad treat this as a brand-new app, losing its name and
+  # everyone it trusts. Renaming it is a deliberate clean break, not tidying.
   bundleIdPrefix: com.quackcast
   deploymentTarget:
     macOS: "13.0"
@@ -10,30 +14,30 @@ options:
 
 # The local Swift package (this repo) providing the portable core + adapters.
 packages:
-  QuackCast:
+  Samcast:
     path: .
 
 targets:
-  QuackCast:
+  Samcast:
     type: application
     platform: macOS
     sources:
       - path: App
       - path: Shared
     dependencies:
-      - package: QuackCast
-        product: QuackCastCore
-      - package: QuackCast
-        product: QuackCastPlatform
+      - package: Samcast
+        product: SamcastCore
+      - package: Samcast
+        product: SamcastPlatform
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quackcast.app
-        PRODUCT_NAME: QuackCast
+        PRODUCT_NAME: Samcast
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: App/Resources/Info.plist
-        CODE_SIGN_ENTITLEMENTS: App/Resources/QuackCast.entitlements
+        CODE_SIGN_ENTITLEMENTS: App/Resources/Samcast.entitlements
         CODE_SIGN_STYLE: Automatic
         # A stable signing identity is what makes macOS remember granted
         # permissions across rebuilds; ad-hoc signing changes every build and
@@ -46,21 +50,21 @@ targets:
           - "$(inherited)"
           - "@executable_path/../Frameworks"
 
-  QuackCastiOS:
+  SamcastiOS:
     type: application
     platform: iOS
     sources:
       - path: App-iOS
       - path: Shared
     dependencies:
-      - package: QuackCast
-        product: QuackCastCore
-      - package: QuackCast
-        product: QuackCastPlatform
+      - package: Samcast
+        product: SamcastCore
+      - package: Samcast
+        product: SamcastPlatform
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quackcast.ios
-        PRODUCT_NAME: QuackCast
+        PRODUCT_NAME: Samcast
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: NO

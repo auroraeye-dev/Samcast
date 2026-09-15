@@ -1,7 +1,7 @@
 name: Release
 
 # Push a tag like v0.1.0 to build a universal macOS app and publish it as a
-# GitHub Release with QuackCast.dmg + QuackCast-macOS.zip attached.
+# GitHub Release with Samcast.dmg + Samcast-macOS.zip attached.
 on:
   push:
     tags:
@@ -31,6 +31,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/QuackCast.dmg
-            dist/QuackCast-macOS.zip
+            dist/Samcast.dmg
+            dist/Samcast-macOS.zip
           generate_release_notes: true

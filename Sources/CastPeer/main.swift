@@ -1,9 +1,9 @@
 import Foundation
 import AppKit
-import QuackCastCore
-import QuackCastPlatform
+import SamcastCore
+import SamcastPlatform
 
-/// A second QuackCast receiver you can run on the *same* Mac, so casting can be
+/// A second Samcast receiver you can run on the *same* Mac, so casting can be
 /// developed and demoed without owning a second machine. It joins the same
 /// Multipeer service as the app, auto-accepts a cast, shows the incoming window
 /// live, and reports the frame rate and bandwidth actually achieved.
@@ -11,7 +11,7 @@ import QuackCastPlatform
 /// Run with:  swift run CastPeer
 @MainActor
 final class ViewerReceiver: NSObject, PeerTransportDelegate, NSApplicationDelegate {
-    private let transport = MultipeerTransport(displayName: "QuackCast Viewer", kind: .mac)
+    private let transport = MultipeerTransport(displayName: "Samcast Viewer", kind: .mac)
     private var window: NSWindow!
     private var imageView: NSImageView!
     private var statusLabel: NSTextField!
@@ -24,7 +24,7 @@ final class ViewerReceiver: NSObject, PeerTransportDelegate, NSApplicationDelega
         buildWindow()
         transport.delegate = self
         transport.start()
-        setStatus("Waiting for a cast — make a ✊ fist in QuackCast")
+        setStatus("Waiting for a cast — make a ✊ fist in Samcast")
     }
 
     private func buildWindow() {
@@ -32,7 +32,7 @@ final class ViewerReceiver: NSObject, PeerTransportDelegate, NSApplicationDelega
                           styleMask: [.titled, .closable, .miniaturizable, .resizable],
                           backing: .buffered,
                           defer: false)
-        window.title = "QuackCast Viewer (test receiver)"
+        window.title = "Samcast Viewer (test receiver)"
         window.center()
 
         imageView = NSImageView()
@@ -71,7 +71,7 @@ final class ViewerReceiver: NSObject, PeerTransportDelegate, NSApplicationDelega
     nonisolated func transport(_ transport: PeerTransport, didUpdate peers: [Peer]) {
         Task { @MainActor in
             setStatus(peers.isEmpty
-                      ? "No peers — waiting for QuackCast…"
+                      ? "No peers — waiting for Samcast…"
                       : "Connected: \(peers.map(\.displayName).joined(separator: ", "))")
         }
     }
@@ -126,7 +126,7 @@ MainActor.assumeIsolated {
     app.setActivationPolicy(.regular)
     let delegate = ViewerReceiver()
     // AppKit holds the delegate weakly; keep it alive for the process lifetime.
-    objc_setAssociatedObject(app, "quackcast.viewer", delegate, .OBJC_ASSOCIATION_RETAIN)
+    objc_setAssociatedObject(app, "samcast.viewer", delegate, .OBJC_ASSOCIATION_RETAIN)
     app.delegate = delegate
     app.run()
 }

@@ -6,7 +6,7 @@ import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
 import AppKit
-import QuackCastCore
+import SamcastCore
 
 /// Apple adapter for `ScreenSource`, backed by ScreenCaptureKit for the live
 /// stream and CoreGraphics for one-shot stills. Emitted frames are
@@ -82,7 +82,7 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
             guard let self else { return }
             if let error {
                 self.isRunning = false
-                self.report("Screen capture blocked: \(error.localizedDescription). Enable Screen Recording for QuackCast in System Settings ▸ Privacy & Security, then reopen the app.",
+                self.report("Screen capture blocked: \(error.localizedDescription). Enable Screen Recording for Samcast in System Settings ▸ Privacy & Security, then reopen the app.",
                             isPermissionIssue: true)
                 return
             }
@@ -150,11 +150,11 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
     }
 
     /// The window the user was last working in — the topmost normal window
-    /// that isn't QuackCast's own.
+    /// that isn't Samcast's own.
     ///
     /// Uses CGWindowListCopyWindowInfo because it is genuinely front-to-back
     /// z-ordered (SCShareableContent's order is not documented), and skips our
-    /// own windows so arming the cast while looking at QuackCast still picks
+    /// own windows so arming the cast while looking at Samcast still picks
     /// the app you came from rather than falling back to the whole desktop.
     private func frontmostWindow(in content: SCShareableContent) -> SCWindow? {
         let myPID = ProcessInfo.processInfo.processIdentifier
@@ -163,12 +163,12 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
             return nil
         }
         for info in infos {
-            // Skip every QuackCast-family window — the app itself and any
+            // Skip every Samcast-family window — the app itself and any
             // viewer/receiver process. Capturing a window that is *displaying*
             // the cast feeds the stream back into itself and produces an
             // infinite mirror tunnel.
             let owner = (info[kCGWindowOwnerName as String] as? String ?? "").lowercased()
-            if owner.contains("quackcast") || owner.contains("castpeer") { continue }
+            if owner.contains("samcast") || owner.contains("castpeer") { continue }
 
             guard let pid = info[kCGWindowOwnerPID as String] as? pid_t, pid != myPID,
                   // Layer 0 is a normal window; higher layers are menu bar,
@@ -216,7 +216,7 @@ public final class ScreenCaptureKitSource: NSObject, ScreenSource, SCStreamOutpu
         let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
         let stamp = Self.filenameFormatter.string(from: Date())
-        let url = desktop.appendingPathComponent("QuackCast Screenshot \(stamp).png")
+        let url = desktop.appendingPathComponent("Samcast Screenshot \(stamp).png")
 
         guard let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else {
             throw CaptureError.stillFailed

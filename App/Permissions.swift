@@ -3,7 +3,7 @@ import AVFoundation
 import CoreGraphics
 import AppKit
 
-/// Tracks the macOS privacy permissions QuackCast needs and provides the
+/// Tracks the macOS privacy permissions Samcast needs and provides the
 /// actions to resolve them. Users should never have to guess which System
 /// Settings pane to open, or that a relaunch is required.
 @MainActor

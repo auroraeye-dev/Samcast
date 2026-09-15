@@ -5,7 +5,7 @@ import Foundation
 /// messages scroll past unseen — this keeps a record of what actually
 /// happened, in order.
 ///
-/// Writes to ~/Library/Logs/QuackCast.log
+/// Writes to ~/Library/Logs/Samcast.log
 enum QCLog {
     private static let queue = DispatchQueue(label: "com.quackcast.log")
     private static let formatter: DateFormatter = {
@@ -18,7 +18,7 @@ enum QCLog {
         guard let logs = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first?
             .appendingPathComponent("Logs", isDirectory: true) else { return nil }
         try? FileManager.default.createDirectory(at: logs, withIntermediateDirectories: true)
-        return logs.appendingPathComponent("QuackCast.log")
+        return logs.appendingPathComponent("Samcast.log")
     }()
 
     static func write(_ message: String) {

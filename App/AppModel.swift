@@ -3,8 +3,8 @@ import SwiftUI
 import CoreImage
 import CoreVideo
 import AppKit
-import QuackCastCore
-import QuackCastPlatform
+import SamcastCore
+import SamcastPlatform
 
 /// The app-level integration layer: it owns the platform adapters and the
 /// portable `SessionCoordinator`, feeds gestures + peer messages into the
@@ -30,7 +30,7 @@ final class AppModel: ObservableObject {
     /// Plays the glow over the whole screen, since the app window is usually
     /// behind whatever you are grabbing from.
     private let glowOverlay = GlowOverlay()
-    /// This device's persistent QuackCast name — how other devices see it.
+    /// This device's persistent Samcast name — how other devices see it.
     let identity = DeviceIdentity.loadOrCreate(kind: .mac)
 
     // Where captured frames are currently being streamed (if casting).
@@ -96,7 +96,7 @@ final class AppModel: ObservableObject {
     private var recoveryTask: Task<Void, Never>?
 
     func start() {
-        QCLog.write("=== QuackCast started as \(identity.name) ===")
+        QCLog.write("=== Samcast started as \(identity.name) ===")
         transport.delegate = self
         transport.start()
 
@@ -217,7 +217,7 @@ final class AppModel: ObservableObject {
             if confirmed == .closedHand, coordinator.state == .idle,
                transport.connectedPeers.isEmpty {
                 QCLog.write("refused grab: no devices nearby")
-                setStatus("No devices nearby — open QuackCast on the other device first", hold: 5)
+                setStatus("No devices nearby — open Samcast on the other device first", hold: 5)
                 return
             }
             let wasIdle = coordinator.state == .idle
@@ -362,7 +362,7 @@ final class AppModel: ObservableObject {
             // nothing should ever close a tab with no peer to receive it.
             guard !transport.connectedPeers.isEmpty else {
                 QCLog.write("refused grab in effect: no devices nearby")
-                setStatus("No devices nearby — open QuackCast on the other device first", hold: 5)
+                setStatus("No devices nearby — open Samcast on the other device first", hold: 5)
                 DispatchQueue.main.async { [weak self] in
                     guard let self, case .armedSource = self.coordinator.state else { return }
                     self.apply(self.coordinator.reduce(.localGesture(.closedHand)))
@@ -394,7 +394,7 @@ final class AppModel: ObservableObject {
             do {
                 try screenSource.startCapture()
             } catch {
-                statusLine = "Enable Screen Recording for QuackCast in System Settings ▸ Privacy & Security, then relaunch."
+                statusLine = "Enable Screen Recording for Samcast in System Settings ▸ Privacy & Security, then relaunch."
             }
         case .stopScreenCapture:
             // Cancelled before dropping it — put the page back where it was.

@@ -2,7 +2,7 @@ import AppKit
 
 /// Shows the handoff glow across the whole screen, above every other app.
 ///
-/// When you grab a page you are looking at your browser, not at QuackCast, so
+/// When you grab a page you are looking at your browser, not at Samcast, so
 /// an animation inside the app window is never seen. This is a borderless,
 /// transparent, click-through window floating above everything.
 ///

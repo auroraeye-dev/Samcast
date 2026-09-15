@@ -9,9 +9,9 @@ struct PermissionsView: View {
         VStack(spacing: 18) {
             Text("🦆")
                 .font(.system(size: 64))
-            Text("Set up QuackCast")
+            Text("Set up Samcast")
                 .font(.title2).bold()
-            Text("QuackCast needs two permissions from macOS. It never sends anything over the internet.")
+            Text("Samcast needs two permissions from macOS. It never sends anything over the internet.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -42,7 +42,7 @@ struct PermissionsView: View {
                     .foregroundStyle(.secondary)
                 HStack(spacing: 10) {
                     Button("Re-check") { permissions.refresh() }
-                    Button("Relaunch QuackCast") { permissions.relaunch() }
+                    Button("Relaunch Samcast") { permissions.relaunch() }
                         .keyboardShortcut(.defaultAction)
                 }
             }

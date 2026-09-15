@@ -1,7 +1,7 @@
 import Foundation
 import AVFoundation
 import Vision
-import QuackCastCore
+import SamcastCore
 
 /// Apple adapter for `HandTracker`: owns the camera capture session and runs
 /// Vision's hand-pose request on every frame, translating Vision's joint names

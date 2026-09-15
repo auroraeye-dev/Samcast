@@ -62,7 +62,7 @@
       "expect_code": null
     },
     {
-      "url": "https://meet.jit.si/QuackCastStandup",
+      "url": "https://meet.jit.si/SamcastStandup",
       "expect_service": "Jitsi Meet",
       "expect_code": null
     },
@@ -127,7 +127,7 @@
       "expect_code": null
     },
     {
-      "url": "https://github.com/auroraeye-dev/QuackCast",
+      "url": "https://github.com/auroraeye-dev/Samcast",
       "expect_service": null,
       "expect_code": null
     },

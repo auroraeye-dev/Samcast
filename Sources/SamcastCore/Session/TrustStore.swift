@@ -7,6 +7,8 @@ import Foundation
 /// and is deliberately explicit: a device only becomes trusted when the user
 /// actively accepts something from it.
 public final class TrustStore {
+    // Still quackcast: this is where the list of already-approved devices
+    // lives, and renaming the key would silently empty it.
     private let key = "quackcast.trusted.peers"
     private let defaults: UserDefaults
 

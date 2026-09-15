@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🦆 QuackCast
+# Samcast
 
 ### Move what you're working on to another device — with a wave of your hand.
 
@@ -46,7 +46,7 @@ means no**, because someone who didn't mean to make that gesture won't reach
 for a button. Moving a call to another device is a perfectly good thing to
 want, so it's never blocked; it just has to be meant.
 
-The rule lives in `QuackCastCore` and is shared by the Mac, iOS and Windows
+The rule lives in `SamcastCore` and is shared by the Mac, iOS and Windows
 builds, with `docs/meeting-vectors.json` pinning all three to the same answer
 — including the negative cases. A prompt people learn to dismiss unread
 protects nobody, so `meet.google.com` on its own, Zoom's pricing page and the
@@ -56,7 +56,7 @@ like must stay silent, and there are tests for each.
 
 ## A link doesn't get streamed. It *moves*.
 
-This is the part that makes QuackCast different from screen sharing:
+This is the part that makes Samcast different from screen sharing:
 
 ```mermaid
 sequenceDiagram
@@ -76,7 +76,7 @@ scrollable and clickable, leaving its other tabs alone.
 
 **Apps can't move like that.** A running process can't leave its machine, so a
 non-browser window is sent as a **live picture** instead, while the app keeps
-running on the original device. QuackCast picks the right mechanism for you.
+running on the original device. Samcast picks the right mechanism for you.
 
 ---
 
@@ -84,13 +84,13 @@ running on the original device. QuackCast picks the right mechanism for you.
 
 | Platform | How | State |
 |---|---|---|
-| **macOS 13+** | [Download the `.dmg`](https://github.com/auroraeye-dev/QuackCast/releases/latest) | Sends and receives |
+| **macOS 13+** | [Download the `.dmg`](https://github.com/auroraeye-dev/Samcast/releases/latest) | Sends and receives |
 | **iPadOS / iOS 16+** | Build from source — **Apple allows no download** | Receives; sends links |
-| **Windows 10+** | [Source zip](https://github.com/auroraeye-dev/QuackCast/releases/latest) | Experimental, never run on Windows |
+| **Windows 10+** | [Source zip](https://github.com/auroraeye-dev/Samcast/releases/latest) | Experimental, never run on Windows |
 
 ### macOS
 
-Open the `.dmg` and drag QuackCast to Applications. It is signed but **not
+Open the `.dmg` and drag Samcast to Applications. It is signed but **not
 notarized** — that needs a paid Apple Developer membership — so macOS warns
 on first open: **right-click ▸ Open ▸ Open**.
 
@@ -98,8 +98,8 @@ Building from source skips the warning entirely, because macOS only
 quarantines apps that were downloaded:
 
 ```bash
-git clone https://github.com/auroraeye-dev/QuackCast.git
-cd QuackCast
+git clone https://github.com/auroraeye-dev/Samcast.git
+cd Samcast
 brew install xcodegen           # one-time
 ./scripts/package.sh --run      # build, install to /Applications, launch
 ```
@@ -115,7 +115,7 @@ which require the paid Apple Developer Program, or building it yourself:
 
 ```bash
 brew install xcodegen && xcodegen generate
-open QuackCast.xcodeproj        # QuackCastiOS scheme, pick your device
+open Samcast.xcodeproj        # SamcastiOS scheme, pick your device
 ```
 
 With a free Apple account the app stops working after 7 days and has to be
@@ -124,14 +124,14 @@ rebuilt. The build is universal, so the same one runs on iPhone and iPad.
 ### Windows
 
 Experimental, and the honest state is in
-[the bridge repo](../QuackCast-Bridge): the protocol underneath is tested,
+[the bridge repo](../Samcast-Bridge): the protocol underneath is tested,
 but the Windows-only parts have only ever been compiled, never run on
 Windows. It also cannot talk to the macOS **app** — only to the headless
 `BridgeCLI`, because the app speaks Apple-only MultipeerConnectivity.
 
 ### First run
 
-QuackCast asks for **Camera** (to read gestures) and **Screen Recording** (to
+Samcast asks for **Camera** (to read gestures) and **Screen Recording** (to
 grab windows and take screenshots). Its setup screen links straight to the
 right System Settings pane, and offers a relaunch — macOS requires one after
 granting Screen Recording.
@@ -168,7 +168,7 @@ no internet, and nothing leaves your local network.
 Two iOS rules shape this, and neither can be engineered around:
 
 - **No background operation.** iOS suspends a backgrounded app's camera and
-  networking, so QuackCast must be open and in front on the iPad to take part
+  networking, so Samcast must be open and in front on the iPad to take part
   at all. macOS has no such rule, which is why a Mac can sit idle and still
   participate. The app holds the iPad awake while it's in front, so auto-lock
   can't quietly end a session.
@@ -179,7 +179,7 @@ Two iOS rules shape this, and neither can be engineered around:
 
 No iOS app can launch itself on unlock or boot. The nearest equivalent is a
 Shortcuts personal automation — *when joining your home Wi-Fi → open
-QuackCast* — which on iPadOS 17+ can run without a prompt.
+Samcast* — which on iPadOS 17+ can run without a prompt.
 
 </details>
 
@@ -190,7 +190,7 @@ QuackCast* — which on iPadOS 17+ can run without a prompt.
 Ports and adapters, so the decision-making stays portable and testable:
 
 ```
-QuackCastCore ······ pure Swift, Foundation only, zero platform imports
+SamcastCore ······ pure Swift, Foundation only, zero platform imports
 ├── Gesture/ ······· HandLandmarks · GestureClassifier · GestureDebouncer
 ├── Session/ ······· SessionCoordinator · DeviceIdentity · TrustStore
 └── Ports/ ········· HandTracker · ScreenSource · PeerTransport
@@ -199,7 +199,7 @@ Adapters ·········· VisionHandTracker · ScreenCaptureKitSource (macOS
                     MultipeerTransport · BrowserLink (macOS)
 ```
 
-`QuackCastCore` holds the gesture maths and the session state machine with no
+`SamcastCore` holds the gesture maths and the session state machine with no
 Apple frameworks attached, so it runs on any Swift toolchain — and a future
 Windows port would reimplement only the three `Ports` protocols.
 

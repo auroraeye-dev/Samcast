@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct QuackCastiOSApp: App {
+struct SamcastiOSApp: App {
     @StateObject private var model = ReceiverModel()
     @Environment(\.scenePhase) private var scenePhase
 

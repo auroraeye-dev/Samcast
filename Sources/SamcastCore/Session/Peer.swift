@@ -1,6 +1,6 @@
 import Foundation
 
-/// A neutral description of another device running QuackCast, discovered on
+/// A neutral description of another device running Samcast, discovered on
 /// the local network / Bluetooth. The platform transport maps its own peer
 /// handle (e.g. an `MCPeerID`) onto this.
 public struct Peer: Hashable, Sendable, Identifiable {

@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>QuackCast</string>
+	<string>Samcast</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleName</key>
-	<string>QuackCast</string>
+	<string>Samcast</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -19,15 +19,15 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>QuackCast reads the current tab of your browser so it can hand the page to another device.</string>
+	<string>Samcast reads the current tab of your browser so it can hand the page to another device.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_quackcast._tcp</string>
 		<string>_quackcast._udp</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>QuackCast watches your hand gestures to control screen sharing.</string>
+	<string>Samcast watches your hand gestures to control screen sharing.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>QuackCast discovers your nearby devices that also run the app.</string>
+	<string>Samcast discovers your nearby devices that also run the app.</string>
 </dict>
 </plist>
