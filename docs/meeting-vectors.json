@@ -1,0 +1,160 @@
+{
+  "_comment": "Pages that must prompt before being handed over, and pages that must NOT. Read by Sources/CoreCheck (Swift) and by the Windows build's test suite, so all three platforms agree on what counts as a live meeting. A false prompt is not harmless: prompts people learn to dismiss unread protect nobody.",
+  "cases": [
+    {
+      "url": "https://meet.google.com/abc-defg-hij",
+      "expect_service": "Google Meet",
+      "expect_code": "abc-defg-hij"
+    },
+    {
+      "url": "https://meet.google.com/xyz-qrst-uvw?authuser=0",
+      "expect_service": "Google Meet",
+      "expect_code": "xyz-qrst-uvw"
+    },
+    {
+      "url": "https://meet.google.com/lookup/standup-daily",
+      "expect_service": "Google Meet",
+      "expect_code": null
+    },
+    {
+      "url": "https://zoom.us/j/1234567890",
+      "expect_service": "Zoom",
+      "expect_code": "1234567890"
+    },
+    {
+      "url": "https://acme.zoom.us/j/9876543210?pwd=abc",
+      "expect_service": "Zoom",
+      "expect_code": "9876543210"
+    },
+    {
+      "url": "https://us02web.zoom.us/wc/join/1234567890",
+      "expect_service": "Zoom",
+      "expect_code": null
+    },
+    {
+      "url": "https://zoom.us/s/1122334455",
+      "expect_service": "Zoom",
+      "expect_code": "1122334455"
+    },
+    {
+      "url": "https://zoomgov.com/j/5566778899",
+      "expect_service": "Zoom",
+      "expect_code": "5566778899"
+    },
+    {
+      "url": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc",
+      "expect_service": "Microsoft Teams",
+      "expect_code": null
+    },
+    {
+      "url": "https://teams.live.com/meet/9312345678",
+      "expect_service": "Microsoft Teams",
+      "expect_code": null
+    },
+    {
+      "url": "https://acme.webex.com/meet/satvik",
+      "expect_service": "Webex",
+      "expect_code": null
+    },
+    {
+      "url": "https://acme.webex.com/join/room123",
+      "expect_service": "Webex",
+      "expect_code": null
+    },
+    {
+      "url": "https://meet.jit.si/QuackCastStandup",
+      "expect_service": "Jitsi Meet",
+      "expect_code": null
+    },
+    {
+      "url": "https://whereby.com/my-room",
+      "expect_service": "Whereby",
+      "expect_code": null
+    },
+    {
+      "url": "https://app.gather.town/app/abc/office",
+      "expect_service": "Gather",
+      "expect_code": null
+    },
+    {
+      "url": "https://chime.aws/1234567890",
+      "expect_service": "Amazon Chime",
+      "expect_code": null
+    },
+    {
+      "url": "https://meet.google.com/",
+      "expect_service": null,
+      "expect_code": null
+    },
+    {
+      "url": "https://meet.google.com",
+      "expect_service": null,
+      "expect_code": null
+    },
+    {
+      "url": "https://zoom.us/",
+      "expect_service": null,
+      "expect_code": null
+    },
+    {
+      "url": "https://zoom.us/download",
+      "expect_service": null,
+      "expect_code": null
+    },
+    {
+      "url": "https://www.zoom.us/pricing",
+      "expect_service": null,
+      "expect_code": null
+    },
+    {
+      "url": "https://teams.microsoft.com/",
+      "expect_service": null,
+      "expect_code": null
+    },
+    {
+      "url": "https://whereby.com/pricing",
+      "expect_service": null,
+      "expect_code": null
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/Videotelephony",
+      "expect_service": null,
+      "expect_code": null
+    },
+    {
+      "url": "https://news.ycombinator.com/item?id=1",
+      "expect_service": null,
+      "expect_code": null
+    },
+    {
+      "url": "https://github.com/auroraeye-dev/QuackCast",
+      "expect_service": null,
+      "expect_code": null
+    },
+    {
+      "url": "https://calendar.google.com/calendar/u/0/r",
+      "expect_service": null,
+      "expect_code": null
+    },
+    {
+      "url": "https://mail.google.com/mail/u/0/#inbox",
+      "expect_service": null,
+      "expect_code": null
+    },
+    {
+      "url": "https://meet.google.com/abcd-efg-hij",
+      "expect_service": null,
+      "expect_code": null
+    },
+    {
+      "url": "https://meet.google.com/123-4567-890",
+      "expect_service": null,
+      "expect_code": null
+    },
+    {
+      "url": "https://meet.google.com/new",
+      "expect_service": null,
+      "expect_code": null
+    }
+  ]
+}

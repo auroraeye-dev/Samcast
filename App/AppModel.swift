@@ -79,6 +79,11 @@ final class AppModel: ObservableObject {
     /// device. When set, arming hands this over instead of streaming pixels.
     private var pendingHandoff: BrowserLink.Page?
 
+    /// Asks before handing over something that would hurt to lose — a live
+    /// meeting, above all. Shown over whatever app is in front, because that
+    /// is where the user is looking when they make the gesture.
+    private let confirmOverlay = ConfirmOverlay()
+
     /// Important messages (why a handoff failed, where a screenshot went) must
     /// survive the routine status refresh that follows every effect, otherwise
     /// they are overwritten before they can be read.
@@ -171,6 +176,12 @@ final class AppModel: ObservableObject {
             // the way were cancelling the grab before it could be delivered.
             if pendingHandoff != nil {
                 QCLog.write("ignored \(confirmed.rawValue): holding a grabbed page")
+                return
+            }
+            // A question is already on screen. Answer it with the buttons —
+            // waving again must not stack a second prompt behind the first.
+            if confirmOverlay.isAsking {
+                QCLog.write("ignored \(confirmed.rawValue): awaiting confirmation")
                 return
             }
             if confirmed == .peace {
@@ -266,6 +277,52 @@ final class AppModel: ObservableObject {
         updateStatus()
     }
 
+    /// Commit to the handoff: close the tab here, advertise it, and start the
+    /// clock that puts it back if nobody takes it.
+    ///
+    /// Separated out so the confirmation prompt has something to call, and so
+    /// there is exactly one place where a page actually gets closed.
+    private func beginHandoff(_ page: BrowserLink.Page) {
+        pendingHandoff = page
+        startReannouncing()
+        BrowserLink.closeFrontmostTab()
+        // If no device takes it, put the page back rather than leaving the
+        // user with a closed tab and nothing to show for it.
+        scheduleHandoffRecovery(for: page)
+        castTarget = "\(page.browserName) — \(page.title)"
+        setStatus("Grabbed “\(page.title)” — now open your hand at the device you want it on")
+        pulseGlow(.outward, message: "Grabbed — open your hand at another device")
+    }
+
+    /// A live meeting is on screen. Ask first.
+    ///
+    /// Handing a meeting over is a perfectly reasonable thing to want — it
+    /// moves the call to another device — so this must not block it. It only
+    /// insists the user meant it, because the cost of being wrong is being
+    /// dropped from a call in front of other people.
+    private func askBeforeHandingOver(_ page: BrowserLink.Page, meeting: MeetingMatch) {
+        let named = meeting.code.map { "\(meeting.service) · \($0)" } ?? meeting.service
+        setStatus("Waiting — confirm the \(meeting.service) handoff on screen")
+        confirmOverlay.ask(
+            title: "Move this \(meeting.service) to another device?",
+            detail: "\(named) will close on this Mac, and you'll leave the call here. "
+                  + "Open your hand at the other device to pick it up.",
+            confirmTitle: "Move the call"
+        ) { [weak self] confirmed in
+            guard let self else { return }
+            if confirmed {
+                QCLog.write("CONFIRMED meeting handoff \(page.url.absoluteString)")
+                self.beginHandoff(page)
+            } else {
+                // Nothing was closed, so there is nothing to undo — just go
+                // back to idle and leave the user exactly where they were.
+                QCLog.write("DECLINED meeting handoff — nothing was closed")
+                self.setStatus("Left your \(meeting.service) alone", hold: 4)
+                self.apply(self.coordinator.reduce(.localGesture(.closedHand)))
+            }
+        }
+    }
+
     private func perform(_ effect: SessionEffect) {
         switch effect {
         case .startScreenCapture:
@@ -275,15 +332,18 @@ final class AppModel: ObservableObject {
             do {
                 let page = try BrowserLink.frontmostPage()
                 QCLog.write("GRABBED \(page.url.absoluteString)")
-                pendingHandoff = page
-                startReannouncing()
-                BrowserLink.closeFrontmostTab()
-                // If no device takes it, put the page back rather than leaving
-                // the user with a closed tab and nothing to show for it.
-                scheduleHandoffRecovery(for: page)
-                castTarget = "\(page.browserName) — \(page.title)"
-                setStatus("Grabbed “\(page.title)” — now open your hand at the device you want it on")
-                pulseGlow(.outward, message: "Grabbed — open your hand at another device")
+
+                // Some pages cost far more than a reopened tab if the gesture
+                // was misread. Ask before touching anything — nothing is
+                // closed, advertised or timed until the question is answered.
+                let risk = PageRiskDetector.assess(page.url.absoluteString)
+                if case .liveMeeting(let meeting) = risk {
+                    QCLog.write("CONFIRM needed: \(meeting.service)")
+                    askBeforeHandingOver(page, meeting: meeting)
+                    return
+                }
+
+                beginHandoff(page)
                 return
             } catch {
                 // Say why the page couldn't be grabbed instead of silently

@@ -148,6 +148,60 @@ do {
     expectEqual(a.state, .casting(to: ipad), "T-pose does not change state")
 }
 
+// ---------------------------------------------------------------------------
+section("Live-meeting detection (docs/meeting-vectors.json)")
+do {
+    // Shared with the Windows build's test suite, so all three platforms agree
+    // on what counts as a call. A misread fist on an ordinary page costs a
+    // reopened tab; on a live meeting it drops you out of the call.
+    let url = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()      // CoreCheck
+        .deletingLastPathComponent()      // Sources
+        .deletingLastPathComponent()      // repo root
+        .appendingPathComponent("docs/meeting-vectors.json")
+
+    struct Fixture: Decodable {
+        struct Case: Decodable {
+            let url: String
+            let expect_service: String?
+            let expect_code: String?
+        }
+        let cases: [Case]
+    }
+
+    if let data = try? Data(contentsOf: url),
+       let fixture = try? JSONDecoder().decode(Fixture.self, from: data) {
+        expect(!fixture.cases.isEmpty, "meeting fixtures are present")
+        for item in fixture.cases {
+            switch PageRiskDetector.assess(item.url) {
+            case .ordinary:
+                expect(item.expect_service == nil,
+                       "\(item.url) should have been \(item.expect_service ?? "-")")
+            case .liveMeeting(let match):
+                expectEqual(match.service, item.expect_service ?? "(none expected)",
+                            "service for \(item.url)")
+                if let expected = item.expect_code {
+                    expectEqual(match.code ?? "(nil)", expected, "code for \(item.url)")
+                }
+            }
+        }
+    } else {
+        expect(false, "could not read docs/meeting-vectors.json")
+    }
+
+    // The prompt exists to gate the destructive step, so this flag is what the
+    // app branches on.
+    expect(PageRiskDetector.assess("https://meet.google.com/abc-defg-hij").needsConfirmation,
+           "a live meeting needs confirmation")
+    expect(!PageRiskDetector.assess("https://example.com").needsConfirmation,
+           "an ordinary page does not")
+    // Nonsense must not block a handoff it merely failed to parse.
+    expectEqual(PageRiskDetector.assess("not a url"), PageRisk.ordinary,
+                "unparseable input is treated as ordinary")
+    expectEqual(PageRiskDetector.assess(""), PageRisk.ordinary,
+                "empty input is treated as ordinary")
+}
+
 print("")
 if failures == 0 {
     print("✅ All \(checks) checks passed")

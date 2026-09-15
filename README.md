@@ -9,7 +9,7 @@
 ![Platform](https://img.shields.io/badge/macOS-13%2B-1f6feb?style=flat-square&logo=apple&logoColor=white)
 ![Platform](https://img.shields.io/badge/iPadOS-16%2B-1f6feb?style=flat-square&logo=apple&logoColor=white)
 ![Swift](https://img.shields.io/badge/Swift-5.9-f05138?style=flat-square&logo=swift&logoColor=white)
-![Tests](https://img.shields.io/badge/core%20tests-33%20passing-2da44e?style=flat-square)
+![Tests](https://img.shields.io/badge/core%20tests-75%20passing-2da44e?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-8250df?style=flat-square)
 
 </div>
@@ -26,6 +26,31 @@
 
 No clicking, no menus, no picking a device from a list. **The device you walk
 up to is the one that receives it** — because it's the one that can see your hand.
+
+### Except when it would cost you something
+
+Hand tracking is never perfect — a hand closing around a mug looks a lot like
+a deliberate fist. On an ordinary page a misread costs you a reopened tab. On
+a **live Google Meet, Zoom, Teams or Webex call** it drops you out of the
+meeting in front of everyone.
+
+So those get asked about first, in a prompt over whatever app you're actually
+looking at:
+
+> **Move this Google Meet to another device?**
+> Google Meet · abc-defg-hij will close on this Mac, and you'll leave the call here.
+> `Stay here` `Move the call`
+
+Nothing is closed, announced or timed until you answer — and **doing nothing
+means no**, because someone who didn't mean to make that gesture won't reach
+for a button. Moving a call to another device is a perfectly good thing to
+want, so it's never blocked; it just has to be meant.
+
+The rule lives in `QuackCastCore` and is shared by the Mac, iOS and Windows
+builds, with `docs/meeting-vectors.json` pinning all three to the same answer
+— including the negative cases. A prompt people learn to dismiss unread
+protects nobody, so `meet.google.com` on its own, Zoom's pricing page and the
+like must stay silent, and there are tests for each.
 
 ---
 
