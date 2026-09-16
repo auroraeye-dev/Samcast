@@ -21,6 +21,29 @@ func expectEqual<T: Equatable>(_ a: T, _ b: T, _ message: String, file: StaticSt
 
 func section(_ name: String) { print("• \(name)") }
 
+/// One fixed scratch preferences domain for every check that needs storage.
+///
+/// Not a fresh UUID per run, which is what this used to do.
+/// `removePersistentDomain` clears a suite's *contents*, but cfprefsd still
+/// leaves an empty plist on disk — so a new name each run grew
+/// ~/Library/Preferences without bound: thirty-five files accumulated in a
+/// single day of iterating. A test suite must not litter the machine it runs
+/// on. One reused name means at most one file, and it is deleted outright at
+/// the end rather than merely emptied.
+let scratchSuite = "samcast.checks.scratch"
+
+func freshScratchDefaults() -> UserDefaults {
+    removeScratchDefaults()
+    return UserDefaults(suiteName: scratchSuite)!
+}
+
+func removeScratchDefaults() {
+    UserDefaults.standard.removePersistentDomain(forName: scratchSuite)
+    UserDefaults(suiteName: scratchSuite)?.removePersistentDomain(forName: scratchSuite)
+    let path = ("~/Library/Preferences/\(scratchSuite).plist" as NSString).expandingTildeInPath
+    try? FileManager.default.removeItem(atPath: path)
+}
+
 // Synthetic hand builder mirroring the XCTest fixture.
 func makeHand(curl: Double, thumbIndexGap: Double = 0.6, confidence: Double = 0.9) -> HandLandmarks {
     var pts: [HandJoint: Point2D] = [.wrist: Point2D(x: 0.5, y: 1.0)]
@@ -82,9 +105,9 @@ do {
 
 section("DeviceIdentity")
 do {
-    // Use a scratch defaults domain so the real identity isn't touched.
-    let suite = "samcast.tests.\(UUID().uuidString)"
-    let defaults = UserDefaults(suiteName: suite)!
+    // A scratch domain, so the real identity is never touched.
+    let defaults = freshScratchDefaults()
+    defer { removeScratchDefaults() }
 
     let first = DeviceIdentity.loadOrCreate(defaults: defaults)
     expect(!first.id.isEmpty, "identity has an id")
@@ -100,13 +123,13 @@ do {
     DeviceIdentity.rename(to: "   ", defaults: defaults)
     expectEqual(DeviceIdentity.loadOrCreate(defaults: defaults).name, "kitchen-mac", "blank rename ignored")
 
-    defaults.removePersistentDomain(forName: suite)
+    removeScratchDefaults()
 }
 
 section("TrustStore")
 do {
-    let suite = "samcast.tests.\(UUID().uuidString)"
-    let defaults = UserDefaults(suiteName: suite)!
+    let defaults = freshScratchDefaults()
+    defer { removeScratchDefaults() }
     let trust = TrustStore(defaults: defaults)
 
     expect(!trust.isTrusted("peer-a"), "unknown peer is not trusted")
@@ -124,7 +147,7 @@ do {
     trust.untrustAll()
     expect(trust.trusted.isEmpty, "untrustAll clears everything")
 
-    defaults.removePersistentDomain(forName: suite)
+    removeScratchDefaults()
 }
 
 section("SessionCoordinator — two-device handshake")
@@ -152,8 +175,8 @@ do {
 section("Trust is asked once, and remembered either way")
 do {
     // A throwaway suite, so the real trust store is never touched.
-    let defaults = UserDefaults(suiteName: "samcast.checks.trust")!
-    defaults.removePersistentDomain(forName: "samcast.checks.trust")
+    let defaults = freshScratchDefaults()
+    defer { removeScratchDefaults() }
     let trust = TrustStore(defaults: defaults)
 
     expect(!trust.isKnown("peer-A"), "a device starts unknown, so it gets asked")
@@ -181,7 +204,6 @@ do {
     trust.unblock("peer-A")
     expect(!trust.isKnown("peer-A"), "unblocking returns it to being asked about")
 
-    defaults.removePersistentDomain(forName: "samcast.checks.trust")
 }
 
 // ---------------------------------------------------------------------------
@@ -274,6 +296,8 @@ do {
     expectEqual(PageRiskDetector.assess(""), PageRisk.ordinary,
                 "empty input is treated as ordinary")
 }
+
+removeScratchDefaults()
 
 print("")
 if failures == 0 {
