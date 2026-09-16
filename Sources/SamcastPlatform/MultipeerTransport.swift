@@ -51,7 +51,13 @@ public final class MultipeerTransport: NSObject, PeerTransport {
     /// peer repeatedly, and inviting again each time builds overlapping
     /// sessions that tear each other down — the connection then survives only
     /// a few seconds at a time.
-    private var pendingInvites: Set<MCPeerID> = []
+    /// Names — not MCPeerID values — of peers we have an invitation out to.
+    ///
+    /// MCPeerID equality is by internal identity, not display name, and
+    /// discovery hands out a fresh instance each time it sees a device. A
+    /// Set<MCPeerID> therefore never matched on the second sighting, so this
+    /// guard did nothing and every rediscovery sent another invitation.
+    private var pendingInvites: Set<String> = []
 
     public init(displayName: String? = nil, kind: Peer.Kind = .mac) {
         self.localKind = kind
@@ -150,14 +156,30 @@ public final class MultipeerTransport: NSObject, PeerTransport {
         localPeerID.displayName < peerID.displayName
     }
 
+    /// Whether the session already holds this device.
+    ///
+    /// Compared by name deliberately. `session.connectedPeers.contains(peerID)`
+    /// looks correct and is always false: the peerID from discovery or from
+    /// an invitation is a different instance to the one inside the session,
+    /// even for the same machine. Every duplicate-connection guard in this
+    /// file used that comparison, so none of them did anything — each
+    /// rediscovery invited again, each invitation was accepted again, and
+    /// every new session tore down the one before it. The link flapped on a
+    /// roughly four-second cycle.
+    private func isConnected(_ peerID: MCPeerID) -> Bool {
+        session.connectedPeers.contains { $0.displayName == peerID.displayName }
+    }
+
     private func invite(_ peerID: MCPeerID) {
-        guard !session.connectedPeers.contains(peerID) else { return }
-        guard !pendingInvites.contains(peerID) else { return }   // one at a time
-        pendingInvites.insert(peerID)
+        guard !isConnected(peerID) else { return }
+        let name = peerID.displayName
+        guard !pendingInvites.contains(name) else { return }     // one at a time
+        pendingInvites.insert(name)
+        note("QC-net: inviting \(name)")
         browser.invitePeer(peerID, to: session, withContext: nil, timeout: 15)
         // Allow a retry once the invitation can no longer be accepted.
         DispatchQueue.main.asyncAfter(deadline: .now() + 16) { [weak self] in
-            self?.pendingInvites.remove(peerID)
+            self?.pendingInvites.remove(name)
         }
     }
 
@@ -203,14 +225,14 @@ extension MultipeerTransport: MCSessionDelegate {
         if state == .connected {
             // Make sure the peer is known, so it shows up as nearby.
             _ = peer(for: peerID)
-            pendingInvites.remove(peerID)
+            pendingInvites.remove(peerID.displayName)
         }
         if state == .notConnected {
             // Forget the peer so a later discovery is treated as fresh. Holding
             // a stale entry made us refuse the reconnect invitation, which is
             // why restarting one side left both stuck on "no nearby devices".
             peersByMCID.removeValue(forKey: peerID)
-            pendingInvites.remove(peerID)
+            pendingInvites.remove(peerID.displayName)
             // Only the designated initiator retries, for the same reason it is
             // the only one that invites in the first place.
             if shouldInitiate(to: peerID) {
@@ -250,9 +272,13 @@ extension MultipeerTransport: MCNearbyServiceAdvertiserDelegate {
                            didReceiveInvitationFromPeer peerID: MCPeerID,
                            withContext context: Data?,
                            invitationHandler: @escaping (Bool, MCSession?) -> Void) {
-        // Accept invitations from other Samcast instances, unless we are
-        // already connected to that peer (which would create a second session).
-        invitationHandler(!session.connectedPeers.contains(peerID), session)
+        // Accept, unless this device is already in the session — a second
+        // session for the same peer replaces the first, which is what made
+        // the connection flap.
+        let alreadyHere = isConnected(peerID)
+        note("QC-net: invitation from \(peerID.displayName)"
+             + (alreadyHere ? " — refused, already connected" : " — accepted"))
+        invitationHandler(!alreadyHere, session)
     }
 
     public func advertiser(_ advertiser: MCNearbyServiceAdvertiser,
