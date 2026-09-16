@@ -61,6 +61,54 @@ struct ContentView: View {
         .overlay(GlowBurst(trigger: model.glowTrigger, direction: model.glowDirection))
     }
 
+    /// Devices you have decided about, and a way to change your mind.
+    ///
+    /// Declining a device is remembered, so without this it is a one-way
+    /// door — the prompt tells you it can be undone here, and until this
+    /// existed it could not be undone anywhere except by editing preferences
+    /// by hand.
+    @ViewBuilder
+    private var deviceDecisions: some View {
+        if !model.trustedNames.isEmpty || !model.blockedDevices.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("DEVICES")
+                    .font(.caption2).bold()
+                    .foregroundStyle(.tertiary)
+                    .kerning(1.1)
+
+                ForEach(model.trustedNames, id: \.self) { name in
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        Text(name).font(.callout)
+                        Spacer()
+                        Button("Forget") { model.forget(name) }
+                            .buttonStyle(.link)
+                            .font(.caption)
+                    }
+                }
+
+                ForEach(model.blockedDevices) { device in
+                    HStack(spacing: 8) {
+                        Image(systemName: "hand.raised.fill")
+                            .foregroundStyle(.orange)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(device.name).font(.callout)
+                            Text("declined — can't send to this Mac")
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("Allow") { model.allowAgain(device) }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                    }
+                }
+            }
+            .frame(maxWidth: 420)
+            .padding(.top, 10)
+        }
+    }
+
     private var idleView: some View {
         VStack(spacing: 20) {
             Text(bigGestureGlyph)
@@ -90,6 +138,8 @@ struct ContentView: View {
             .font(.callout)
             .foregroundStyle(.secondary)
             .padding(.top, 4)
+
+            deviceDecisions
         }
         .padding()
     }

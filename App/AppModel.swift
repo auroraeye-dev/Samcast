@@ -70,6 +70,17 @@ final class AppModel: ObservableObject {
     @Published private(set) var castTarget: String = ""
     /// Devices already accepted from; their offers are taken automatically.
     @Published private(set) var trustedNames: [String] = []
+
+    /// A device the user has decided about, shown in the interface so the
+    /// decision can be changed. Declining used to be a one-way door: the
+    /// prompt said it could be undone in the device list, and there was no
+    /// device list — so a mis-tap locked a machine out permanently with no
+    /// way back short of editing preferences by hand.
+    struct KnownDevice: Identifiable, Hashable {
+        let id: String
+        let name: String
+    }
+    @Published private(set) var blockedDevices: [KnownDevice] = []
     /// Bumped to play the glow; direction says whether something left or
     /// arrived, so the animation reads correctly without any text.
     @Published private(set) var glowTrigger = 0
@@ -162,7 +173,7 @@ final class AppModel: ObservableObject {
             self.forwardFrame(frame as! CVPixelBuffer)
         }
 
-        trustedNames = Array(trust.trusted.values).sorted()
+        refreshDeviceDecisions()
         updateStatus()
     }
 
@@ -353,14 +364,14 @@ final class AppModel: ObservableObject {
             guard let self else { return }
             if allowed {
                 self.trust.trust(peer.id, name: peer.displayName)
-                self.trustedNames = Array(self.trust.trusted.values).sorted()
+                self.refreshDeviceDecisions()
                 QCLog.write("ALLOWED \(peer.displayName) — will not ask again")
                 self.setStatus("\(peer.displayName) allowed — open your hand again to take it")
                 self.transport.send(.requestCast, to: peer)
             } else {
                 // Includes the timeout. Silence means no, as everywhere else.
                 self.trust.block(peer.id, name: peer.displayName)
-                self.trustedNames = Array(self.trust.trusted.values).sorted()
+                self.refreshDeviceDecisions()
                 QCLog.write("DECLINED \(peer.displayName) — blocked")
                 self.setStatus("Declined \(peer.displayName). Undo it in Samcast's device list.", hold: 8)
                 self.returnToIdle()
@@ -377,9 +388,27 @@ final class AppModel: ObservableObject {
     }
 
     /// Allow a device that was previously declined.
-    func allowAgain(_ peerID: String, name: String) {
-        trust.trust(peerID, name: name)
+    func allowAgain(_ device: KnownDevice) {
+        trust.trust(device.id, name: device.name)
+        QCLog.write("UNBLOCKED \(device.name) — allowed from now on")
+        setStatus("\(device.name) is allowed now", hold: 5)
+        refreshDeviceDecisions()
+    }
+
+    /// Withdraw trust from a device, so it is asked about again next time.
+    func forget(_ name: String) {
+        guard let id = trust.trusted.first(where: { $0.value == name })?.key else { return }
+        trust.untrust(id)
+        QCLog.write("FORGOT \(name) — will ask again")
+        refreshDeviceDecisions()
+    }
+
+    /// Republish both decision lists after any change.
+    private func refreshDeviceDecisions() {
         trustedNames = Array(trust.trusted.values).sorted()
+        blockedDevices = trust.blocked
+            .map { KnownDevice(id: $0.key, name: $0.value) }
+            .sorted { $0.name < $1.name }
     }
 
     /// A live meeting is on screen. Ask first.
