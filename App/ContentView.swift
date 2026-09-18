@@ -69,7 +69,8 @@ struct ContentView: View {
     /// by hand.
     @ViewBuilder
     private var deviceDecisions: some View {
-        if !model.trustedNames.isEmpty || !model.blockedDevices.isEmpty {
+        if !model.trustedNames.isEmpty || !model.blockedDevices.isEmpty
+            || !model.undecidedDevices.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Text("DEVICES")
                     .font(.caption2).bold()
@@ -85,6 +86,25 @@ struct ContentView: View {
                         Button("Forget") { model.forget(name) }
                             .buttonStyle(.link)
                             .font(.caption)
+                    }
+                }
+
+                // Connected, not yet decided about — including anything you
+                // just forgot. Allow it here rather than waiting for it to
+                // offer you something.
+                ForEach(model.undecidedDevices) { device in
+                    HStack(spacing: 8) {
+                        Image(systemName: "circle.dashed")
+                            .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(device.name).font(.callout)
+                            Text("nearby — not decided about yet")
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("Connect") { model.allow(device) }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
                     }
                 }
 

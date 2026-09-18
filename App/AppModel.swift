@@ -81,6 +81,12 @@ final class AppModel: ObservableObject {
         let name: String
     }
     @Published private(set) var blockedDevices: [KnownDevice] = []
+
+    /// Connected devices you have not decided about — including one you just
+    /// forgot. Without this, Forget was a dead end: the device vanished from
+    /// the list and the only way back was to wait for it to offer you
+    /// something. Now it reappears here with a way to allow it directly.
+    @Published private(set) var undecidedDevices: [KnownDevice] = []
     /// Bumped to play the glow; direction says whether something left or
     /// arrived, so the animation reads correctly without any text.
     @Published private(set) var glowTrigger = 0
@@ -400,6 +406,7 @@ final class AppModel: ObservableObject {
         guard let id = trust.trusted.first(where: { $0.value == name })?.key else { return }
         trust.untrust(id)
         QCLog.write("FORGOT \(name) — will ask again")
+        setStatus("Forgot \(name) — it can be allowed again below", hold: 5)
         refreshDeviceDecisions()
     }
 
@@ -409,6 +416,18 @@ final class AppModel: ObservableObject {
         blockedDevices = trust.blocked
             .map { KnownDevice(id: $0.key, name: $0.value) }
             .sorted { $0.name < $1.name }
+        undecidedDevices = peers
+            .filter { !trust.isKnown($0.id) }
+            .map { KnownDevice(id: $0.id, name: $0.displayName) }
+            .sorted { $0.name < $1.name }
+    }
+
+    /// Allow a connected device without waiting for it to offer something.
+    func allow(_ device: KnownDevice) {
+        trust.trust(device.id, name: device.name)
+        QCLog.write("ALLOWED \(device.name) from the device list")
+        setStatus("\(device.name) is allowed", hold: 4)
+        refreshDeviceDecisions()
     }
 
     /// A live meeting is on screen. Ask first.
@@ -897,6 +916,7 @@ extension AppModel: PeerTransportDelegate {
         Task { @MainActor in
             QCLog.write("peers now: \(peers.map(\.displayName))")
             self.peers = peers
+            self.refreshDeviceDecisions()
             // Keep newly-joined peers informed if we are currently a source.
             if case .armedSource = self.state { self.broadcast(.sourceAvailable) }
             self.updateStatus()

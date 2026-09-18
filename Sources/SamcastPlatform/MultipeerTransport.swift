@@ -59,6 +59,9 @@ public final class MultipeerTransport: NSObject, PeerTransport {
     /// guard did nothing and every rediscovery sent another invitation.
     private var pendingInvites: Set<String> = []
 
+    private var discoveryWatchdog: Timer?
+    private var lastSawAnyone = Date()
+
     public init(displayName: String? = nil, kind: Peer.Kind = .mac) {
         self.localKind = kind
         let name = String((displayName ?? quackCastName()).prefix(63))
@@ -84,9 +87,48 @@ public final class MultipeerTransport: NSObject, PeerTransport {
     public func start() {
         advertiser.startAdvertisingPeer()
         browser.startBrowsingForPeers()
+        startDiscoveryWatchdog()
+    }
+
+    /// Restart discovery if it has quietly stopped working.
+    ///
+    /// Observed: after some time running, the app found no peers at all while
+    /// `dns-sd` confirmed it was still advertising and other instances were
+    /// visible on the network. Browsing had stopped producing results without
+    /// reporting an error. The only symptom was an empty device list, which
+    /// is indistinguishable from "nothing else is switched on" — so the user
+    /// has no way to tell the difference, and "restart the app" is not an
+    /// answer that belongs in a README.
+    ///
+    /// Restarting a healthy browser costs a rediscovery round, so this only
+    /// fires after a long quiet spell and never while anything is connected.
+    private func startDiscoveryWatchdog() {
+        discoveryWatchdog?.invalidate()
+        discoveryWatchdog = Timer.scheduledTimer(withTimeInterval: 45, repeats: true) {
+            [weak self] _ in
+            guard let self else { return }
+            guard self.session.connectedPeers.isEmpty else {
+                self.lastSawAnyone = Date()
+                return
+            }
+            guard Date().timeIntervalSince(self.lastSawAnyone) > 90 else { return }
+            self.note("QC-net: no peers for 90s — restarting discovery")
+            self.lastSawAnyone = Date()
+            self.browser.stopBrowsingForPeers()
+            self.advertiser.stopAdvertisingPeer()
+            self.pendingInvites.removeAll()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                guard let self else { return }
+                self.advertiser.startAdvertisingPeer()
+                self.browser.startBrowsingForPeers()
+                self.note("QC-net: discovery restarted")
+            }
+        }
     }
 
     public func stop() {
+        discoveryWatchdog?.invalidate()
+        discoveryWatchdog = nil
         advertiser.stopAdvertisingPeer()
         browser.stopBrowsingForPeers()
         session.disconnect()
@@ -296,6 +338,7 @@ extension MultipeerTransport: MCNearbyServiceBrowserDelegate {
                         withDiscoveryInfo info: [String: String]?) {
         let kind = Peer.Kind(rawValue: info?["kind"] ?? "") ?? .unknown
         _ = peer(for: peerID, kind: kind)
+        lastSawAnyone = Date()      // browsing is evidently still working
 
         // Exactly one side may invite. Every peer both advertises and
         // browses, so if both invite they build two competing sessions which
