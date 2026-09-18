@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Samcast — a tab closes here, it opens there</title>
+<meta name="description" content="Close your hand at your Mac and the page you're on lands on the other device as a real link. Any other window mirrors live, view only. Bonjour over your Wi-Fi, no server, no accounts. Free and MIT licensed.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: #FFFCF7; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  a { color: #0E8C86; text-decoration: none; }
+  a:hover { color: #0A6B66; text-decoration: underline; }
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  @keyframes qc-float { 0%, 100% { transform: translateY(-12px) rotate(-2deg); } 50% { transform: translateY(14px) rotate(2deg); } }
+  @keyframes qc-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+  @keyframes qc-wiggle { 0%, 84%, 100% { transform: rotate(0deg); } 89% { transform: rotate(-15deg); } 94% { transform: rotate(13deg); } }
+  @keyframes qc-pan { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+  @keyframes qc-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes qc-ping { 0% { transform: scale(.6); opacity: .5; } 100% { transform: scale(2.5); opacity: 0; } }
+  @keyframes qc-scan { 0% { transform: translateY(-6%); opacity: 0; } 12% { opacity: .9; } 88% { opacity: .9; } 100% { transform: translateY(106%); opacity: 0; } }
+  @keyframes qc-blink { 0%, 45% { opacity: 1; } 50%, 95% { opacity: .25; } 100% { opacity: 1; } }
+  @keyframes qc-steam { 0% { transform: translateY(0) scaleX(1); opacity: 0; } 20% { opacity: .75; } 100% { transform: translateY(-40px) scaleX(1.6); opacity: 0; } }
+  @keyframes qc-pop { 0% { transform: scale(.3) rotate(-18deg); opacity: 0; } 60% { transform: scale(1.14) rotate(6deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+</helmet>
+
+<div style="font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; color: #12100F; background: #FFFCF7; font-size: 17px; line-height: 1.62;">
+
+  <div style="position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: .055; mix-blend-mode: multiply; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E&quot;);"></div>
+
+  <div style="position: sticky; top: 0; z-index: 40; background: rgba(255,252,247,0.84); backdrop-filter: saturate(180%) blur(16px); border-bottom: 1px solid #F0E7D8;">
+    <div style="max-width: 1140px; margin: 0 auto; padding: 13px 24px; display: flex; align-items: center; gap: 26px; flex-wrap: wrap;">
+      <a href="#top" style="display: flex; align-items: center; gap: 10px; color: #12100F;">
+        <img src="assets/samcast-logo.png" alt="" style="width: 34px; height: 34px; border-radius: 10px; object-fit: cover;">
+        <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 19px; letter-spacing: -0.02em;">samcast</span>
+      </a>
+      <div style="flex: 1;"></div>
+      <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap; font-size: 15px;">
+        <a href="#how" style="color: #4B4844;">Gestures</a>
+        <a href="#story" style="color: #4B4844;">Handoff</a>
+        <a href="#devices" style="color: #4B4844;">Devices</a>
+        <a href="#status" style="color: #4B4844;">Status</a>
+        <a href="#security" style="color: #4B4844;">Security</a>
+        <a href="#install" style="color: #4B4844;">Get it</a>
+        <a href="#install" style="background: #12100F; color: #FFFCF7; padding: 9px 18px; border-radius: 999px; font-weight: 550; transition: transform .2s ease, background .2s ease;" style-hover="background: #0E8C86; color: #FFFCF7; transform: translateY(-2px);">Get the Mac build</a>
+      </div>
+    </div>
+    <div data-qc-progress="" style="height: 3px; width: 0%; background: linear-gradient(90deg, #2FD3C2, #F2A03C, #F26D8B, #8C7BE8);"></div>
+  </div>
+
+  <div id="top" style="position: relative; overflow: hidden; background: linear-gradient(115deg, #FFEFD3, #EAFAF6, #F3EEFD, #FFE7EE, #FFEFD3); background-size: 340% 340%; animation: qc-pan 26s ease-in-out infinite;">
+    <div style="position: absolute; top: -140px; left: -90px; width: 380px; height: 380px; border-radius: 50%; background: radial-gradient(circle, rgba(47,211,194,0.38), rgba(47,211,194,0) 70%); animation: qc-float 15s ease-in-out infinite;"></div>
+    <div style="position: absolute; bottom: -170px; right: -70px; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(242,160,60,0.34), rgba(242,160,60,0) 70%); animation: qc-float 19s ease-in-out infinite reverse;"></div>
+    <div style="position: absolute; top: 30%; left: 52%; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(242,109,139,0.26), rgba(242,109,139,0) 70%); animation: qc-float 22s ease-in-out infinite;"></div>
+
+    <div style="position: relative; max-width: 1140px; margin: 0 auto; padding: 74px 24px 72px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 52px; align-items: center;">
+      <div>
+        <div data-reveal="" style="display: inline-flex; align-items: center; gap: 9px; background: rgba(255,255,255,0.8); border: 1px solid #E4D9C4; border-radius: 999px; padding: 7px 15px; font-size: 13px; font-weight: 600; margin-bottom: 26px;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #2FD3C2; animation: qc-blink 2s ease-in-out infinite;"></span>
+          Mac → iPad → iPhone → Mac. Working today.
+        </div>
+        <h1 data-reveal="" data-delay="60" style="margin: 0 0 22px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(42px, 6.4vw, 80px); line-height: 0.94; letter-spacing: -0.04em; font-weight: 800;">A tab closes here.<br>It opens <span style="display: inline-block; background: linear-gradient(100deg, #0E8C86, #F2A03C, #F26D8B); -webkit-background-clip: text; background-clip: text; color: transparent; animation: qc-bob 5s ease-in-out infinite;">there.</span></h1>
+        <p data-reveal="" data-delay="120" style="margin: 0 0 18px; font-size: 19px; line-height: 1.58; color: #46433E; max-width: 31em; text-wrap: pretty;">Close your hand at your Mac and the page you're on lands on the other device as a real link — full resolution, their browser, their accounts. Nothing is streamed and nothing is screenshotted.</p>
+        <p data-reveal="" data-delay="150" style="margin: 0 0 30px; font-size: 19px; line-height: 1.58; color: #46433E; max-width: 31em; text-wrap: pretty;">Any other window travels too, mirrored live as a view they can watch but not touch.</p>
+        <div data-reveal="" data-delay="180" style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+          <a href="#install" style="background: #F2A03C; color: #241703; padding: 15px 28px; border-radius: 999px; font-size: 17px; font-weight: 600; box-shadow: 0 10px 28px rgba(226,143,32,0.36); transition: transform .2s ease, box-shadow .2s ease;" style-hover="background: #E8911F; color: #241703; transform: translateY(-3px); box-shadow: 0 18px 38px rgba(226,143,32,0.45);">Get the Mac build</a>
+          <a href="#status" style="font-weight: 500;">See what's verified →</a>
+        </div>
+        <p data-reveal="" data-delay="240" style="margin: 20px 0 0; font-size: 14px; color: #75706A;">macOS 13 or later · Free · Both devices on the same Wi-Fi · No accounts, no server</p>
+      </div>
+
+      <div data-reveal="" data-delay="120" style="display: flex; flex-direction: column; gap: 16px; align-items: center;">
+        <div style="position: relative; width: 100%; max-width: 400px; aspect-ratio: 1 / 1; border-radius: 26px; background: #14120F; border: 1px solid #322D26; box-shadow: 0 30px 70px rgba(20,70,66,0.24); overflow: hidden;">
+          <div style="position: absolute; inset: 0; background-image: radial-gradient(rgba(255,252,247,0.16) 1px, transparent 1px); background-size: 22px 22px;"></div>
+          <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(47,211,194,0.16), transparent 38%);"></div>
+          <div style="position: absolute; left: 0; right: 0; height: 74px; background: linear-gradient(180deg, rgba(47,211,194,0), rgba(47,211,194,0.22)); animation: qc-scan 3.4s linear infinite;"></div>
+
+          <div style="position: absolute; top: 16px; left: 16px; width: 24px; height: 24px; border-top: 2px solid #2FD3C2; border-left: 2px solid #2FD3C2; border-radius: 6px 0 0 0;"></div>
+          <div style="position: absolute; top: 16px; right: 16px; width: 24px; height: 24px; border-top: 2px solid #2FD3C2; border-right: 2px solid #2FD3C2; border-radius: 0 6px 0 0;"></div>
+          <div style="position: absolute; bottom: 74px; left: 16px; width: 24px; height: 24px; border-bottom: 2px solid #2FD3C2; border-left: 2px solid #2FD3C2; border-radius: 0 0 0 6px;"></div>
+          <div style="position: absolute; bottom: 74px; right: 16px; width: 24px; height: 24px; border-bottom: 2px solid #2FD3C2; border-right: 2px solid #2FD3C2; border-radius: 0 0 6px 0;"></div>
+
+          <div style="position: absolute; top: 18px; left: 50px; right: 50px; display: flex; align-items: center; justify-content: space-between; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: #79D9CE;">
+            <span>ON-DEVICE VISION</span>
+            <span style="animation: qc-blink 1.6s ease-in-out infinite;">● LIVE</span>
+          </div>
+
+          <div style="position: absolute; inset: 44px 44px 96px 44px;">
+            <sc-for list="{{ dots }}" as="d" hint-placeholder-count="21">
+              <div style="position: absolute; left: {{ d.x }}%; top: {{ d.y }}%; width: {{ d.size }}px; height: {{ d.size }}px; margin-left: -6px; margin-top: -6px; border-radius: 50%; background: {{ d.color }}; box-shadow: 0 0 12px {{ d.color }}; transition: left .85s cubic-bezier(.34,1.28,.4,1), top .85s cubic-bezier(.34,1.28,.4,1);"></div>
+            </sc-for>
+          </div>
+
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 14px 20px 16px; background: rgba(12,11,10,0.86); border-top: 1px solid #322D26; font-family: 'Space Mono', monospace;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+              <span style="font-size: 15px; font-weight: 700; letter-spacing: 0.06em; color: {{ poseColor }};">{{ poseLabel }}</span>
+              <span style="font-size: 11px; color: #9A938A;">fingers: {{ poseFingers }}/4</span>
+            </div>
+            <div style="margin-top: 5px; font-size: 12px; color: #C9C2B7;">{{ poseNote }}</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+          <button type="button" onClick="{{ pickFist }}" style="display: inline-flex; align-items: center; gap: 8px; border: 1px solid #E4D9C4; border-radius: 999px; padding: 9px 16px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; background: {{ fistBg }}; color: {{ fistFg }}; transition: transform .18s ease;" style-hover="transform: translateY(-2px);"><span style="font-size: 17px;">✊</span> Hand it over</button>
+          <button type="button" onClick="{{ pickOpen }}" style="display: inline-flex; align-items: center; gap: 8px; border: 1px solid #E4D9C4; border-radius: 999px; padding: 9px 16px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; background: {{ openBg }}; color: {{ openFg }}; transition: transform .18s ease;" style-hover="transform: translateY(-2px);"><span style="font-size: 17px;">🖐️</span> Catch it</button>
+          <button type="button" onClick="{{ pickPeace }}" style="display: inline-flex; align-items: center; gap: 8px; border: 1px solid #E4D9C4; border-radius: 999px; padding: 9px 16px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; background: {{ peaceBg }}; color: {{ peaceFg }}; transition: transform .18s ease;" style-hover="transform: translateY(-2px);"><span style="font-size: 17px;">✌️</span> Screenshot</button>
+        </div>
+        <p style="margin: 0; font-size: 13px; color: #75706A; text-align: center;">Tap a gesture — a sketch of the 21 hand landmarks the app reads. The thumb is excluded on purpose, so the count runs to four.</p>
+      </div>
+    </div>
+
+    <div style="overflow: hidden; border-top: 1px solid rgba(255,255,255,0.6); background: rgba(255,255,255,0.5); padding: 13px 0;">
+      <div style="display: flex; width: max-content; animation: qc-marquee 30s linear infinite; font-family: 'Space Mono', monospace; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: #4B4844;">
+        <div style="display: flex; gap: 12px; padding-right: 12px;">
+          <span style="background: #FFF4E2; border-radius: 999px; padding: 4px 14px;">✊ hand over</span><span style="background: #E7F8F5; border-radius: 999px; padding: 4px 14px;">🖐️ catch</span><span style="background: #F1EFFC; border-radius: 999px; padding: 4px 14px;">✌️ screenshot</span><span style="background: #FFE7EE; border-radius: 999px; padding: 4px 14px;">mac ⇄ mac</span><span style="background: #FFF4E2; border-radius: 999px; padding: 4px 14px;">mac → ipad</span><span style="background: #E7F8F5; border-radius: 999px; padding: 4px 14px;">iphone</span><span style="background: #F1EFFC; border-radius: 999px; padding: 4px 14px;">real links</span><span style="background: #FFE7EE; border-radius: 999px; padding: 4px 14px;">view-only mirroring</span><span style="background: #FFF4E2; border-radius: 999px; padding: 4px 14px;">bonjour</span><span style="background: #E7F8F5; border-radius: 999px; padding: 4px 14px;">no accounts</span><span style="background: #F1EFFC; border-radius: 999px; padding: 4px 14px;">no server</span>
+          <span style="background: #FFF4E2; border-radius: 999px; padding: 4px 14px;">✊ hand over</span><span style="background: #E7F8F5; border-radius: 999px; padding: 4px 14px;">🖐️ catch</span><span style="background: #F1EFFC; border-radius: 999px; padding: 4px 14px;">✌️ screenshot</span><span style="background: #FFE7EE; border-radius: 999px; padding: 4px 14px;">mac ⇄ mac</span><span style="background: #FFF4E2; border-radius: 999px; padding: 4px 14px;">mac → ipad</span><span style="background: #E7F8F5; border-radius: 999px; padding: 4px 14px;">iphone</span><span style="background: #F1EFFC; border-radius: 999px; padding: 4px 14px;">real links</span><span style="background: #FFE7EE; border-radius: 999px; padding: 4px 14px;">view-only mirroring</span><span style="background: #FFF4E2; border-radius: 999px; padding: 4px 14px;">bonjour</span><span style="background: #E7F8F5; border-radius: 999px; padding: 4px 14px;">no accounts</span><span style="background: #F1EFFC; border-radius: 999px; padding: 4px 14px;">no server</span>
+        </div>
+        <div style="display: flex; gap: 12px; padding-right: 12px;">
+          <span style="background: #FFF4E2; border-radius: 999px; padding: 4px 14px;">✊ hand over</span><span style="background: #E7F8F5; border-radius: 999px; padding: 4px 14px;">🖐️ catch</span><span style="background: #F1EFFC; border-radius: 999px; padding: 4px 14px;">✌️ screenshot</span><span style="background: #FFE7EE; border-radius: 999px; padding: 4px 14px;">mac ⇄ mac</span><span style="background: #FFF4E2; border-radius: 999px; padding: 4px 14px;">mac → ipad</span><span style="background: #E7F8F5; border-radius: 999px; padding: 4px 14px;">iphone</span><span style="background: #F1EFFC; border-radius: 999px; padding: 4px 14px;">real links</span><span style="background: #FFE7EE; border-radius: 999px; padding: 4px 14px;">view-only mirroring</span><span style="background: #FFF4E2; border-radius: 999px; padding: 4px 14px;">bonjour</span><span style="background: #E7F8F5; border-radius: 999px; padding: 4px 14px;">no accounts</span><span style="background: #F1EFFC; border-radius: 999px; padding: 4px 14px;">no server</span>
+          <span style="background: #FFF4E2; border-radius: 999px; padding: 4px 14px;">✊ hand over</span><span style="background: #E7F8F5; border-radius: 999px; padding: 4px 14px;">🖐️ catch</span><span style="background: #F1EFFC; border-radius: 999px; padding: 4px 14px;">✌️ screenshot</span><span style="background: #FFE7EE; border-radius: 999px; padding: 4px 14px;">mac ⇄ mac</span><span style="background: #FFF4E2; border-radius: 999px; padding: 4px 14px;">mac → ipad</span><span style="background: #E7F8F5; border-radius: 999px; padding: 4px 14px;">iphone</span><span style="background: #F1EFFC; border-radius: 999px; padding: 4px 14px;">real links</span><span style="background: #FFE7EE; border-radius: 999px; padding: 4px 14px;">view-only mirroring</span><span style="background: #FFF4E2; border-radius: 999px; padding: 4px 14px;">bonjour</span><span style="background: #E7F8F5; border-radius: 999px; padding: 4px 14px;">no accounts</span><span style="background: #F1EFFC; border-radius: 999px; padding: 4px 14px;">no server</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="how">
+    <div style="max-width: 1140px; margin: 0 auto; padding: 96px 24px;">
+      <p data-reveal="" style="margin: 0 0 14px; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #0E8C86;">01 — Three gestures</p>
+      <h2 data-reveal="" data-delay="60" style="margin: 0 0 20px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(30px, 4vw, 50px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 700; max-width: 20em;">Your camera is already pointed at you. Use it.</h2>
+      <p data-reveal="" data-delay="100" style="margin: 0 0 48px; color: #46433E; max-width: 42em; text-wrap: pretty;">Samcast watches for a hand in your Mac's camera and counts how many fingers are extended — the one thing hand tracking reports reliably. The thumb is left out, because its position tells you how the hand is rotated rather than whether it's open. Everything else is a consequence of that.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 264px), 1fr)); gap: 20px;">
+        <div data-reveal="" style="position: relative; background: #FFF4E2; border: 1px solid #F7DFB8; border-radius: 24px; padding: 30px; overflow: hidden; transition: transform .32s cubic-bezier(.2,.7,.2,1), box-shadow .32s ease;" style-hover="transform: translateY(-7px); box-shadow: 0 22px 44px rgba(180,117,18,0.2);">
+          <div style="position: absolute; top: -30px; right: -30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(242,160,60,0.18);"></div>
+          <div style="position: relative; font-size: 46px; line-height: 1; animation: qc-wiggle 6s ease-in-out infinite;">✊</div>
+          <h3 style="position: relative; margin: 16px 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 21px; font-weight: 700; letter-spacing: -0.02em;">Close your hand — hand it over</h3>
+          <p style="position: relative; margin: 0; font-size: 16px; color: #4C453A; text-wrap: pretty;">If you're in a browser, the tab closes on your Mac straight away and waits to be caught — and comes back after 20 seconds if nobody catches it. Any other window starts mirroring instead.</p>
+        </div>
+        <div data-reveal="" data-delay="90" style="position: relative; background: #E7F8F5; border: 1px solid #BEE8E1; border-radius: 24px; padding: 30px; overflow: hidden; transition: transform .32s cubic-bezier(.2,.7,.2,1), box-shadow .32s ease;" style-hover="transform: translateY(-7px); box-shadow: 0 22px 44px rgba(14,140,134,0.2);">
+          <div style="position: absolute; top: -30px; right: -30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(47,211,194,0.2);"></div>
+          <div style="position: relative; font-size: 46px; line-height: 1; animation: qc-wiggle 6s ease-in-out infinite 1.2s;">🖐️</div>
+          <h3 style="position: relative; margin: 16px 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 21px; font-weight: 700; letter-spacing: -0.02em;">Open your hand — catch it</h3>
+          <p style="position: relative; margin: 0; font-size: 16px; color: #35473F; text-wrap: pretty;">Do this at the device you want it on. Catching is always a deliberate act on the receiving device — nobody can push a screen onto you.</p>
+        </div>
+        <div data-reveal="" data-delay="180" style="position: relative; background: #F1EFFC; border: 1px solid #DAD3F4; border-radius: 24px; padding: 30px; overflow: hidden; transition: transform .32s cubic-bezier(.2,.7,.2,1), box-shadow .32s ease;" style-hover="transform: translateY(-7px); box-shadow: 0 22px 44px rgba(92,77,190,0.2);">
+          <div style="position: absolute; top: -30px; right: -30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(140,123,232,0.18);"></div>
+          <div style="position: relative; font-size: 46px; line-height: 1; animation: qc-wiggle 6s ease-in-out infinite 2.4s;">✌️</div>
+          <h3 style="position: relative; margin: 16px 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 21px; font-weight: 700; letter-spacing: -0.02em;">Peace sign — take a screenshot</h3>
+          <p style="position: relative; margin: 0; font-size: 16px; color: #403C52; text-wrap: pretty;">Saved straight to your Desktop. This one needs Screen Recording; links work without it.</p>
+        </div>
+      </div>
+      <div data-reveal="" style="margin-top: 32px; max-width: 46em; border-left: 4px solid #F2A03C; padding: 4px 0 4px 20px;">
+        <p style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 21px; line-height: 1.32; letter-spacing: -0.02em; font-weight: 600;">While a page is being held, gestures are deliberately ignored.</p>
+        <p style="margin: 8px 0 0; font-size: 16px; color: #4C453A; text-wrap: pretty;">You're walking to another device, and stray hands on the way used to cancel the handoff. Cancel from the app window instead.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="story" style="position: relative; background: #FFF6E9; border-top: 1px solid #F3E2C6; border-bottom: 1px solid #F3E2C6;">
+    <div data-qc-story="" style="position: relative; height: 300vh;">
+      <div style="position: sticky; top: 0; height: 100vh; display: flex; align-items: center; overflow: hidden;">
+        <div style="width: 100%; max-width: 1140px; margin: 0 auto; padding: 0 24px;">
+          <p style="margin: 0 0 10px; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #B47512;">02 — The handoff</p>
+          <div style="position: relative; height: 84px; margin-bottom: 22px;">
+            <div data-qc-step="0" style="position: absolute; inset: 0; transition: opacity .4s ease, transform .4s ease;">
+              <h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(26px, 3.6vw, 44px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 700;">You close your hand.</h2>
+              <p style="margin: 8px 0 0; color: #4C453A;">The tab closes here immediately and goes up for grabs. Nothing is streamed.</p>
+            </div>
+            <div data-qc-step="1" style="position: absolute; inset: 0; opacity: 0; transition: opacity .4s ease, transform .4s ease;">
+              <h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(26px, 3.6vw, 44px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 700;">They open theirs.</h2>
+              <p style="margin: 8px 0 0; color: #4C453A;">A direct, encrypted link forms between the two devices. No server in the path.</p>
+            </div>
+            <div data-qc-step="2" style="position: absolute; inset: 0; opacity: 0; transition: opacity .4s ease, transform .4s ease;">
+              <h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(26px, 3.6vw, 44px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 700;">It opens on theirs.</h2>
+              <p style="margin: 8px 0 0; color: #4C453A;">A real link in their browser, which comes to the front. Nobody catches it? It comes back to you after 20 seconds.</p>
+            </div>
+          </div>
+
+          <div style="position: relative; height: min(46vh, 320px);">
+            <svg viewBox="0 0 100 30" preserveAspectRatio="none" style="position: absolute; left: 12%; right: 12%; top: 34%; width: 76%; height: 60px; overflow: visible;">
+              <path d="M 0 24 C 26 -6, 74 -6, 100 24" fill="none" stroke="#E3C79C" stroke-width="0.7" stroke-dasharray="3 3"></path>
+              <path data-qc-wire="" d="M 0 24 C 26 -6, 74 -6, 100 24" fill="none" stroke="#0E8C86" stroke-width="1.1" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"></path>
+            </svg>
+
+            <div style="position: absolute; left: 0; bottom: 0; width: 36%; max-width: 300px;">
+              <div style="background: #FFFCF7; border: 2px solid #12100F; border-radius: 12px; aspect-ratio: 16 / 10; display: flex; flex-direction: column; overflow: hidden;">
+                <div style="height: 20px; background: #FFF4E2; border-bottom: 2px solid #12100F; display: flex; align-items: center; gap: 5px; padding: 0 8px; flex: none;">
+                  <div style="width: 7px; height: 7px; border-radius: 50%; background: #F26D8B;"></div>
+                  <div style="width: 7px; height: 7px; border-radius: 50%; background: #F2A03C;"></div>
+                  <div style="width: 7px; height: 7px; border-radius: 50%; background: #2FD3C2;"></div>
+                </div>
+                <div style="flex: 1; padding: 11px; display: flex; flex-direction: column; gap: 7px;">
+                  <div style="height: 8px; width: 66%; border-radius: 4px; background: #2FD3C2;"></div>
+                  <div style="height: 8px; width: 92%; border-radius: 4px; background: #EFE7D9;"></div>
+                  <div style="height: 8px; width: 74%; border-radius: 4px; background: #EFE7D9;"></div>
+                </div>
+              </div>
+              <div style="height: 8px; margin: 0 auto; width: 58%; border-radius: 0 0 8px 8px; background: #12100F;"></div>
+              <p style="margin: 9px 0 0; text-align: center; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #6E6862;">YOUR MAC ✊</p>
+            </div>
+
+            <div style="position: absolute; right: 0; bottom: 0; width: 30%; max-width: 230px;">
+              <div style="background: #FFFCF7; border: 2px solid #12100F; border-radius: 16px; aspect-ratio: 3 / 4; display: flex; flex-direction: column; overflow: hidden; padding: 12px;">
+                <div data-qc-landed="" style="height: 8px; width: 66%; border-radius: 4px; background: #EFE7D9; transition: background .4s ease;"></div>
+                <div style="height: 8px; width: 92%; border-radius: 4px; background: #EFE7D9; margin-top: 8px;"></div>
+                <div style="height: 8px; width: 74%; border-radius: 4px; background: #EFE7D9; margin-top: 8px;"></div>
+              </div>
+              <p style="margin: 9px 0 0; text-align: center; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #6E6862;">THEIR IPAD 🖐️</p>
+            </div>
+
+            <div data-qc-packet="" style="position: absolute; left: 8%; top: 8%; width: 96px; height: 62px; border-radius: 10px; background: linear-gradient(135deg, #2FD3C2, #8C7BE8); box-shadow: 0 14px 30px rgba(47,211,194,0.45); display: flex; align-items: center; justify-content: center; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.08em; color: #0C1413; opacity: 0;">LINK</div>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 26px;">
+            <div data-qc-dot="0" style="height: 4px; flex: 1; max-width: 90px; border-radius: 2px; background: #0E8C86; transition: background .3s ease;"></div>
+            <div data-qc-dot="1" style="height: 4px; flex: 1; max-width: 90px; border-radius: 2px; background: #EBD9BA; transition: background .3s ease;"></div>
+            <div data-qc-dot="2" style="height: 4px; flex: 1; max-width: 90px; border-radius: 2px; background: #EBD9BA; transition: background .3s ease;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="max-width: 1140px; margin: 0 auto; padding: 0 24px 92px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 20px; align-items: start;">
+        <div data-reveal="" style="background: #FFFCF7; border: 1px solid #F0E0C4; border-radius: 24px; padding: 30px;">
+          <div style="display: inline-flex; align-items: center; gap: 8px; background: #E7F8F5; border: 1px solid #BEE8E1; border-radius: 999px; padding: 6px 13px; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #0A6B66; margin-bottom: 16px;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #2FD3C2; animation: qc-blink 2.2s ease-in-out infinite;"></span>
+            The whole idea
+          </div>
+          <h3 style="margin: 0 0 12px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(23px, 2.6vw, 32px); line-height: 1.06; letter-spacing: -0.03em; font-weight: 700;">Send the page, not a picture of the page.</h3>
+          <p style="margin: 0 0 20px; color: #4C453A; text-wrap: pretty;">When the front-most app is a browser, Samcast hands over the link instead of streaming it. The tab closes on your Mac and opens on theirs — instantly, at full resolution, in their own browser, logged into their own accounts.</p>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <span style="background: #FFF6E9; border: 1px solid #F0E0C4; border-radius: 999px; padding: 7px 15px; font-size: 14px; font-weight: 550;">Safari</span>
+            <span style="background: #FFF6E9; border: 1px solid #F0E0C4; border-radius: 999px; padding: 7px 15px; font-size: 14px; font-weight: 550;">Chrome</span>
+            <span style="background: #FFF6E9; border: 1px solid #F0E0C4; border-radius: 999px; padding: 7px 15px; font-size: 14px; font-weight: 550;">Edge</span>
+            <span style="background: #FFF6E9; border: 1px solid #F0E0C4; border-radius: 999px; padding: 7px 15px; font-size: 14px; font-weight: 550;">Brave</span>
+            <span style="background: #FFF6E9; border: 1px solid #F0E0C4; border-radius: 999px; padding: 7px 15px; font-size: 14px; font-weight: 550;">Arc</span>
+            <span style="background: #FFF6E9; border: 1px solid #F0E0C4; border-radius: 999px; padding: 7px 15px; font-size: 14px; font-weight: 550;">Vivaldi</span>
+          </div>
+        </div>
+        <div data-reveal="" data-delay="90" style="background: #FFFCF7; border: 1px solid #F0E0C4; border-radius: 24px; padding: 30px;">
+          <div style="display: inline-flex; align-items: center; gap: 8px; background: #F1EFFC; border: 1px solid #DAD3F4; border-radius: 999px; padding: 6px 13px; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #5A4BAE; margin-bottom: 16px;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #8C7BE8; animation: qc-blink 2.2s ease-in-out infinite .5s;"></span>
+            View only
+          </div>
+          <h3 style="margin: 0 0 12px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(23px, 2.6vw, 32px); line-height: 1.06; letter-spacing: -0.03em; font-weight: 700;">Any app can travel, not just a link.</h3>
+          <p style="margin: 0 0 20px; color: #4C453A; text-wrap: pretty;">Figma, Xcode, a spreadsheet, a terminal — whatever window you're in gets mirrored to the other device as a live view. They watch, they can't touch. No pointer, no keyboard, no control handed over. It's mirroring, not remote access.</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; font-family: 'Space Mono', monospace;">
+            <div style="background: #FFF6E9; border: 1px solid #F0E0C4; border-radius: 12px; padding: 11px 13px;">
+              <div style="font-size: 17px; font-weight: 700; color: #12100F;">15 fps</div>
+              <div style="font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #85807A; margin-top: 3px;">at 1600 px</div>
+            </div>
+            <div style="background: #FFF6E9; border: 1px solid #F0E0C4; border-radius: 12px; padding: 11px 13px;">
+              <div style="font-size: 17px; font-weight: 700; color: #12100F;">20–130</div>
+              <div style="font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #85807A; margin-top: 3px;">KB/s measured</div>
+            </div>
+            <div style="background: #FFF6E9; border: 1px solid #F0E0C4; border-radius: 12px; padding: 11px 13px;">
+              <div style="font-size: 17px; font-weight: 700; color: #12100F;">1–9 KB</div>
+              <div style="font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #85807A; margin-top: 3px;">H.264 frame</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="devices" data-qc-spot="" style="position: relative; overflow: hidden; background: #12100F; color: #F7F3EC;">
+    <div data-qc-spotlight="" style="position: absolute; inset: 0; background: radial-gradient(420px circle at 50% 30%, rgba(47,211,194,0.16), transparent 70%); transition: background .2s ease;"></div>
+    <div style="position: relative; max-width: 1140px; margin: 0 auto; padding: 96px 24px;">
+      <p data-reveal="" style="margin: 0 0 14px; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #2FD3C2;">03 — Devices</p>
+      <h2 data-reveal="" data-delay="60" style="margin: 0 0 18px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(30px, 4vw, 50px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 700; max-width: 22em;">Mac, iPad and iPhone all work. Windows is halfway.</h2>
+      <p data-reveal="" data-delay="100" style="margin: 0 0 52px; color: #C9C2B7; max-width: 42em; text-wrap: pretty;">Links make the trip between two Macs in both directions, and between a Mac and an iPad or iPhone. Live windows go from a Mac to an iPad. iOS can't capture other apps, so an iPhone or iPad sends links only — via the clipboard.</p>
+
+      <div data-reveal="" style="position: relative; background: linear-gradient(140deg, #1B1918, #221F1B); border: 1px solid #33302B; border-radius: 28px; padding: 44px 32px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 22px; flex-wrap: wrap;">
+          <div style="flex: 1 1 200px; text-align: center;">
+            <div style="margin: 0 auto; width: 100%; max-width: 230px;">
+              <div style="border: 2px solid #2FD3C2; background: #0C0B0A; border-radius: 12px; height: 132px; padding: 13px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 0 28px rgba(47,211,194,0.2);">
+                <div style="height: 9px; width: 72%; border-radius: 5px; background: #2FD3C2;"></div>
+                <div style="height: 9px; width: 92%; border-radius: 5px; background: #302C27;"></div>
+                <div style="height: 9px; width: 58%; border-radius: 5px; background: #302C27;"></div>
+                <div style="height: 9px; width: 80%; border-radius: 5px; background: #302C27;"></div>
+              </div>
+              <div style="height: 9px; width: 62%; margin: 0 auto; border-radius: 0 0 9px 9px; background: #4B463F;"></div>
+            </div>
+            <p style="margin: 15px 0 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; font-weight: 700;">Mac</p>
+            <p style="margin: 2px 0 0; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.08em; color: #2FD3C2;">SENDS + RECEIVES</p>
+          </div>
+
+          <div style="flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-bottom: 54px;">
+            <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
+              <div style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background: #2FD3C2; animation: qc-ping 2.4s ease-out infinite;"></div>
+              <div style="position: relative; width: 33px; height: 33px; border-radius: 50%; background: #2FD3C2; color: #0C1413; display: flex; align-items: center; justify-content: center; font-weight: 700;">⇄</div>
+            </div>
+            <p style="margin: 0; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.08em; color: #79D9CE; text-align: center;">LINKS BOTH WAYS<br>LIVE WINDOWS OUT</p>
+          </div>
+
+          <div style="flex: 1 1 150px; text-align: center;">
+            <div style="margin: 0 auto; width: 124px; border: 2px solid #2FD3C2; background: #0C0B0A; border-radius: 18px; height: 164px; padding: 13px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 0 28px rgba(47,211,194,0.2);">
+              <div style="height: 9px; width: 70%; border-radius: 5px; background: #2FD3C2;"></div>
+              <div style="height: 9px; width: 90%; border-radius: 5px; background: #302C27;"></div>
+              <div style="height: 9px; width: 60%; border-radius: 5px; background: #302C27;"></div>
+            </div>
+            <p style="margin: 15px 0 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; font-weight: 700;">iPad</p>
+            <p style="margin: 2px 0 0; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.08em; color: #2FD3C2;">LINKS + LIVE WINDOWS</p>
+          </div>
+
+          <div style="flex: 1 1 110px; text-align: center;">
+            <div style="margin: 0 auto; width: 76px; border: 2px solid #2FD3C2; background: #0C0B0A; border-radius: 16px; height: 146px; padding: 10px; display: flex; flex-direction: column; gap: 7px; box-shadow: 0 0 24px rgba(47,211,194,0.18);">
+              <div style="height: 8px; width: 62%; border-radius: 4px; background: #2FD3C2;"></div>
+              <div style="height: 8px; width: 88%; border-radius: 4px; background: #302C27;"></div>
+              <div style="height: 8px; width: 70%; border-radius: 4px; background: #302C27;"></div>
+            </div>
+            <p style="margin: 15px 0 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; font-weight: 700;">iPhone</p>
+            <p style="margin: 2px 0 0; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.08em; color: #2FD3C2;">LINKS</p>
+          </div>
+
+          <div style="flex: 1 1 150px; text-align: center; opacity: .6;">
+            <div style="margin: 0 auto; width: 100%; max-width: 180px;">
+              <div style="border: 2px dashed #4B463F; background: #0C0B0A; border-radius: 8px; height: 112px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="height: 8px; width: 64%; border-radius: 4px; background: #302C27;"></div>
+                <div style="height: 8px; width: 88%; border-radius: 4px; background: #302C27;"></div>
+                <div style="height: 8px; width: 72%; border-radius: 4px; background: #302C27;"></div>
+              </div>
+              <div style="height: 8px; width: 70%; margin: 0 auto; border-radius: 0 0 8px 8px; background: #3A352F;"></div>
+            </div>
+            <p style="margin: 15px 0 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; font-weight: 700;">Windows</p>
+            <p style="margin: 2px 0 0; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.08em; color: #8F8880;">CONNECTS ONLY</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; gap: 0; max-width: 900px;">
+        <sc-for list="{{ deviceRows }}" as="d" hint-placeholder-count="4">
+          <div data-reveal="" style="display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 18px; align-items: baseline; padding: 15px 0; border-top: 1px solid #33302B;">
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 18px; font-weight: 700; color: {{ d.color }};">{{ d.name }}</div>
+            <div style="font-size: 16px; color: #C9C2B7;">{{ d.note }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="margin-top: 56px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(50%, 150px), 1fr)); gap: 24px;">
+        <div data-reveal="" style="border-top: 1px solid #33302B; padding-top: 18px;">
+          <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(36px, 5vw, 56px); line-height: 1; font-weight: 800; color: #2FD3C2;"><span data-count="21">0</span></div>
+          <p style="margin: 8px 0 0; font-size: 15px; color: #C9C2B7;">hand landmarks read on-device</p>
+        </div>
+        <div data-reveal="" data-delay="70" style="border-top: 1px solid #33302B; padding-top: 18px;">
+          <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(36px, 5vw, 56px); line-height: 1; font-weight: 800; color: #F2A03C;"><span data-count="93">0</span></div>
+          <p style="margin: 8px 0 0; font-size: 15px; color: #C9C2B7;">checks in the core test suite, passing</p>
+        </div>
+        <div data-reveal="" data-delay="140" style="border-top: 1px solid #33302B; padding-top: 18px;">
+          <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(36px, 5vw, 56px); line-height: 1; font-weight: 800; color: #F26D8B;"><span data-count="0">0</span></div>
+          <p style="margin: 8px 0 0; font-size: 15px; color: #C9C2B7;">servers in the path</p>
+        </div>
+        <div data-reveal="" data-delay="210" style="border-top: 1px solid #33302B; padding-top: 18px;">
+          <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(36px, 5vw, 56px); line-height: 1; font-weight: 800; color: #8C7BE8;"><span data-count="0">0</span></div>
+          <p style="margin: 8px 0 0; font-size: 15px; color: #C9C2B7;">accounts to create</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="status" style="background: #F7F4EE; border-bottom: 1px solid #EBE3D5;">
+    <div style="max-width: 1140px; margin: 0 auto; padding: 92px 24px;">
+      <p data-reveal="" style="margin: 0 0 14px; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #A9631A;">04 — Status</p>
+      <h2 data-reveal="" data-delay="60" style="margin: 0 0 14px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(30px, 4vw, 50px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 700;">What's verified, what's measured, what's guesswork.</h2>
+      <p data-reveal="" data-delay="100" style="margin: 0 0 36px; color: #46433E; max-width: 40em; text-wrap: pretty;">Everything claimed on this page comes from one of these rows. Nothing has been rounded up.</p>
+
+      <div style="max-width: 900px;">
+        <div style="display: grid; grid-template-columns: minmax(0, 2.4fr) 120px minmax(0, 1fr); gap: 16px; padding: 0 0 10px; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #6E6862;">
+          <div>Claim</div><div>Status</div><div>Measured</div>
+        </div>
+        <sc-for list="{{ statusRows }}" as="r" hint-placeholder-count="14">
+          <div data-reveal="" style="display: grid; grid-template-columns: minmax(0, 2.4fr) 120px minmax(0, 1fr); gap: 16px; align-items: center; padding: 15px 0; border-top: 1px solid #E3DACA;">
+            <div style="font-size: 16px; color: #12100F;">{{ r.claim }}</div>
+            <div><span style="display: inline-block; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; background: {{ r.bg }}; color: {{ r.fg }};">{{ r.status }}</span></div>
+            <div style="font-family: 'Space Mono', monospace; font-size: 13px; color: #6E6862;">{{ r.measured }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width: 1140px; margin: 0 auto; padding: 96px 24px;">
+    <p data-reveal="" style="margin: 0 0 14px; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #0E8C86;">05 — Guardrails</p>
+    <h2 data-reveal="" data-delay="60" style="margin: 0 0 14px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(30px, 4vw, 50px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 700; max-width: 22em;">A gesture is a fast way to do something. So it has to be a hard way to do it by accident.</h2>
+    <p data-reveal="" data-delay="100" style="margin: 0 0 48px; color: #46433E; max-width: 42em; text-wrap: pretty;">Most of the work in Samcast isn't the casting. It's everything that stops the casting happening when you didn't mean it.</p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px;">
+      <div data-reveal="" style="background: #FFF4E2; border: 1px solid #F7DFB8; border-radius: 24px; padding: 30px;">
+        <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #A9631A; margin-bottom: 14px;">31 tested cases</div>
+        <h3 style="margin: 0 0 12px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">It asks before handing over a live call.</h3>
+        <p style="margin: 0 0 14px; font-size: 16px; color: #4C453A; text-wrap: pretty;">Make a fist during a Google Meet, Zoom, Teams or Webex call and Samcast stops and asks first — in a panel over your browser, not buried in the app. Doing nothing means no.</p>
+        <p style="margin: 0; font-size: 15px; color: #6E6862; text-wrap: pretty;">The tested cases include the ones that must not prompt. A prompt people learn to dismiss unread protects nobody.</p>
+      </div>
+      <div data-reveal="" data-delay="90" style="background: #E7F8F5; border: 1px solid #BEE8E1; border-radius: 24px; padding: 30px;">
+        <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #0A6B66; margin-bottom: 14px;">Asked once</div>
+        <h3 style="margin: 0 0 12px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">Trust is a decision you make, and can change.</h3>
+        <p style="margin: 0; font-size: 16px; color: #35473F; text-wrap: pretty;">A new device asks permission the first time it tries to hand you something. Allow it and you're never asked again. Decline and it's blocked — reversibly. Every device you've decided about is listed in the app with a button to change your mind, because a prompt that can't be undone is just a trap.</p>
+      </div>
+      <div data-reveal="" data-delay="180" style="background: #F1EFFC; border: 1px solid #DAD3F4; border-radius: 24px; padding: 30px;">
+        <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #5A4BAE; margin-bottom: 14px;">20 second return</div>
+        <h3 style="margin: 0 0 12px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">Nothing gets lost.</h3>
+        <p style="margin: 0; font-size: 16px; color: #403C52; text-wrap: pretty;">If nobody catches a handoff, the page comes back on its own after 20 seconds. And Samcast refuses to grab at all when there's no device nearby to send to.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #FFF6E9; border-top: 1px solid #F3E2C6; border-bottom: 1px solid #F3E2C6;">
+    <div style="max-width: 1140px; margin: 0 auto; padding: 96px 24px;">
+      <p data-reveal="" style="margin: 0 0 14px; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #8C7BE8;">06 — Why it's built this way</p>
+      <h2 data-reveal="" data-delay="60" style="margin: 0 0 44px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(30px, 4vw, 50px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 700; max-width: 22em;">Built for the two feet between your desk and theirs.</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px;">
+        <div data-reveal="" style="border: 1px solid #F0E0C4; border-radius: 24px; padding: 30px; background: #FFFCF7; transition: transform .32s cubic-bezier(.2,.7,.2,1), border-color .32s ease, box-shadow .32s ease;" style-hover="transform: translateY(-6px); border-color: #2FD3C2; box-shadow: 0 20px 40px rgba(14,140,134,0.14);">
+          <div style="width: 36px; height: 6px; border-radius: 3px; background: #2FD3C2; margin-bottom: 18px;"></div>
+          <h3 style="margin: 0 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 21px; font-weight: 700; letter-spacing: -0.02em;">Bonjour, not the cloud</h3>
+          <p style="margin: 0; font-size: 16px; color: #46433E; text-wrap: pretty;">Devices find each other with Bonjour over your Wi-Fi — the same mechanism AirDrop and printers use. No internet, no accounts, no server. Both devices do need to be on the same Wi-Fi. There is no Bluetooth in this app, despite what the gesture suggests.</p>
+        </div>
+        <div data-reveal="" data-delay="80" style="border: 1px solid #F0E0C4; border-radius: 24px; padding: 30px; background: #FFFCF7; transition: transform .32s cubic-bezier(.2,.7,.2,1), border-color .32s ease, box-shadow .32s ease;" style-hover="transform: translateY(-6px); border-color: #F2A03C; box-shadow: 0 20px 40px rgba(180,117,18,0.14);">
+          <div style="width: 36px; height: 6px; border-radius: 3px; background: #F2A03C; margin-bottom: 18px;"></div>
+          <h3 style="margin: 0 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 21px; font-weight: 700; letter-spacing: -0.02em;">Your device name stays yours</h3>
+          <p style="margin: 0 0 14px; font-size: 16px; color: #46433E; text-wrap: pretty;">Each install invents a permanent name of its own and announces that instead. Your real device name is never broadcast.</p>
+          <div style="font-family: 'Space Mono', monospace; font-size: 14px; background: #FFF6E9; border: 1px solid #F0E0C4; border-radius: 10px; padding: 9px 13px; color: #A9631A;">vivid-vole-4997</div>
+        </div>
+        <div data-reveal="" data-delay="160" style="border: 1px solid #F0E0C4; border-radius: 24px; padding: 30px; background: #FFFCF7; transition: transform .32s cubic-bezier(.2,.7,.2,1), border-color .32s ease, box-shadow .32s ease;" style-hover="transform: translateY(-6px); border-color: #8C7BE8; box-shadow: 0 20px 40px rgba(92,77,190,0.14);">
+          <div style="width: 36px; height: 6px; border-radius: 3px; background: #8C7BE8; margin-bottom: 18px;"></div>
+          <h3 style="margin: 0 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 21px; font-weight: 700; letter-spacing: -0.02em;">Nothing to learn</h3>
+          <p style="margin: 0; font-size: 16px; color: #46433E; text-wrap: pretty;">There's no menu bar flyout to hunt through and no window to arrange. If your hands are on the keyboard, they're already where the controls are.</p>
+        </div>
+        <div data-reveal="" data-delay="240" style="border: 1px solid #F0E0C4; border-radius: 24px; padding: 30px; background: #FFFCF7; transition: transform .32s cubic-bezier(.2,.7,.2,1), border-color .32s ease, box-shadow .32s ease;" style-hover="transform: translateY(-6px); border-color: #F26D8B; box-shadow: 0 20px 40px rgba(214,64,109,0.14);">
+          <div style="width: 36px; height: 6px; border-radius: 3px; background: #F26D8B; margin-bottom: 18px;"></div>
+          <h3 style="margin: 0 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 21px; font-weight: 700; letter-spacing: -0.02em;">A tested core, not a demo</h3>
+          <p style="margin: 0; font-size: 16px; color: #46433E; text-wrap: pretty;">The gesture engine is a pure Swift core with no platform dependencies at all, covered by 93 passing checks. Everything about hand shapes can be reasoned about without a camera in the room.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width: 1140px; margin: 0 auto; padding: 88px 24px;">
+    <h2 data-reveal="" style="margin: 0 0 12px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(28px, 3.4vw, 42px); line-height: 1.04; letter-spacing: -0.035em; font-weight: 700;">Drop your own screenshots in here.</h2>
+    <p data-reveal="" data-delay="100" style="margin: 0 0 32px; color: #46433E; max-width: 40em; text-wrap: pretty;">I can't shoot photos or record video, so these two frames are waiting for yours — drag an image onto either one and it stays.</p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px;">
+      <div data-reveal="" style="position: relative; height: 300px;">
+        <image-slot id="qc-shot-cast" shape="rounded" radius="20" placeholder="A Mac window mirrored live on the iPad"></image-slot>
+      </div>
+      <div data-reveal="" data-delay="90" style="position: relative; height: 300px;">
+        <image-slot id="qc-shot-gesture" shape="rounded" radius="20" placeholder="A hand making the gesture in front of the camera"></image-slot>
+      </div>
+    </div>
+  </div>
+
+  <div id="security" style="background: #F4F1FD; border-top: 1px solid #E2DCF8; border-bottom: 1px solid #E2DCF8;">
+    <div style="max-width: 1140px; margin: 0 auto; padding: 96px 24px;">
+      <p data-reveal="" style="margin: 0 0 14px; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #5A4BAE;">07 — Security</p>
+      <h2 data-reveal="" data-delay="60" style="margin: 0 0 44px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(28px, 3.6vw, 46px); line-height: 1.04; letter-spacing: -0.035em; font-weight: 700; max-width: 24em;">A camera app and a screen-sharing app in one. So here's exactly what it does.</h2>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 20px;">
+        <div data-reveal="" style="background: #FFFCF7; border: 1px solid #DCD5F5; border-radius: 22px; padding: 28px; transition: transform .3s ease;" style-hover="transform: translateY(-5px);">
+          <h3 style="margin: 0 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -0.02em;">Your camera feed never leaves your Mac.</h3>
+          <p style="margin: 0; font-size: 16px; color: #46433E; text-wrap: pretty;">Hand tracking runs entirely on-device through Apple's Vision framework. Frames are analysed in memory and discarded. No video is recorded, stored, or transmitted — not to another device, not to me. What travels is the outcome: "a hand with four fingers extended was seen."</p>
+        </div>
+        <div data-reveal="" data-delay="80" style="background: #FFFCF7; border: 1px solid #DCD5F5; border-radius: 22px; padding: 28px; transition: transform .3s ease;" style-hover="transform: translateY(-5px);">
+          <h3 style="margin: 0 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -0.02em;">It goes to one device, after two deliberate acts.</h3>
+          <p style="margin: 0; font-size: 16px; color: #46433E; text-wrap: pretty;">A screen is handed over by a gesture on the sending Mac, and caught by a gesture on the receiving device — which you approved once, beforehand. There is no way to take something from a device that hasn't offered it, and no way to push something onto a device that hasn't asked.</p>
+        </div>
+        <div data-reveal="" data-delay="160" style="background: #FFFCF7; border: 1px solid #DCD5F5; border-radius: 22px; padding: 28px; transition: transform .3s ease;" style-hover="transform: translateY(-5px);">
+          <h3 style="margin: 0 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -0.02em;">Traffic between Apple devices is encrypted.</h3>
+          <p style="margin: 0; font-size: 16px; color: #46433E; text-wrap: pretty;">macOS refuses to form an unencrypted session, so Mac-to-Mac and Mac-to-iPad connections are encrypted by construction, and go straight between your devices with no server in the path. The experimental Windows bridge is not encrypted — treat it as a lab tool, not a private channel.</p>
+        </div>
+        <div data-reveal="" data-delay="240" style="background: #FFFCF7; border: 1px solid #DCD5F5; border-radius: 22px; padding: 28px; transition: transform .3s ease;" style-hover="transform: translateY(-5px);">
+          <h3 style="margin: 0 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -0.02em;">No accounts, no telemetry, no analytics.</h3>
+          <p style="margin: 0; font-size: 16px; color: #46433E; text-wrap: pretty;">The app has no sign-in, sends no usage data, and makes no outbound internet connections. This website has no trackers and sets no cookies.</p>
+        </div>
+      </div>
+
+      <h3 data-reveal="" style="margin: 48px 0 18px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">The permissions it asks for, and why</h3>
+      <div style="display: grid; gap: 12px; max-width: 800px;">
+        <div data-reveal="" style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 18px; padding: 14px 0; border-top: 1px solid #DCD5F5;">
+          <div style="font-family: 'Space Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A4BAE;">Camera</div>
+          <div style="font-size: 16px; color: #46433E;">to read gestures. On-device only. Required.</div>
+        </div>
+        <div data-reveal="" data-delay="60" style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 18px; padding: 14px 0; border-top: 1px solid #DCD5F5;">
+          <div style="font-family: 'Space Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A4BAE;">Screen Rec</div>
+          <div style="font-size: 16px; color: #46433E;">to mirror a window and to take screenshots. Optional: links work fine without it.</div>
+        </div>
+        <div data-reveal="" data-delay="120" style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 18px; padding: 14px 0; border-top: 1px solid #DCD5F5;">
+          <div style="font-family: 'Space Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A4BAE;">Local Network</div>
+          <div style="font-size: 16px; color: #46433E;">to find nearby devices over Bonjour and talk to them directly.</div>
+        </div>
+        <div data-reveal="" data-delay="180" style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 18px; padding: 14px 0; border-top: 1px solid #DCD5F5; border-bottom: 1px solid #DCD5F5;">
+          <div style="font-family: 'Space Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A4BAE;">Automation</div>
+          <div style="font-size: 16px; color: #46433E;">the first time you hand off a link, to read the front tab's URL and close it. Granted per browser, by you, in a macOS prompt.</div>
+        </div>
+      </div>
+
+      <div data-reveal="" style="margin-top: 44px; background: #FFFCF7; border: 2px solid #8C7BE8; border-radius: 22px; padding: 30px; max-width: 800px;">
+        <h3 style="margin: 0 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -0.02em;">What I'm straightforward about</h3>
+        <p style="margin: 0 0 12px; font-size: 16px; color: #46433E; text-wrap: pretty;">Link handoff needs Apple Events, which means the app runs outside the App Sandbox. That's a real trade-off, and there's no way to do this feature without it.</p>
+        <p style="margin: 0; font-size: 16px; color: #46433E; text-wrap: pretty;">The Mac build is signed but not notarized, so macOS warns on first open. Notarization needs the paid Apple Developer Program — the same membership that would make an iPhone or iPad install possible at all. Until then, the honest position is: this is a personal project you're choosing to trust. The <a href="{{ githubHref }}">source is public</a> so you don't have to take my word for any of the above.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="install" style="max-width: 1140px; margin: 0 auto; padding: 96px 24px;">
+    <p data-reveal="" style="margin: 0 0 14px; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #F26D8B;">08 — Get it</p>
+    <h2 data-reveal="" data-delay="60" style="margin: 0 0 14px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(30px, 4vw, 50px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 700;">The Mac is a download. iPad and iPhone are not.</h2>
+    <p data-reveal="" data-delay="100" style="margin: 0 0 40px; color: #46433E; max-width: 44em; text-wrap: pretty;">Apple provides no way to install an iOS app from a website, so there is no iPad or iPhone link to give you — that's the platform, not a gap in the work.</p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 24px;">
+      <div data-reveal="" style="border: 2px solid #2FD3C2; background: #F3FCFA; border-radius: 24px; padding: 30px;">
+        <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+          <h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">Mac</h3>
+          <span style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #0A6B66; background: #CFF2EC; padding: 5px 11px; border-radius: 999px;">v1.0.2</span>
+        </div>
+        <p style="margin: 0 0 20px; font-size: 16px; color: #33443E; text-wrap: pretty;">A .dmg you open and drag to Applications. Because it isn't notarized, macOS will warn on first open — right-click the app ▸ Open ▸ Open, once.</p>
+        <a href="{{ downloadHref }}" style="display: inline-block; background: #F2A03C; color: #241703; padding: 14px 26px; border-radius: 999px; font-weight: 600; transition: transform .2s ease;" style-hover="background: #E8911F; color: #241703; transform: translateY(-2px);">Download Samcast for Mac</a>
+        <p style="margin: 16px 0 0; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.04em; color: #6E6862;">{{ downloadNote }}</p>
+        <div style="margin-top: 22px; border-top: 1px solid #CFEDE7; padding-top: 18px;">
+          <p style="margin: 0 0 12px; font-size: 15px; color: #33443E; text-wrap: pretty;">If it still won't open after Open ▸ Open, paste this into Terminal. It downloads the latest build, installs it, clears the quarantine flag and launches it.</p>
+          <div style="background: #12100F; color: #F3FCFA; border-radius: 14px; padding: 16px 18px; font-family: 'Space Mono', monospace; font-size: 12px; line-height: 1.8; overflow-x: auto;">
+            <code style="white-space: pre; display: block;">curl -L -o /tmp/Samcast.dmg https://github.com/auroraeye-dev/Samcast/releases/latest/download/Samcast.dmg &amp;&amp; hdiutil attach -quiet /tmp/Samcast.dmg &amp;&amp; rm -rf /Applications/Samcast.app &amp;&amp; cp -R /Volumes/Samcast/Samcast.app /Applications/ &amp;&amp; hdiutil detach -quiet /Volumes/Samcast &amp;&amp; xattr -dr com.apple.quarantine /Applications/Samcast.app &amp;&amp; sleep 1 &amp;&amp; open -a /Applications/Samcast.app</code>
+          </div>
+        </div>
+      </div>
+      <div data-reveal="" data-delay="90" style="border: 1px solid #F0E0C4; background: #FFF6E9; border-radius: 24px; padding: 30px;">
+        <h3 style="margin: 0 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">iPad and iPhone</h3>
+        <p style="margin: 0 0 16px; font-size: 16px; color: #4C453A; text-wrap: pretty;">Two routes, both through Apple. Build it onto your own device with Xcode — with a free Apple account the app stops working after seven days and has to be rebuilt. Or wait for TestFlight, which needs the $99/yr Developer Program.</p>
+        <p style="margin: 0; font-size: 16px; color: #4C453A; text-wrap: pretty;">That same membership is what removes the Gatekeeper warning on the Mac build, so it buys both things at once.</p>
+      </div>
+      <div data-reveal="" data-delay="180" style="border: 1px dashed #D8CFC0; background: #FBF8F2; border-radius: 24px; padding: 30px;">
+        <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+          <h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">Windows</h3>
+          <span style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #6E6862; background: #EFEAE1; padding: 5px 11px; border-radius: 999px;">experimental</span>
+        </div>
+        <p style="margin: 0 0 16px; font-size: 16px; color: #4C453A; text-wrap: pretty;">A Python bridge that talks to a headless peer on the Mac, not to the Mac app.</p>
+        <p style="margin: 0 0 14px; font-size: 16px; color: #4C453A; text-wrap: pretty;">Run <code style="font-family: 'Space Mono', monospace; font-size: 14px; background: #F2EEE6; border: 1px solid #E3DACA; border-radius: 6px; padding: 2px 7px;">python doctor.py</code> first — it checks your Python version, every dependency, whether your camera actually produces a frame, and whether the right port is free, then tells you which failures matter.</p>
+      </div>
+    </div>
+
+    <div data-reveal="" style="margin-top: 24px; max-width: 840px; border: 1px solid #F0E7D8; border-radius: 20px; padding: 26px; background: #FFFDFA;">
+      <h3 style="margin: 0 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -0.02em;">First run, either way</h3>
+      <p style="margin: 0 0 24px; font-size: 16px; color: #46433E; text-wrap: pretty;">Samcast walks you through Camera, Screen Recording and Local Network access, with buttons that jump straight to the right System Settings pane. macOS needs one relaunch after Screen Recording is granted — there's a button for that too.</p>
+      <h3 style="margin: 0 0 14px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -0.02em;">Requirements</h3>
+      <div style="display: grid; gap: 0;">
+        <div style="display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 18px; padding: 13px 0; border-top: 1px solid #F0E7D8;">
+          <div style="font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #A9631A;">macOS</div>
+          <div style="color: #46433E;">13 Ventura or later</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 18px; padding: 13px 0; border-top: 1px solid #F0E7D8;">
+          <div style="font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #A9631A;">Hardware</div>
+          <div style="color: #46433E;">Any Mac with a camera</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 18px; padding: 13px 0; border-top: 1px solid #F0E7D8;">
+          <div style="font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #A9631A;">Network</div>
+          <div style="color: #46433E;">Both devices on the same Wi-Fi; no internet, no accounts, no server</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 18px; padding: 13px 0; border-top: 1px solid #F0E7D8; border-bottom: 1px solid #F0E7D8;">
+          <div style="font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #A9631A;">Price</div>
+          <div style="color: #46433E;">Free</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #FFF1E0; border-top: 1px solid #F3DEC2; border-bottom: 1px solid #F3DEC2;">
+    <div style="max-width: 1140px; margin: 0 auto; padding: 92px 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 44px; align-items: center;">
+      <div>
+        <p data-reveal="" style="margin: 0 0 14px; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #A9631A;">09 — The honest bit</p>
+        <h2 data-reveal="" data-delay="60" style="margin: 0 0 18px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(30px, 4vw, 50px); line-height: 1.0; letter-spacing: -0.035em; font-weight: 700;">Built for fun, on coffee, in a handful of hours.</h2>
+        <p data-reveal="" data-delay="100" style="margin: 0 0 14px; font-size: 18px; color: #4C453A; text-wrap: pretty;">This started as a "wouldn't it be funny if" thought and turned into a working app over a few long evenings. There's no company behind it, no roadmap meeting, no paid tier waiting in the wings. It's free, and it stays free.</p>
+      </div>
+
+      <div data-reveal="" data-delay="120" style="display: flex; flex-direction: column; align-items: center; gap: 22px;">
+        <div onClick="{{ addCoffee }}" style="position: relative; width: 190px; height: 210px; cursor: pointer; user-select: none;">
+          <div style="position: absolute; top: 0; left: 50%; width: 14px; height: 14px; margin-left: -28px; border-radius: 50%; background: #D8B98F; animation: qc-steam 3.2s ease-out infinite;"></div>
+          <div style="position: absolute; top: 4px; left: 50%; width: 12px; height: 12px; margin-left: -4px; border-radius: 50%; background: #D8B98F; animation: qc-steam 3.2s ease-out infinite 1.1s;"></div>
+          <div style="position: absolute; top: 0; left: 50%; width: 13px; height: 13px; margin-left: 16px; border-radius: 50%; background: #D8B98F; animation: qc-steam 3.2s ease-out infinite 2.1s;"></div>
+
+          <div style="position: absolute; bottom: 18px; left: 14px; right: 14px; height: 124px; border: 3px solid #12100F; border-radius: 10px 10px 34px 34px; background: #FFFCF7; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; right: 0; height: 26px; background: #6B4423; border-bottom: 3px solid #12100F;"></div>
+            <div style="position: absolute; top: 44px; left: 0; right: 0; height: 12px; background: #F2A03C;"></div>
+            <div style="position: absolute; top: 68px; left: 0; right: 0; height: 12px; background: #2FD3C2;"></div>
+            <div style="position: absolute; top: 92px; left: 0; right: 0; height: 12px; background: #8C7BE8;"></div>
+          </div>
+          <div style="position: absolute; bottom: 52px; right: -14px; width: 46px; height: 54px; border: 3px solid #12100F; border-left: none; border-radius: 0 26px 26px 0;"></div>
+          <div style="position: absolute; bottom: 0; left: 4px; right: 4px; height: 14px; border: 3px solid #12100F; border-radius: 8px; background: #FFE7C4;"></div>
+        </div>
+
+        <div style="min-height: 34px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: 260px;">
+          <sc-for list="{{ coffees }}" as="c" hint-placeholder-count="0">
+            <span style="font-size: 22px; animation: qc-pop .45s cubic-bezier(.34,1.4,.4,1) both;">☕</span>
+          </sc-for>
+        </div>
+        <p style="margin: 0; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #A9631A; text-align: center;">{{ coffeeNote }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #F7F4EE; border-bottom: 1px solid #EBE3D5;">
+    <div style="max-width: 1140px; margin: 0 auto; padding: 92px 24px;">
+      <p data-reveal="" style="margin: 0 0 14px; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #6E6862;">10 — Terms, such as they are</p>
+      <h2 data-reveal="" data-delay="60" style="margin: 0 0 36px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(30px, 4vw, 50px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 700;">The legal bit, in English.</h2>
+
+      <div style="max-width: 46em; display: grid; gap: 22px;">
+        <div data-reveal="" style="border-left: 4px solid #2FD3C2; padding-left: 20px;">
+          <p style="margin: 0; font-size: 17px; color: #46433E; text-wrap: pretty;"><strong style="font-weight: 600; color: #12100F;">It's free and it's MIT licensed.</strong> Do what you like with it — use it, fork it, sell a t-shirt with a duck on it. Keep my name in the licence file and we're square.</p>
+        </div>
+        <div data-reveal="" data-delay="60" style="border-left: 4px solid #F2A03C; padding-left: 20px;">
+          <p style="margin: 0; font-size: 17px; color: #46433E; text-wrap: pretty;"><strong style="font-weight: 600; color: #12100F;">It comes with no warranty whatsoever.</strong> That's not me being cagey, it's literally what MIT says, in capital letters, and I'm not going to pretend otherwise. If Samcast closes a tab you wanted, mirrors your screen to your flatmate mid-argument, or waves at your cat and hands your dissertation to a printer, that is between you and physics. I'll feel bad about it. I will not be liable for it.</p>
+        </div>
+        <div data-reveal="" data-delay="120" style="border-left: 4px solid #F26D8B; padding-left: 20px;">
+          <p style="margin: 0; font-size: 17px; color: #46433E; text-wrap: pretty;"><strong style="font-weight: 600; color: #12100F;">Things I'd rather you didn't do, but can't stop:</strong> running it on a network you don't control, using the Windows bridge for anything private (it isn't encrypted and I've said so four times now), or pointing the camera at something you wouldn't want a hand-detection model looking at. It doesn't record anything. It still has a camera.</p>
+        </div>
+        <div data-reveal="" data-delay="180" style="border-left: 4px solid #8C7BE8; padding-left: 20px;">
+          <p style="margin: 0; font-size: 17px; color: #46433E; text-wrap: pretty;"><strong style="font-weight: 600; color: #12100F;">Things I genuinely can't help with:</strong> Apple's Gatekeeper warning, the seven-day expiry on free iOS builds, and Windows Firewall. Those are three different companies' decisions and I have exactly as much influence over them as you do.</p>
+        </div>
+        <div data-reveal="" data-delay="240" style="border-left: 4px solid #12100F; padding-left: 20px;">
+          <p style="margin: 0 0 12px; font-size: 17px; color: #46433E; text-wrap: pretty;"><strong style="font-weight: 600; color: #12100F;">No data, no accounts, no analytics, no cookies, nothing to delete.</strong> There's no privacy policy because there's no privacy to have a policy about. The app never phones home. This site doesn't know you were here.</p>
+          <p style="margin: 0; font-size: 17px; color: #46433E; text-wrap: pretty;">If something breaks, <a href="{{ issuesHref }}">open an issue on GitHub</a>. I'll probably fix it, because I use this thing every day and it annoys me too.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width: 1140px; margin: 0 auto; padding: 96px 24px;">
+    <h2 data-reveal="" style="margin: 0 0 36px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(30px, 4vw, 48px); letter-spacing: -0.035em; font-weight: 700;">FAQ</h2>
+    <div style="display: grid; gap: 10px; max-width: 880px;">
+      <details data-reveal="" open="{{ faqAllOpen }}" style="border: 1px solid #F0E7D8; background: #FFFDFA; border-radius: 18px; padding: 20px 24px; transition: border-color .3s ease;" style-hover="border-color: #2FD3C2;">
+        <summary style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 600; letter-spacing: -0.02em;">Does my camera stay on the whole time?</summary>
+        <p style="margin: 12px 0 0; font-size: 16px; color: #46433E; text-wrap: pretty;">While the app is open, yes — that's how it sees your hand. Frames are analysed in memory and thrown away immediately. Nothing is recorded, saved, or sent anywhere. Quit the app and the camera light goes out.</p>
+      </details>
+      <details data-reveal="" open="{{ faqAllOpen }}" style="border: 1px solid #F0E7D8; background: #FFFDFA; border-radius: 18px; padding: 20px 24px; transition: border-color .3s ease;" style-hover="border-color: #F2A03C;">
+        <summary style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 600; letter-spacing: -0.02em;">Can someone hand me something without me knowing?</summary>
+        <p style="margin: 12px 0 0; font-size: 16px; color: #46433E; text-wrap: pretty;">No. Two things have to happen: they gesture to offer it, and you gesture to catch it. A device also has to be approved by you the first time it ever tries. Nothing can be pushed onto you.</p>
+      </details>
+      <details data-reveal="" open="{{ faqAllOpen }}" style="border: 1px solid #F0E7D8; background: #FFFDFA; border-radius: 18px; padding: 20px 24px; transition: border-color .3s ease;" style-hover="border-color: #8C7BE8;">
+        <summary style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 600; letter-spacing: -0.02em;">Does it need the internet?</summary>
+        <p style="margin: 12px 0 0; font-size: 16px; color: #46433E; text-wrap: pretty;">No. Both devices need to be on the same Wi-Fi, but nothing leaves your network and there's no server anywhere in the path.</p>
+      </details>
+      <details data-reveal="" open="{{ faqAllOpen }}" style="border: 1px solid #F0E7D8; background: #FFFDFA; border-radius: 18px; padding: 20px 24px; transition: border-color .3s ease;" style-hover="border-color: #F26D8B;">
+        <summary style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 600; letter-spacing: -0.02em;">What exactly gets shared — my whole desktop?</summary>
+        <p style="margin: 12px 0 0; font-size: 16px; color: #46433E; text-wrap: pretty;">No. One window: the one you were in when you closed your hand. There's deliberately no whole-desktop option.</p>
+      </details>
+      <details data-reveal="" open="{{ faqAllOpen }}" style="border: 1px solid #F0E7D8; background: #FFFDFA; border-radius: 18px; padding: 20px 24px; transition: border-color .3s ease;" style-hover="border-color: #2FD3C2;">
+        <summary style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 600; letter-spacing: -0.02em;">Will it accidentally trigger while I'm typing?</summary>
+        <p style="margin: 12px 0 0; font-size: 16px; color: #46433E; text-wrap: pretty;">It needs a deliberate, held gesture — a flicker won't do it. And while it's holding a page, gestures are ignored entirely so stray hands can't cancel it. If you're on a live video call it stops and asks first, and doing nothing means no.</p>
+      </details>
+      <details data-reveal="" open="{{ faqAllOpen }}" style="border: 1px solid #F0E7D8; background: #FFFDFA; border-radius: 18px; padding: 20px 24px; transition: border-color .3s ease;" style-hover="border-color: #F2A03C;">
+        <summary style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 600; letter-spacing: -0.02em;">What if nobody catches it?</summary>
+        <p style="margin: 12px 0 0; font-size: 16px; color: #46433E; text-wrap: pretty;">The page comes back after 20 seconds. And if there's no device nearby at all, it refuses to take the page in the first place.</p>
+      </details>
+      <details data-reveal="" open="{{ faqAllOpen }}" style="border: 1px solid #F0E7D8; background: #FFFDFA; border-radius: 18px; padding: 20px 24px; transition: border-color .3s ease;" style-hover="border-color: #8C7BE8;">
+        <summary style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 600; letter-spacing: -0.02em;">Can I get it on my iPhone or iPad?</summary>
+        <p style="margin: 12px 0 0; font-size: 16px; color: #46433E; text-wrap: pretty;">Only by building it yourself with Xcode, and it expires after seven days on a free Apple account. This isn't a limitation of the app — Apple provides no way to install an iOS app from a website. TestFlight would fix it and needs a paid membership.</p>
+      </details>
+      <details data-reveal="" open="{{ faqAllOpen }}" style="border: 1px solid #F0E7D8; background: #FFFDFA; border-radius: 18px; padding: 20px 24px; transition: border-color .3s ease;" style-hover="border-color: #F26D8B;">
+        <summary style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 600; letter-spacing: -0.02em;">Does it work with Windows?</summary>
+        <p style="margin: 12px 0 0; font-size: 16px; color: #46433E; text-wrap: pretty;">Halfway. A Windows PC will find a Mac and connect to it — that part is verified on a real machine. Handing links across, and the camera gestures, haven't been tested yet. It's labelled experimental for a reason.</p>
+      </details>
+      <details data-reveal="" open="{{ faqAllOpen }}" style="border: 1px solid #F0E7D8; background: #FFFDFA; border-radius: 18px; padding: 20px 24px; transition: border-color .3s ease;" style-hover="border-color: #2FD3C2;">
+        <summary style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 19px; font-weight: 600; letter-spacing: -0.02em;">Is it really free?</summary>
+        <p style="margin: 12px 0 0; font-size: 16px; color: #46433E; text-wrap: pretty;">Yes, and it stays free. There's no pro tier, no waitlist, no email capture.</p>
+      </details>
+    </div>
+  </div>
+
+  <div style="position: relative; overflow: hidden; background: linear-gradient(115deg, #EAFAF6, #FFEFD3, #FFE7EE, #F3EEFD, #EAFAF6); background-size: 340% 340%; animation: qc-pan 28s ease-in-out infinite; border-top: 1px solid #E7DFCD;">
+    <div style="position: absolute; top: -80px; left: 10%; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(140,123,232,0.22), rgba(140,123,232,0) 70%); animation: qc-float 17s ease-in-out infinite;"></div>
+    <div style="position: relative; max-width: 1140px; margin: 0 auto; padding: 112px 24px; text-align: center;">
+      <div data-reveal="" style="display: flex; justify-content: center; gap: 16px; font-size: 36px; margin-bottom: 24px;">
+        <span style="animation: qc-bob 3.6s ease-in-out infinite;">✊</span>
+        <span style="animation: qc-bob 3.6s ease-in-out infinite .4s;">🖐️</span>
+        <span style="animation: qc-bob 3.6s ease-in-out infinite .8s;">✌️</span>
+      </div>
+      <h2 data-reveal="" data-delay="60" style="margin: 0 0 16px; font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(38px, 6vw, 76px); letter-spacing: -0.04em; font-weight: 800; line-height: 0.96;">Put your hand up.</h2>
+      <p data-reveal="" data-delay="100" style="margin: 0 0 32px; font-size: 19px; color: #46433E;">Free, MIT licensed, and yours in one download.</p>
+      <div data-reveal="" data-delay="140" style="display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap;">
+        <a href="{{ downloadHref }}" style="background: #F2A03C; color: #241703; padding: 16px 32px; border-radius: 999px; font-size: 17px; font-weight: 600; box-shadow: 0 10px 28px rgba(226,143,32,0.36); transition: transform .2s ease, box-shadow .2s ease;" style-hover="background: #E8911F; color: #241703; transform: translateY(-3px); box-shadow: 0 20px 40px rgba(226,143,32,0.46);">Download Samcast for Mac</a>
+        <a href="{{ githubHref }}" style="font-weight: 500;">Source on GitHub →</a>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #FFFCF7; border-top: 1px solid #F0E7D8;">
+    <div style="max-width: 1140px; margin: 0 auto; padding: 48px 24px; display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start;">
+      <div style="min-width: 240px;">
+        <div style="display: flex; align-items: center; gap: 10px; font-weight: 600;">
+          <img src="assets/samcast-logo.png" alt="" style="width: 28px; height: 28px; border-radius: 8px; object-fit: cover;">
+          <span>Samcast — built by Satvik Mishra</span>
+        </div>
+      </div>
+      <div style="flex: 1;"></div>
+      <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 15px;">
+        <a href="#install">Get it</a>
+        <a href="#status">Status</a>
+        <a href="#security">Security</a>
+        <a href="{{ githubHref }}">Source on GitHub</a>
+      </div>
+    </div>
+    <div style="max-width: 1140px; margin: 0 auto; padding: 0 24px 48px; font-size: 14px; color: #6E6862;">© 2026 Satvik Mishra · MIT licensed · No cookies, no trackers, no analytics on this site</div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;downloadUrl&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;https://github.com/auroraeye-dev/samcast&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Links&quot;},&quot;githubUrl&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;https://github.com/auroraeye-dev/samcast&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Links&quot;},&quot;faqAllOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;FAQ&quot;}}">
+class Component extends DCLogic {
+  state = { pose: 'fist', held: false, cups: 0 };
+
+  coffeeNotes = [
+    'tap the cup',
+    'one coffee. one gesture.',
+    'two coffees, two devices',
+    'three coffees, three gestures',
+    'this is roughly how it got built',
+    'okay, that was the whole evening',
+    'and that is the app, roughly'
+  ];
+
+  devices = [
+    ['Mac', 'Sends and receives · links verified both ways', '#2FD3C2'],
+    ['iPad', 'Receives links and live windows · sends links back', '#2FD3C2'],
+    ['iPhone', 'Receives links · verified on an iPhone 17 and 17 Pro', '#2FD3C2'],
+    ['Windows', 'Finds and connects to a Mac · handoff still untested', '#8F8880']
+  ];
+
+  rows = [
+    ['Mac → Mac, link handoff both directions', 'Verified', '—'],
+    ['Mac → iPad, browser tab moves as a link', 'Verified', '—'],
+    ['Mac → iPad, any window mirrored live', 'Verified', '15 fps · 1600 px'],
+    ['Bandwidth while mirroring', 'Measured', '20–130 KB/s'],
+    ['Frame size, H.264', 'Measured', '1–9 KB'],
+    ['iPad → Mac, links via clipboard', 'Verified', '—'],
+    ['iPhone receives links', 'Verified', 'iPhone 17, 17 Pro'],
+    ['Windows finds and connects to a Mac', 'Verified', 'on a real PC'],
+    ['Hand landmarks read on-device', 'True', '21'],
+    ['Servers in the path', 'True', '0'],
+    ['Core test suite', 'Passing', '93 checks'],
+    ['Mac → Mac, live window', 'Untested', '—'],
+    ['Windows link handoff', 'Untested', '—'],
+    ['Windows camera and gestures', 'Untested', '—']
+  ];
+  statusStyles = {
+    'Verified':  ['#E7F8F5', '#0A6B66'],
+    'Measured':  ['#FFF4E2', '#A9631A'],
+    'True':      ['#E7F8F5', '#0A6B66'],
+    'Passing':   ['#F1EFFC', '#5A4BAE'],
+    'Untested':  ['#FFE7EE', '#B23A5C'],
+    'Never run': ['#F2EFEA', '#6E6862']
+  };
+
+  poses = {
+    fist:  [[50,92],[34,82],[26,74],[24,66],[30,62],[38,68],[36,58],[42,54],[46,58],[50,66],[50,56],[55,53],[57,58],[61,67],[63,57],[67,55],[67,60],[71,71],[74,62],[77,60],[75,65]],
+    open:  [[50,92],[30,82],[20,70],[12,60],[6,50],[38,62],[34,46],[32,36],[30,27],[50,60],[50,42],[50,31],[50,21],[62,62],[65,45],[67,34],[69,25],[73,67],[78,55],[81,46],[84,38]],
+    peace: [[50,92],[34,82],[27,74],[27,67],[33,64],[40,62],[35,48],[32,38],[29,29],[52,60],[55,45],[58,34],[61,24],[62,66],[64,57],[68,56],[68,61],[72,70],[76,62],[79,60],[77,65]]
+  };
+  dotColors = ['#F7F3EC','#F26D8B','#F26D8B','#F26D8B','#F26D8B','#F2A03C','#F2A03C','#F2A03C','#F2A03C','#2FD3C2','#2FD3C2','#2FD3C2','#2FD3C2','#8C7BE8','#8C7BE8','#8C7BE8','#8C7BE8','#5FA8D3','#5FA8D3','#5FA8D3','#5FA8D3'];
+  meta = {
+    fist:  { label: 'HANDING OVER', fingers: 0, note: 'this tab is up for grabs for 20 seconds', color: '#F2A03C' },
+    open:  { label: 'CATCHING',     fingers: 4, note: 'pulling in whatever was handed over', color: '#2FD3C2' },
+    peace: { label: 'CAPTURED',     fingers: 2, note: 'screenshot saved to your Desktop', color: '#B9A9FF' }
+  };
+  order = ['fist', 'open', 'peace'];
+
+  componentDidMount() {
+    this.reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!this.reduce) {
+      this.cycle = setInterval(() => {
+        if (this.state.held) return;
+        const i = this.order.indexOf(this.state.pose);
+        this.setState({ pose: this.order[(i + 1) % 3] });
+      }, 2700);
+    }
+    this.onScroll = () => { this.tick(); };
+    window.addEventListener('scroll', this.onScroll, { passive: true });
+    window.addEventListener('resize', this.onScroll, { passive: true });
+    document.addEventListener('visibilitychange', this.onScroll);
+    this.onMove = (e) => {
+      const host = document.querySelector('[data-qc-spot]');
+      const layer = document.querySelector('[data-qc-spotlight]');
+      if (!host || !layer) return;
+      const r = host.getBoundingClientRect();
+      const x = ((e.clientX - r.left) / r.width) * 100;
+      const y = ((e.clientY - r.top) / r.height) * 100;
+      layer.style.background = 'radial-gradient(440px circle at ' + x + '% ' + y + '%, rgba(47,211,194,0.18), transparent 70%)';
+    };
+    window.addEventListener('mousemove', this.onMove, { passive: true });
+    this.setupReveal();
+    this.tick();
+  }
+
+  componentDidUpdate() { this.setupReveal(); }
+
+  componentWillUnmount() {
+    clearInterval(this.cycle);
+    clearTimeout(this.holdT);
+    if (this.obs) this.obs.disconnect();
+    window.removeEventListener('scroll', this.onScroll);
+    window.removeEventListener('resize', this.onScroll);
+    document.removeEventListener('visibilitychange', this.onScroll);
+    window.removeEventListener('mousemove', this.onMove);
+  }
+
+  setupReveal() {
+    if (this.reduce) return;
+    if (!this.obs) {
+      this.obs = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (!e.isIntersecting) return;
+          const el = e.target;
+          if (el.hasAttribute('data-count')) {
+            el.dataset.qcDone = '1';
+            this.countUp(el);
+          } else {
+            const d = parseInt(el.getAttribute('data-delay') || '0', 10);
+            setTimeout(() => {
+              el.dataset.qcDone = '1';
+              el.style.opacity = '1';
+              el.style.transform = 'none';
+            }, d);
+          }
+          this.obs.unobserve(el);
+        });
+      }, { rootMargin: '0px 0px -6% 0px', threshold: 0.06 });
+    }
+    document.querySelectorAll('[data-reveal]').forEach((el) => {
+      if (el.dataset.qcDone) { el.style.opacity = '1'; el.style.transform = 'none'; return; }
+      if (el.dataset.qcInit) return;
+      el.dataset.qcInit = '1';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(26px)';
+      el.style.transition = 'opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1)';
+      this.obs.observe(el);
+    });
+    document.querySelectorAll('[data-count]').forEach((el) => {
+      if (el.dataset.qcDone) { el.textContent = el.getAttribute('data-count') || '0'; return; }
+      if (el.dataset.qcInit) return;
+      el.dataset.qcInit = '1';
+      this.obs.observe(el);
+    });
+  }
+
+  countUp(el) {
+    const target = parseInt(el.getAttribute('data-count') || '0', 10);
+    if (target === 0) { el.textContent = '0'; return; }
+    const t0 = performance.now();
+    const step = (t) => {
+      const p = Math.min(1, (t - t0) / 900);
+      el.textContent = String(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  tick() {
+    const bar = document.querySelector('[data-qc-progress]');
+    if (bar) {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      bar.style.width = (h > 0 ? Math.min(100, Math.max(0, (window.scrollY / h) * 100)) : 0) + '%';
+    }
+    const story = document.querySelector('[data-qc-story]');
+    if (!story) return;
+    const r = story.getBoundingClientRect();
+    const span = r.height - window.innerHeight;
+    const p = span > 0 ? Math.min(1, Math.max(0, -r.top / span)) : 0;
+
+    const packet = document.querySelector('[data-qc-packet]');
+    if (packet) {
+      const t = Math.min(1, Math.max(0, (p - 0.14) / 0.62));
+      const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      packet.style.left = (8 + e * 58) + '%';
+      packet.style.top = (8 + e * 28) + '%';
+      packet.style.opacity = String(p < 0.1 ? 0 : p > 0.88 ? Math.max(0, (1 - p) / 0.12) : 1);
+      packet.style.transform = 'rotate(' + (-8 + e * 16) + 'deg) scale(' + (0.85 + e * 0.2) + ')';
+    }
+    const wire = document.querySelector('[data-qc-wire]');
+    if (wire) {
+      const t = Math.min(1, Math.max(0, (p - 0.1) / 0.55));
+      wire.setAttribute('stroke-dashoffset', String(100 - t * 100));
+    }
+    const landed = document.querySelector('[data-qc-landed]');
+    if (landed) landed.style.background = p > 0.82 ? '#2FD3C2' : '#EFE7D9';
+
+    const active = p < 0.34 ? 0 : p < 0.68 ? 1 : 2;
+    for (let i = 0; i < 3; i++) {
+      const s = document.querySelector('[data-qc-step="' + i + '"]');
+      if (s) {
+        s.style.opacity = i === active ? '1' : '0';
+        s.style.transform = i === active ? 'none' : 'translateY(' + (i < active ? -14 : 14) + 'px)';
+      }
+      const d = document.querySelector('[data-qc-dot="' + i + '"]');
+      if (d) d.style.background = i <= active ? '#0E8C86' : '#EBD9BA';
+    }
+  }
+
+  pick(pose) {
+    this.setState({ pose: pose, held: true });
+    clearTimeout(this.holdT);
+    this.holdT = setTimeout(() => this.setState({ held: false }), 5000);
+  }
+
+  renderVals() {
+    const pose = this.state.pose;
+    const m = this.meta[pose];
+    const dots = this.poses[pose].map((pt, i) => ({
+      x: pt[0], y: pt[1],
+      color: this.dotColors[i],
+      size: i === 0 ? 15 : (i % 4 === 0 && i > 0 ? 12 : 9)
+    }));
+    const on = (k) => pose === k;
+    const dl = this.props.downloadUrl ?? 'https://github.com/auroraeye-dev/Samcast/releases/latest/download/Samcast.dmg';
+    const gh = this.props.githubUrl ?? 'https://github.com/auroraeye-dev/Samcast';
+    return {
+      dots: dots,
+      poseLabel: m.label,
+      poseNote: m.note,
+      poseFingers: m.fingers,
+      poseColor: m.color,
+      fistBg: on('fist') ? '#12100F' : 'rgba(255,255,255,0.82)',
+      fistFg: on('fist') ? '#FFFCF7' : '#12100F',
+      openBg: on('open') ? '#12100F' : 'rgba(255,255,255,0.82)',
+      openFg: on('open') ? '#FFFCF7' : '#12100F',
+      peaceBg: on('peace') ? '#12100F' : 'rgba(255,255,255,0.82)',
+      peaceFg: on('peace') ? '#FFFCF7' : '#12100F',
+      pickFist: () => this.pick('fist'),
+      pickOpen: () => this.pick('open'),
+      pickPeace: () => this.pick('peace'),
+      deviceRows: this.devices.map((d) => ({ name: d[0], note: d[1], color: d[2] })),
+      statusRows: this.rows.map((r) => ({
+        claim: r[0], status: r[1], measured: r[2],
+        bg: this.statusStyles[r[1]][0], fg: this.statusStyles[r[1]][1]
+      })),
+      downloadHref: dl === '' ? '#install' : dl,
+      downloadNote: dl === '' ? 'Download link not wired up yet — drop the .dmg URL into Tweaks.' : 'macOS 13 or later · signed, not notarized',
+      githubHref: gh,
+      issuesHref: gh + '/issues',
+      coffees: Array.from({ length: this.state.cups }, (_, i) => ({ i: i })),
+      coffeeNote: this.coffeeNotes[Math.min(this.state.cups, this.coffeeNotes.length - 1)],
+      addCoffee: () => this.setState((s) => ({ cups: Math.min(12, s.cups + 1) })),
+      faqAllOpen: this.props.faqAllOpen ?? false
+    };
+  }
+}
+</script>
+</body>
+</html>
